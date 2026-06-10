@@ -1,0 +1,176 @@
+'use client'
+
+import { Fragment, useMemo, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { pickSlot, saveAvailability } from '@/app/actions'
+
+type Props = {
+  eventId: string
+  slug: string
+  days: string[]
+  timeMin: number
+  timeMax: number
+  slotMinutes: number
+  initialSlots: number[]
+  counts: Record<number, number>
+  totalMembers: number
+  isOrganizer: boolean
+}
+
+function hhmm(minutes: number) {
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+export default function Grid({
+  eventId,
+  slug,
+  days,
+  timeMin,
+  timeMax,
+  slotMinutes,
+  initialSlots,
+  counts,
+  totalMembers,
+  isOrganizer,
+}: Props) {
+  const slotsPerDay = Math.max(1, Math.floor((timeMax - timeMin) / slotMinutes))
+  const [selected, setSelected] = useState<Set<number>>(new Set(initialSlots))
+  const [dirty, setDirty] = useState(false)
+  const [pending, startTransition] = useTransition()
+  const router = useRouter()
+
+  function toggle(idx: number) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(idx)) next.delete(idx)
+      else next.add(idx)
+      return next
+    })
+    setDirty(true)
+  }
+
+  function save() {
+    startTransition(async () => {
+      await saveAvailability(eventId, slug, [...selected].sort((a, b) => a - b))
+      setDirty(false)
+      router.refresh()
+    })
+  }
+
+  const slotDate = (idx: number) => {
+    const day = days[Math.floor(idx / slotsPerDay)]
+    const minutes = timeMin + (idx % slotsPerDay) * slotMinutes
+    return new Date(`${day}T${hhmm(minutes)}:00`)
+  }
+
+  const best = useMemo(() => {
+    return Object.entries(counts)
+      .map(([idx, n]) => ({ idx: Number(idx), n }))
+      .filter((s) => s.n > 0)
+      .sort((a, b) => b.n - a.n || a.idx - b.idx)
+      .slice(0, 3)
+  }, [counts])
+
+  function finalize(idx: number) {
+    const start = slotDate(idx)
+    const end = new Date(start.getTime() + 3 * 60 * 60 * 1000)
+    startTransition(async () => {
+      await pickSlot(eventId, slug, start.toISOString(), end.toISOString())
+      router.refresh()
+    })
+  }
+
+  return (
+    <div>
+      <p className="mb-2 text-sm text-stone-500">
+        Toca las celdas en las que puedes. Cuanto más ámbar, más gente puede.
+      </p>
+      <div
+        className="grid gap-0.5 text-center text-[11px] text-stone-400"
+        style={{ gridTemplateColumns: `44px repeat(${days.length}, 1fr)` }}
+      >
+        <div />
+        {days.map((d) => (
+          <div key={d} className="pb-1">
+            {new Date(`${d}T00:00:00`).toLocaleDateString('es-ES', {
+              weekday: 'short',
+              day: 'numeric',
+            })}
+          </div>
+        ))}
+        {Array.from({ length: slotsPerDay }).map((_, t) => (
+          <Fragment key={t}>
+            <div className="pr-1 text-right leading-5">
+              {hhmm(timeMin + t * slotMinutes)}
+            </div>
+            {days.map((_, d) => {
+              const idx = d * slotsPerDay + t
+              const n = counts[idx] ?? 0
+              const alpha = n === 0 ? 0 : 0.15 + 0.7 * (n / Math.max(totalMembers, 1))
+              const mine = selected.has(idx)
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => toggle(idx)}
+                  aria-label={`slot ${idx}`}
+                  className={`h-6 rounded-sm border ${mine ? 'border-stone-800 border-2' : 'border-stone-200'}`}
+                  style={{ backgroundColor: alpha ? `rgba(217,119,6,${alpha})` : '#fff' }}
+                />
+              )
+            })}
+          </Fragment>
+        ))}
+      </div>
+      <div className="mt-3 flex items-center justify-between">
+        <span className="text-xs text-stone-400">tu selección = borde negro</span>
+        <button
+          onClick={save}
+          disabled={!dirty || pending}
+          className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
+        >
+          {pending ? 'Zumbando…' : 'Guardar disponibilidad'}
+        </button>
+      </div>
+
+      {best.length > 0 && (
+        <div className="mt-5">
+          <h3 className="mb-2 text-sm font-medium uppercase tracking-wide text-stone-400">
+            Mejores huecos
+          </h3>
+          <ul className="space-y-1">
+            {best.map((s) => (
+              <li
+                key={s.idx}
+                className="flex items-center justify-between rounded-lg border border-stone-200 bg-white p-2 text-sm"
+              >
+                <span className="text-stone-700">
+                  {slotDate(s.idx).toLocaleString('es-ES', {
+                    weekday: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                  <span className="ml-2 text-stone-400">
+                    {s.n}/{totalMembers}
+                  </span>
+                </span>
+                {isOrganizer && (
+                  <button
+                    onClick={() => finalize(s.idx)}
+                    disabled={pending}
+                    className="rounded-lg border border-amber-500 px-2 py-1 text-xs font-medium text-amber-700"
+                  >
+                    Fijar (3 h)
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}

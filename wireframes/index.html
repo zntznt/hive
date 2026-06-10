@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hive — v0 wireframes</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/tabler-icons.min.css">
+<style>
+:root{--color-background-primary:#fff;--color-background-secondary:#f0efeb;--color-background-tertiary:#faf9f5;--color-text-primary:#1a1a17;--color-text-secondary:#5f5e5a;--color-text-tertiary:#92918c;--color-border-primary:#a9a8a2;--color-border-secondary:#c9c8c2;--color-border-tertiary:#e2e1db;--font-sans:system-ui,-apple-system,"Segoe UI",sans-serif}
+body{background:var(--color-background-tertiary);color:var(--color-text-primary);font-family:var(--font-sans);margin:0;padding:24px 16px 60px}
+.wf{max-width:1080px;margin:0 auto}
+h1{font-size:22px;font-weight:500;margin:0 0 4px}
+.sub{font-size:14px;color:var(--color-text-secondary);margin:0 0 1.25rem}
+.toc{margin:0 0 2.5rem}
+.toc a{text-decoration:none;color:inherit}
+section{margin:0 0 3rem}
+h3{font-size:16px;font-weight:500;margin:0 0 .75rem}
+.row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+.phone{width:340px;flex:none;background:var(--color-background-primary);border:1.5px solid var(--color-border-primary);border-radius:18px;padding:16px 14px;box-sizing:border-box}
+.notes{flex:1;min-width:240px;margin:0;padding-left:18px;font-size:13px;color:var(--color-text-secondary);line-height:1.65}
+.notes li{margin:0 0 6px}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 0 10px;font-size:15px;font-weight:500}
+.chip{display:inline-block;font-size:12px;padding:2px 10px;border:.5px solid var(--color-border-secondary);border-radius:999px;color:var(--color-text-secondary);margin:0 4px 4px 0;text-decoration:none}
+.chip.on{background:var(--color-background-secondary);color:var(--color-text-primary);border-color:var(--color-border-primary)}
+.tag{font-size:11px;border-radius:6px;padding:1px 7px;background:var(--color-background-secondary);color:var(--color-text-secondary);white-space:nowrap}
+.card{border:.5px solid var(--color-border-secondary);border-radius:10px;padding:10px 12px;margin:0 0 8px;font-size:13px}
+.muted{color:var(--color-text-tertiary);font-size:12px}
+.btn{display:inline-block;border:.5px solid var(--color-border-primary);border-radius:8px;padding:6px 12px;font-size:13px;margin:2px 6px 2px 0;background:var(--color-background-primary)}
+.btn.pri{background:var(--color-background-secondary);font-weight:500}
+.seg{display:flex;gap:6px;margin:8px 0}
+.av{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--color-background-secondary);align-items:center;justify-content:center;font-size:11px;font-weight:500;flex:none}
+.rowi{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:.5px solid var(--color-border-tertiary);font-size:13px}
+.rowi:first-of-type{border-top:none}
+.grid{display:grid;grid-template-columns:38px repeat(5,1fr);gap:2px;font-size:11px;color:var(--color-text-tertiary);margin:8px 0}
+.grid div{text-align:center}
+.cell{height:16px;border-radius:2px;background:var(--color-background-secondary)}
+.h1c{background:#D3D1C7}.h2c{background:#B4B2A9}.h3c{background:#888780}.h4c{background:#5F5E5A}
+.me{outline:2px solid var(--color-text-primary);outline-offset:-2px}
+.band{background:var(--color-background-secondary);border-radius:8px;padding:8px 10px;font-size:12.5px;margin:8px 0;color:var(--color-text-secondary)}
+.sec{font-size:12px;font-weight:500;letter-spacing:.04em;color:var(--color-text-tertiary);margin:14px 0 6px;text-transform:uppercase}
+.ti{vertical-align:-2px}
+.cap{height:8px;border-radius:4px;background:var(--color-background-secondary);margin:6px 0;position:relative}
+.cap b{display:block;height:8px;border-radius:4px;background:#888780;width:83%}
+.bal{display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0}
+.bal i.m{height:8px;border-radius:4px;background:#B4B2A9;display:inline-block}
+</style>
+</head>
+<body>
+<div class="wf">
+<h1><i class="ti ti-bug" aria-hidden="true"></i> Hive — v0 wireframes</h1>
+<p class="sub">Low-fi, grayscale, phone-first (members arrive from a WhatsApp link). Spec references: docs/05-feature-spec.md · identity: docs/03 · schema: docs/04 · brand: docs/08 (honey palette + fa-bugs mark land in hi-fi, not in these wireframes)</p>
+<nav class="toc">
+<a class="chip" href="#s1">1 invite landing</a><a class="chip" href="#s2">2 waiting room</a><a class="chip" href="#s3">3 club home</a><a class="chip" href="#s4">4 availability grid</a><a class="chip" href="#s5">5 event (scheduled)</a><a class="chip" href="#s6">6 contributions</a><a class="chip" href="#s7">7 expenses</a><a class="chip" href="#s8">8 poll</a><a class="chip" href="#s9">9 profile</a><a class="chip" href="#s10">10 invite manager</a><a class="chip" href="#s11">11 admin panel</a>
+</nav>
+
+<section id="s1">
+<h3>1 · Invite landing / sign-in (F2)</h3>
+<div class="row">
+<div class="phone">
+  <div style="text-align:center;padding:18px 0 6px"><i class="ti ti-bug" style="font-size:34px;color:var(--color-text-secondary)" aria-hidden="true"></i></div>
+  <div style="text-align:center;font-size:16px;font-weight:500">Marta te ha invitado a<br>«Jueves de juegos»</div>
+  <div style="text-align:center" class="muted">Los Jueves · 14 socios</div>
+  <div class="sec">Entrar</div>
+  <div class="card"><span class="muted">tu email o número de WhatsApp</span><br>jorge@…&nbsp; / &nbsp;+34 6__ ___ ___</div>
+  <span class="btn pri" style="width:100%;text-align:center;box-sizing:border-box">Envíame el enlace mágico</span>
+  <div class="band"><i class="ti ti-wand ti" aria-hidden="true"></i> Sin contraseñas. Te llega un enlace por WhatsApp o email y entras.</div>
+</div>
+<ul class="notes">
+<li>Personal invite link <code>/i/{token}</code>: name + channel pre-filled, one tap to request the magic link.</li>
+<li>Share-link visitors (<code>/e/{slug}</code>) see title-only preview + this same sign-in; join policy applies after auth.</li>
+<li>No signup form exists anywhere — accounts are born from invitations (docs/03).</li>
+</ul>
+</div>
+</section>
+
+<section id="s2">
+<h3>2 · Waiting for verification (F2 gate)</h3>
+<div class="row">
+<div class="phone" style="text-align:center">
+  <div style="padding:26px 0 8px"><i class="ti ti-hourglass" style="font-size:34px;color:var(--color-text-secondary)" aria-hidden="true"></i></div>
+  <div style="font-size:16px;font-weight:500">Cuenta pendiente de aprobación</div>
+  <p class="muted" style="padding:0 12px">El administrador tiene que verificar tu cuenta. Te avisamos por WhatsApp cuando esté lista.</p>
+  <span class="btn">Cerrar sesión</span>
+</div>
+<ul class="notes">
+<li>Pending users see only this — RLS (<code>is_active_user()</code>) hides all club/event data at the database layer.</li>
+<li>The app admin got a WhatsApp/email ping when this account appeared; verifying is one toggle (screen 11).</li>
+<li>Accounts invited directly by the app admin skip this state entirely (<code>auto_activate</code>).</li>
+</ul>
+</div>
+</section>
+
+<section id="s3">
+<h3>3 · Club home (F1)</h3>
+<div class="row">
+<div class="phone">
+  <div class="bar">Los Jueves <span class="tag">14 socios</span></div>
+  <div>
+    <span class="chip on">Todos</span><span class="chip"><i class="ti ti-dice ti" aria-hidden="true"></i> Juegos</span><span class="chip"><i class="ti ti-scissors ti" aria-hidden="true"></i> Scrapbook</span><span class="chip"><i class="ti ti-movie ti" aria-hidden="true"></i> Cine</span><span class="chip"><i class="ti ti-swords ti" aria-hidden="true"></i> Wargames</span>
+  </div>
+  <div class="sec">Próximos</div>
+  <div class="card"><b>Twilight Imperium</b> <span class="tag">Juegos</span> <span class="tag">buscando fecha</span><br><span class="muted">9/12 han marcado disponibilidad · responde antes del mié</span></div>
+  <div class="sec">Historial</div>
+  <div class="card">Noche de Catan <span class="tag">Juegos</span><br><span class="muted">23 may · 11 asistieron · 42,50 € liquidado</span></div>
+  <div class="card">Scrapbook vol. VII <span class="tag">Scrapbook</span><br><span class="muted">9 may · 6 asistieron</span></div>
+  <div class="sec">Socios</div>
+  <div class="rowi"><span class="av">MA</span> Marta <span class="tag">admin</span><span class="muted" style="margin-left:auto">hace 4 días · 31 ev.</span></div>
+  <div class="rowi"><span class="av">JO</span> Jorge<span class="muted" style="margin-left:auto">hace 2 sem · 14 ev.</span></div>
+  <div class="rowi"><span class="av">LU</span> Lucía<span class="muted" style="margin-left:auto">12 mar · 3 ev.</span></div>
+</div>
+<ul class="notes">
+<li>Category chips filter history + attendance; categories are club-defined rows, not free tags (docs/04).</li>
+<li>"Last attended · count" comes from the <code>attendance_stats</code> view — derived from RSVPs on done events, never hand-kept.</li>
+<li>Per-category attendance answers "when did Lucía last come to a games night?" — tap a member for the breakdown.</li>
+</ul>
+</div>
+</section>
+
+<section id="s4">
+<h3>4 · Event in scheduling — availability grid (F4)</h3>
+<div class="row">
+<div class="phone">
+  <div class="bar">Twilight Imperium <span class="tag">buscando fecha</span></div>
+  <div class="muted">Pinta cuándo puedes · semana del 15–19 jun · 19:00–24:00 (Europe/Madrid)</div>
+  <div class="grid">
+    <div></div><div>L15</div><div>M16</div><div>X17</div><div>J18</div><div>V19</div>
+    <div>19:00</div><div class="cell h1c"></div><div class="cell h2c"></div><div class="cell h1c"></div><div class="cell h3c me"></div><div class="cell h2c"></div>
+    <div>20:00</div><div class="cell h2c"></div><div class="cell h2c"></div><div class="cell h2c"></div><div class="cell h4c me"></div><div class="cell h3c"></div>
+    <div>21:00</div><div class="cell h2c"></div><div class="cell h1c"></div><div class="cell h3c"></div><div class="cell h4c me"></div><div class="cell h3c me"></div>
+    <div>22:00</div><div class="cell h1c"></div><div class="cell h1c"></div><div class="cell h2c"></div><div class="cell h3c me"></div><div class="cell h2c me"></div>
+    <div>23:00</div><div class="cell"></div><div class="cell h1c"></div><div class="cell h1c"></div><div class="cell h2c"></div><div class="cell h1c"></div>
+  </div>
+  <div class="muted">tu selección = borde negro · oscuridad = nº de personas (0→12)</div>
+  <div class="sec">Mejores huecos</div>
+  <div class="rowi">Jue 18 · 20:00–23:00 <span class="tag">11/12</span><span class="btn pri" style="margin-left:auto">Fijar</span></div>
+  <div class="rowi">Vie 19 · 21:00–23:00 <span class="tag">9/12</span><span class="btn" style="margin-left:auto">Fijar</span></div>
+</div>
+<ul class="notes">
+<li>crab.fit interaction: tap/drag to paint; heatmap updates live (Supabase Realtime); stored as UTC slot indexes, rendered in viewer's timezone.</li>
+<li>"Fijar" is organizer-only; it sets <code>chosen_start/end</code>, flips state to scheduled, fires the <code>event_scheduled</code> WhatsApp template.</li>
+<li>Best slots = contiguous runs ranked by headcount; organizer can override by tapping any cell range.</li>
+</ul>
+</div>
+</section>
+
+<section id="s5">
+<h3>5 · Event scheduled — RSVP, confirm, capacity (F3+F5)</h3>
+<div class="row">
+<div class="phone">
+  <div class="bar">Twilight Imperium <span class="tag">Juegos</span></div>
+  <div class="card"><i class="ti ti-calendar ti" aria-hidden="true"></i> <b>Jue 18 jun · 20:00</b> · casa de Marta<br><span class="muted">elegido del heatmap · 11 podían</span></div>
+  <div class="seg"><span class="btn pri"><i class="ti ti-check ti" aria-hidden="true"></i> Voy</span><span class="btn">No voy</span><span class="btn">Quizás</span></div>
+  <div class="band"><i class="ti ti-alert-circle ti" aria-hidden="true"></i> Confirma tu plaza antes del <b>mar 16</b> — toca «Voy» otra vez para confirmar.</div>
+  <div class="sec">Plazas</div>
+  <div class="cap"><b></b></div>
+  <div class="muted">10/12 confirmadas · 1 en lista de espera</div>
+  <div class="sec">Resumen</div>
+  <div class="rowi"><i class="ti ti-backpack ti" aria-hidden="true"></i> Aportaciones <span class="muted" style="margin-left:auto">3 de 5 cubiertas</span></div>
+  <div class="rowi"><i class="ti ti-coins ti" aria-hidden="true"></i> Gastos <span class="muted" style="margin-left:auto">42,50 € · 2 deudas abiertas</span></div>
+  <div class="rowi"><i class="ti ti-chart-bar ti" aria-hidden="true"></i> Encuestas <span class="muted" style="margin-left:auto">1 abierta</span></div>
+  <div class="rowi"><span class="av">MA</span><span class="av">JO</span><span class="av">LU</span><span class="av">+8</span><span class="muted" style="margin-left:auto">y Ana (invitada de Jorge)</span></div>
+</div>
+<ul class="notes">
+<li>One URL, state-aware: this same <code>/e/{slug}</code> showed the grid yesterday and shows the recap after the event.</li>
+<li>Confirm banner, capacity bar and waitlist only render when the organizer enabled those optional settings.</li>
+<li>Waitlist promotion is automatic + notified when someone drops to "No voy" (atomic RPC, no double-grants).</li>
+</ul>
+</div>
+</section>
+
+<section id="s6">
+<h3>6 · Contributions (F6)</h3>
+<div class="row">
+<div class="phone">
+  <div class="bar">Aportaciones <span class="tag">3/5</span></div>
+  <div class="rowi"><i class="ti ti-square-check ti" aria-hidden="true"></i> Hielo · 2 bolsas <span class="muted" style="margin-left:auto">Jorge — «me lo pido»</span></div>
+  <div class="rowi"><i class="ti ti-square-check ti" aria-hidden="true"></i> Mesa plegable <span class="muted" style="margin-left:auto">Marta → Lucía</span></div>
+  <div class="rowi"><i class="ti ti-square ti" aria-hidden="true"></i> Bebida sin alcohol <span class="muted" style="margin-left:auto">Marta → Pablo</span></div>
+  <div class="rowi"><i class="ti ti-help-circle ti" aria-hidden="true"></i> Altavoz <span class="tag">sin dueño</span><span class="btn" style="margin-left:auto">Me lo pido</span></div>
+  <div class="rowi"><i class="ti ti-help-circle ti" aria-hidden="true"></i> Recoger tarta <span class="tag">tarea · antes 19:00</span><span class="btn" style="margin-left:auto">Me la pido</span></div>
+  <div class="sec">Añadir</div>
+  <div class="card"><span class="muted">Yo traigo…</span> &nbsp;sillas ×4 <span class="btn pri" style="float:right">Añadir</span></div>
+  <div class="band">Organizador: además puedes <b>asignar a otros</b> o publicar necesidades sin dueño.</div>
+</div>
+<ul class="notes">
+<li>The permission rule, verbatim from the founder: anyone can say "I'll bring chairs" about themselves; only organizers can say "you bring chairs" to others. Everyone sees the whole list.</li>
+<li>Enforced server-side (RPC + RLS), not just hidden buttons — a member literally cannot write a row assigned to someone else.</li>
+<li><code>bring</code> and <code>task</code> are one list with a kind flag; qty is free text ("2 bolsas") because that's how humans talk.</li>
+</ul>
+</div>
+</section>
+
+<section id="s7">
+<h3>7 · Expenses & balances (F7)</h3>
+<div class="row">
+<div class="phone">
+  <div class="bar">Gastos <span class="tag">42,50 € total</span></div>
+  <div class="rowi">Pizzas <span class="muted">· pagó Marta · entre 11</span><span style="margin-left:auto;font-weight:500">34,50 €</span></div>
+  <div class="rowi">Hielo y vasos <span class="muted">· pagó Jorge · entre 11</span><span style="margin-left:auto;font-weight:500">8,00 €</span></div>
+  <span class="btn pri">Añadir gasto</span>
+  <div class="sec">Balances</div>
+  <div class="bal"><span class="av">MA</span> Marta <i class="m" style="width:90px"></i><span style="margin-left:auto;font-weight:500">+30,64 €</span></div>
+  <div class="bal"><span class="av">JO</span> Jorge <i class="m" style="width:34px"></i><span style="margin-left:auto">+0,27 €</span></div>
+  <div class="bal"><span class="av">LU</span> Lucía <i class="m" style="width:14px"></i><span style="margin-left:auto">−3,86 €</span></div>
+  <div class="bal"><span class="av">+7</span> resto <span style="margin-left:auto">−3,86 € c/u</span></div>
+  <div class="band">Ana (invitada) no tiene cuenta: su parte (−3,86 €) cuenta en el balance de <b>Jorge</b>.</div>
+  <div class="sec">Liquidar</div>
+  <div class="rowi">Lucía → Marta · 3,86 € <span class="btn" style="margin-left:auto">Marcar pagado</span></div>
+</div>
+<ul class="notes">
+<li>Kittysplit-grade entry: payer, amount, note, who's in (defaults to everyone marked "Voy", guests includable).</li>
+<li>Balances are a view that always sums to zero; guest shares resolve to the host (<code>promoted_to_user_id</code> re-points them later).</li>
+<li>Settle-up = min-cashflow suggestions; "Marcar pagado" records a settlement the recipient confirms. Per-event in v0; running club ledger is a v1 toggle over the same rows.</li>
+</ul>
+</div>
+</section>
+
+<section id="s8">
+<h3>8 · Poll (F8)</h3>
+<div class="row">
+<div class="phone">
+  <div class="bar">¿A qué jugamos?</div>
+  <div class="muted">creada por Jorge (socio) · cierra mié 17 · voto visible</div>
+  <div class="rowi"><i class="ti ti-circle-check ti" aria-hidden="true"></i> Twilight Imperium <i class="m" style="height:8px;width:80px;background:#B4B2A9;border-radius:4px;margin-left:auto"></i> 7</div>
+  <div class="rowi"><i class="ti ti-circle ti" aria-hidden="true"></i> Catan <i class="m" style="height:8px;width:30px;background:#D3D1C7;border-radius:4px;margin-left:auto"></i> 3</div>
+  <div class="rowi"><i class="ti ti-circle ti" aria-hidden="true"></i> Póker <i class="m" style="height:8px;width:12px;background:#D3D1C7;border-radius:4px;margin-left:auto"></i> 1</div>
+  <div class="band"><i class="ti ti-arrow-up-right ti" aria-hidden="true"></i> <b>Aplicada al evento:</b> Twilight Imperium — los votos siguen a la vista aunque se aplique otra opción.</div>
+  <span class="btn">Nueva encuesta</span>
+</div>
+<ul class="notes">
+<li>Any member creates polls — same self-serve spirit as contributions. Single or multi choice, optional anonymity, optional close date.</li>
+<li>Applying an option writes <code>applied_option_id</code> and updates the event field; results remain visible so "voted vs applied" is always auditable.</li>
+<li>Anonymous polls never ship voter→option pairs to the client at all (API shape, not CSS).</li>
+</ul>
+</div>
+</section>
+
+<section id="s9">
+<h3>9 · Profile — channels & preferences (F2)</h3>
+<div class="row">
+<div class="phone">
+  <div class="bar"><span><span class="av">JO</span> Jorge</span></div>
+  <div class="sec">Canales</div>
+  <div class="rowi"><i class="ti ti-brand-whatsapp ti" aria-hidden="true"></i> +34 6·· ··· ·12 <span class="tag" style="margin-left:auto">verificado</span></div>
+  <div class="rowi"><i class="ti ti-mail ti" aria-hidden="true"></i> jorge@gmail.com <span class="tag" style="margin-left:auto">verificado</span></div>
+  <span class="btn">Añadir canal</span>
+  <div class="sec">Avisos</div>
+  <div class="rowi"><i class="ti ti-bell ti" aria-hidden="true"></i> Primero WhatsApp, email de respaldo <span class="tag" style="margin-left:auto">por defecto</span></div>
+  <div class="band">Entra desde cualquier dispositivo pidiendo un enlace a cualquiera de tus canales. Nada vive solo en este móvil.</div>
+</div>
+<ul class="notes">
+<li>Adding a channel = OTP to that channel; after linking, either one signs you in and receives notifications.</li>
+<li>This screen is the whole answer to "I lost my phone": web-based recovery, no device-bound secrets.</li>
+<li>Notification preference is per-user; confirm reminders and waitlist promotions always send.</li>
+</ul>
+</div>
+</section>
+
+<section id="s10">
+<h3>10 · Invite manager + share link (F2+F3, organizer)</h3>
+<div class="row">
+<div class="phone">
+  <div class="bar">Invitar · Twilight Imperium</div>
+  <div class="sec">Enlace del evento</div>
+  <div class="card" style="display:flex;align-items:center;gap:8px"><i class="ti ti-link ti" aria-hidden="true"></i> hive.app/e/x7Kp…<span class="btn pri" style="margin-left:auto"><i class="ti ti-copy ti" aria-hidden="true"></i> Copiar</span></div>
+  <div class="muted">pégalo en el grupo de WhatsApp — los socios entran directos</div>
+  <div class="rowi">Política del enlace <span class="tag" style="margin-left:auto">solo socios del club ▾</span></div>
+  <div class="sec">Invitación directa</div>
+  <div class="card"><span class="muted">email o WhatsApp</span><br>+34 6·· ··· ··· <span class="btn pri" style="float:right">Enviar</span></div>
+  <div class="sec">Pendientes</div>
+  <div class="rowi">+34 6·· ··· ·77 <span class="muted">· hace 2 días</span><span class="btn" style="margin-left:auto">Reenviar</span></div>
+  <div class="rowi">ana@gmail.com <span class="tag">de invitada Ana</span><span class="btn" style="margin-left:auto">Reenviar</span></div>
+</div>
+<ul class="notes">
+<li>The share link is the founder's headline ask: drop one URL in the group chat and the flow starts there.</li>
+<li>Join policy: club members only (default) / anyone with link / invite only. Strangers land in the verification queue at worst.</li>
+<li>"de invitada Ana" = guest promotion in flight: claim re-points her expense shares to the new account.</li>
+</ul>
+</div>
+</section>
+
+<section id="s11">
+<h3>11 · App admin panel (F11)</h3>
+<div class="row">
+<div class="phone">
+  <div class="bar">Administración <span class="tag">app admin</span></div>
+  <div class="sec">Pendientes de verificar (2)</div>
+  <div class="rowi"><span class="av">AN</span> Ana · ana@gmail.com <span class="muted">· invitada por Jorge</span><span class="btn pri" style="margin-left:auto">Verificar</span></div>
+  <div class="rowi"><span class="av">??</span> +34 6·· ··· ·09 <span class="muted">· vía enlace</span><span class="btn pri" style="margin-left:auto">Verificar</span></div>
+  <div class="sec">Usuarios (17)</div>
+  <div class="rowi"><span class="av">MA</span> Marta <span class="tag">activa</span><span class="muted" style="margin-left:auto">2 clubs</span></div>
+  <div class="rowi"><span class="av">JO</span> Jorge <span class="tag">activo</span><span class="muted" style="margin-left:auto">1 club</span></div>
+  <div class="rowi"><span class="av">PE</span> Pedro <span class="tag">desactivado</span><span class="btn" style="margin-left:auto">Reactivar</span></div>
+  <div class="sec">Mensajes</div>
+  <div class="rowi">Enviados 124 · En cola 2 · <span style="font-weight:500">Fallos 1</span><span class="btn" style="margin-left:auto">Ver</span></div>
+</div>
+<ul class="notes">
+<li>The founder's "rein in accounts" control: nobody becomes active without a toggle here; the admin was notified when each pending row appeared.</li>
+<li>Deactivation keeps history (attendance, expenses) but blocks sign-in and new activity.</li>
+<li>Outbox health surfaces WhatsApp/email delivery failures — the fallback channel kicks in automatically.</li>
+</ul>
+</div>
+</section>
+</div>
+</body>
+</html>

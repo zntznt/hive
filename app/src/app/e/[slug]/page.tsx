@@ -1,0 +1,255 @@
+import Link from 'next/link'
+import { requireProfile } from '@/lib/gate'
+import type { Contribution, EventRow, RsvpStatus } from '@/lib/types'
+import { addContribution, claimContribution, setRsvp, toggleContribution } from '@/app/actions'
+import Grid from './grid'
+
+function dayRange(start: string, end: string) {
+  const days: string[] = []
+  const d = new Date(`${start}T00:00:00`)
+  const stop = new Date(`${end}T00:00:00`)
+  while (d <= stop && days.length < 31) {
+    days.push(d.toISOString().slice(0, 10))
+    d.setDate(d.getDate() + 1)
+  }
+  return days
+}
+
+export default async function EventPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { supabase, profile } = await requireProfile()
+  const { slug } = await params
+
+  let { data } = await supabase
+    .from('events')
+    .select('*, clubs(slug)')
+    .eq('slug', slug)
+    .maybeSingle()
+  if (!data) {
+    // not a member yet — the share-link flow: try to join per the event's policy
+    const { error } = await supabase.rpc('join_event', { event_slug: slug })
+    if (!error) {
+      ;({ data } = await supabase
+        .from('events')
+        .select('*, clubs(slug)')
+        .eq('slug', slug)
+        .maybeSingle())
+    }
+  }
+  if (!data) {
+    return (
+      <main className="mx-auto max-w-md p-6">
+        <p className="text-stone-600">
+          Este evento es solo con invitación (o el enlace no es correcto). Pide a quien organiza
+          que te invite.
+        </p>
+      </main>
+    )
+  }
+  const event = data as EventRow
+  const clubSlug = (data.clubs as unknown as { slug: string } | null)?.slug
+
+  const [{ data: members }, { data: rsvps }, { data: avail }, { data: contribs }] =
+    await Promise.all([
+      supabase
+        .from('event_members')
+        .select('user_id, role, users(display_name)')
+        .eq('event_id', event.id),
+      supabase.from('rsvps').select('*').eq('event_id', event.id),
+      supabase.from('availability').select('user_id, slots').eq('event_id', event.id),
+      supabase
+        .from('contributions')
+        .select('*')
+        .eq('event_id', event.id)
+        .order('created_at'),
+    ])
+
+  const nameOf = new Map(
+    (members ?? []).map((m) => [
+      m.user_id,
+      (m.users as unknown as { display_name: string } | null)?.display_name ?? '—',
+    ])
+  )
+  const myMembership = (members ?? []).find((m) => m.user_id === profile.id)
+  const isOrganizer =
+    event.organizer_user_id === profile.id || myMembership?.role === 'organizer'
+  const myRsvp = (rsvps ?? []).find((r) => r.user_id === profile.id)
+
+  const counts: Record<number, number> = {}
+  for (const row of avail ?? []) {
+    for (const s of row.slots as number[]) counts[s] = (counts[s] ?? 0) + 1
+  }
+  const mySlots = ((avail ?? []).find((a) => a.user_id === profile.id)?.slots ?? []) as number[]
+
+  const contributions = (contribs ?? []) as Contribution[]
+  const byStatus = (st: RsvpStatus) => (rsvps ?? []).filter((r) => r.status === st)
+
+  return (
+    <main className="mx-auto w-full max-w-md p-6">
+      <header className="mb-1 flex items-baseline justify-between">
+        <h1 className="text-xl font-semibold text-stone-800">{event.title}</h1>
+        {clubSlug && (
+          <Link href={`/club/${clubSlug}`} className="text-sm text-stone-500 underline">
+            club
+          </Link>
+        )}
+      </header>
+      <p className="mb-6 text-sm text-stone-500">
+        {event.status === 'scheduling' && 'buscando fecha — pinta tu disponibilidad'}
+        {event.status === 'scheduled' &&
+          `${new Date(event.chosen_start!).toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${event.location ? ` · ${event.location}` : ''}`}
+        {event.status === 'done' && `celebrado el ${new Date(event.chosen_start!).toLocaleDateString('es-ES')}`}
+        {event.status === 'draft' && 'borrador'}
+        {event.status === 'cancelled' && 'cancelado'}
+      </p>
+
+      {event.status === 'scheduling' && event.sched_start_date && event.sched_end_date && (
+        <section className="mb-8">
+          <Grid
+            eventId={event.id}
+            slug={event.slug}
+            days={dayRange(event.sched_start_date, event.sched_end_date)}
+            timeMin={event.sched_time_min}
+            timeMax={event.sched_time_max}
+            slotMinutes={event.sched_slot_minutes}
+            initialSlots={mySlots}
+            counts={counts}
+            totalMembers={(members ?? []).length}
+            isOrganizer={!!isOrganizer}
+          />
+        </section>
+      )}
+
+      {event.status !== 'scheduling' && (
+        <section className="mb-8">
+          <div className="mb-3 flex gap-2">
+            {(['in', 'out', 'maybe'] as RsvpStatus[]).map((st) => (
+              <form key={st} action={setRsvp.bind(null, event.id, event.slug, st)}>
+                <button
+                  className={`rounded-xl border px-4 py-2 text-sm font-medium ${
+                    myRsvp?.status === st
+                      ? 'border-amber-500 bg-amber-100 text-amber-900'
+                      : 'border-stone-300 bg-white text-stone-600'
+                  }`}
+                >
+                  {st === 'in' ? 'Voy' : st === 'out' ? 'No voy' : 'Quizás'}
+                </button>
+              </form>
+            ))}
+          </div>
+          <p className="text-sm text-stone-500">
+            van {byStatus('in').length} · no van {byStatus('out').length} · quizás{' '}
+            {byStatus('maybe').length}
+          </p>
+          {byStatus('in').length > 0 && (
+            <p className="mt-1 text-sm text-stone-600">
+              {byStatus('in')
+                .map((r) => nameOf.get(r.user_id) ?? '—')
+                .join(', ')}
+            </p>
+          )}
+        </section>
+      )}
+
+      <section className="mb-8">
+        <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-stone-400">
+          Aportaciones
+        </h2>
+        {contributions.length === 0 && (
+          <p className="mb-2 text-sm text-stone-500">
+            Nadie trae nada todavía — sé la primera abeja.
+          </p>
+        )}
+        <ul className="mb-3 space-y-2">
+          {contributions.map((c) => (
+            <li
+              key={c.id}
+              className="flex items-center justify-between rounded-xl border border-stone-200 bg-white p-3 text-sm"
+            >
+              <span className={c.done ? 'text-stone-400 line-through' : 'text-stone-800'}>
+                {c.title}
+                {c.qty ? ` · ${c.qty}` : ''}
+                {c.kind === 'task' && (
+                  <span className="ml-2 rounded bg-stone-100 px-1.5 py-0.5 text-xs text-stone-600">
+                    tarea
+                  </span>
+                )}
+              </span>
+              {c.assigned_to ? (
+                <span className="flex items-center gap-2 text-stone-500">
+                  {nameOf.get(c.assigned_to) ?? '—'}
+                  {(c.assigned_to === profile.id || isOrganizer) && (
+                    <form action={toggleContribution.bind(null, c.id, event.slug, !c.done)}>
+                      <button className="text-xs text-amber-700 underline">
+                        {c.done ? 'deshacer' : 'hecho'}
+                      </button>
+                    </form>
+                  )}
+                </span>
+              ) : (
+                <form action={claimContribution.bind(null, c.id, event.slug)}>
+                  <button className="rounded-lg bg-amber-500 px-2 py-1 text-xs font-medium text-white">
+                    Me lo pido
+                  </button>
+                </form>
+              )}
+            </li>
+          ))}
+        </ul>
+        <form
+          action={addContribution.bind(null, event.id, event.slug)}
+          className="space-y-2 rounded-xl border border-dashed border-stone-300 p-3"
+        >
+          <div className="flex gap-2">
+            <input
+              name="title"
+              required
+              placeholder={isOrganizer ? 'Hace falta…' : 'Yo traigo…'}
+              className="w-full rounded-lg border border-stone-300 p-2 text-sm outline-amber-500"
+            />
+            <input
+              name="qty"
+              placeholder="cantidad"
+              className="w-24 rounded-lg border border-stone-300 p-2 text-sm outline-amber-500"
+            />
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <select name="kind" className="rounded-lg border border-stone-300 p-2 text-sm">
+              <option value="bring">traer algo</option>
+              <option value="task">tarea</option>
+            </select>
+            {isOrganizer && (
+              <select
+                name="assigned_to"
+                className="rounded-lg border border-stone-300 p-2 text-sm"
+                defaultValue=""
+              >
+                <option value="">para mí</option>
+                <option value="open">abierto (que alguien se lo pida)</option>
+                {(members ?? [])
+                  .filter((m) => m.user_id !== profile.id)
+                  .map((m) => (
+                    <option key={m.user_id} value={m.user_id}>
+                      asignar a {nameOf.get(m.user_id)}
+                    </option>
+                  ))}
+              </select>
+            )}
+            <button className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-white">
+              Añadir
+            </button>
+          </div>
+          {!isOrganizer && (
+            <p className="text-xs text-stone-400">
+              Te lo apuntas tú — asignar a otras personas es cosa de quien organiza.
+            </p>
+          )}
+        </form>
+      </section>
+
+      <p className="text-xs text-stone-400">
+        Gastos, balances y encuestas: el modelo de datos ya está vivo (docs/04) — su interfaz
+        llega en el v0 completo.
+      </p>
+    </main>
+  )
+}
