@@ -14,13 +14,21 @@ export default async function Home() {
   const { data: profile } = await supabase.from('users').select('*').eq('id', user.id).single()
   if (!profile || profile.status !== 'active') redirect('/pending')
 
+  // filter to OWN memberships explicitly: RLS implicitly does this for regular
+  // members, but the app admin can see every membership row of every club
   const { data: memberships } = await supabase
     .from('club_members')
     .select('club_id, clubs(slug, name)')
+    .eq('user_id', user.id)
 
-  const clubs = (memberships ?? [])
-    .map((m) => m.clubs as unknown as { slug: string; name: string } | null)
-    .filter(Boolean) as { slug: string; name: string }[]
+  const clubs = Array.from(
+    new Map(
+      (memberships ?? [])
+        .map((m) => m.clubs as unknown as { slug: string; name: string } | null)
+        .filter((c): c is { slug: string; name: string } => !!c)
+        .map((c) => [c.slug, c])
+    ).values()
+  )
 
   return (
     <main className="mx-auto w-full max-w-md p-6">

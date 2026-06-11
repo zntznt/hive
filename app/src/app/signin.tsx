@@ -1,21 +1,47 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabaseBrowser } from '@/lib/supabase/client'
+
+function humanize(raw: string) {
+  const s = raw.toLowerCase()
+  if (s.includes('expired') || s.includes('invalid') || s.includes('not found') || s === 'missing_code' || s.includes('otp'))
+    return 'Ese enlace ya se usó o caducó (cada enlace vale una sola vez — a veces el correo lo "abre" antes que tú). Pide uno nuevo.'
+  if (s.includes('rate') || s.includes('security purposes'))
+    return 'Demasiados intentos seguidos — espera un minuto y pide el enlace otra vez.'
+  return raw
+}
 
 export default function SignIn() {
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
+  const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // surface auth errors from the callback redirect (?auth_error=) and from
+  // GoTrue fragment-style errors (#error_code=otp_expired…)
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search).get('auth_error')
+    const hash = new URLSearchParams(window.location.hash.slice(1))
+    const fromHash = hash.get('error_description') ?? hash.get('error_code')
+    const msg = query ?? fromHash
+    if (msg) {
+      setError(humanize(msg.replace(/\+/g, ' ')))
+      window.history.replaceState(null, '', '/')
+    }
+  }, [])
 
   async function send(e: React.FormEvent) {
     e.preventDefault()
+    if (sending) return
+    setSending(true)
     setError(null)
     const { error } = await supabaseBrowser().auth.signInWithOtp({
       email,
       options: { emailRedirectTo: `${location.origin}/auth/callback` },
     })
-    if (error) setError(error.message)
+    setSending(false)
+    if (error) setError(humanize(error.message))
     else setSent(true)
   }
 
@@ -25,9 +51,15 @@ export default function SignIn() {
       <p className="mb-8 text-stone-500">Tu club, organizado.</p>
 
       {sent ? (
-        <p className="rounded-xl bg-amber-50 p-4 text-stone-700">
-          Revisa tu correo — el enlace mágico te trae de vuelta. Puedes cerrar esta pestaña.
-        </p>
+        <div className="space-y-3">
+          <p className="rounded-xl bg-amber-50 p-4 text-stone-700">
+            Revisa tu correo — el enlace mágico te trae de vuelta. Ábrelo en este mismo
+            navegador.
+          </p>
+          <button onClick={() => setSent(false)} className="text-sm text-stone-500 underline">
+            ¿No llega? Pedir otro
+          </button>
+        </div>
       ) : (
         <form onSubmit={send} className="space-y-3">
           <label className="block text-sm text-stone-600" htmlFor="email">
@@ -42,10 +74,13 @@ export default function SignIn() {
             placeholder="tu@email.com"
             className="w-full rounded-xl border border-stone-300 p-3 outline-amber-500"
           />
-          <button className="w-full rounded-xl bg-amber-500 p-3 font-medium text-white hover:bg-amber-600">
-            Enviarme el enlace mágico
+          <button
+            disabled={sending}
+            className="w-full rounded-xl bg-amber-500 p-3 font-medium text-white hover:bg-amber-600 disabled:opacity-50"
+          >
+            {sending ? 'Enviando…' : 'Enviarme el enlace mágico'}
           </button>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
           <p className="pt-2 text-xs text-stone-400">
             Sin contraseñas. Si te invitaron por WhatsApp, entra con el enlace personal que te
             llegó. (Acceso por código de WhatsApp: en camino — docs/03.)
