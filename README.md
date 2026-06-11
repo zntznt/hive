@@ -33,9 +33,13 @@ cd app && npm run dev   # .env.local already points at hive-dev
 
 Demo people (Marta organizer/demo-admin, Jorge, Lucía, Pablo, Ana-pending) are seed rows without passwords — they can't sign in; act as yourself.
 
-## What the slice deliberately skips (designed, not built)
+## Built so far (beyond the original slice)
 
-Expenses/polls/guests **UI** (schema + RLS live, see `docs/06` build order) · WhatsApp adapter (outbox rows are written; Meta Business setup is the prerequisite workstream in `docs/07`) · timezone-exact grid rendering (slice renders viewer-local) · Realtime heatmap updates · club/event creation UI.
+Club/event/category **creation flows** · **invite manager** with copyable personal links (`/i/{token}` landing claims by token, attaches club+event, auto-activates app-admin invites) · **expenses & balances UI** (participant picker incl. guests, min-cashflow settle-up suggestions, settlement record + confirm) · share-link copy on every event.
+
+## Deliberately not built yet (designed, see docs/06)
+
+Polls **UI** · notification **delivery** (events queue into the outbox; email adapter then WhatsApp adapter are next — invite links are copy-paste-into-WhatsApp by design until then) · add-guest / promote-guest UI · timezone-exact grid rendering (renders viewer-local) · Realtime heatmap updates.
 
 ## Production notes
 

@@ -63,6 +63,12 @@ export default async function Home() {
         </ul>
       )}
 
+      <p className="mt-4 text-sm">
+        <Link href="/club/new" className="text-amber-700 underline">
+          + Crear un club
+        </Link>
+      </p>
+
       {profile.is_app_admin && (
         <p className="mt-8 text-sm">
           <Link href="/admin" className="text-amber-700 underline">

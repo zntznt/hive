@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { requireProfile } from '@/lib/gate'
 import type { EventRow } from '@/lib/types'
+import { createCategory } from '@/app/actions'
 
 type Category = { id: string; name: string; emoji: string | null }
 type AttendanceRow = {
@@ -23,7 +24,7 @@ export default async function ClubPage({
   params: Promise<{ slug: string }>
   searchParams: Promise<{ cat?: string }>
 }) {
-  const { supabase } = await requireProfile()
+  const { supabase, profile } = await requireProfile()
   const { slug } = await params
   const { cat } = await searchParams
 
@@ -90,6 +91,15 @@ export default async function ClubPage({
         ))}
       </nav>
 
+      <p className="mb-6">
+        <Link
+          href={`/club/${slug}/new-event`}
+          className="inline-block rounded-xl bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600"
+        >
+          + Nuevo evento
+        </Link>
+      </p>
+
       <section className="mb-8">
         <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-stone-400">
           Próximos
@@ -142,6 +152,33 @@ export default async function ClubPage({
           ))}
         </ul>
       </section>
+
+      {(roster ?? []).some((m) => m.user_id === profile.id && m.role === 'admin') && (
+        <section className="mb-8">
+          <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-stone-400">
+            Añadir categoría
+          </h2>
+          <form
+            action={createCategory.bind(null, club.id, slug)}
+            className="flex gap-2 rounded-xl border border-dashed border-stone-300 p-3"
+          >
+            <input
+              name="emoji"
+              placeholder="🎲"
+              className="w-14 rounded-lg border border-stone-300 bg-white p-2 text-center text-sm outline-amber-500"
+            />
+            <input
+              name="name"
+              required
+              placeholder="Juegos de mesa"
+              className="flex-1 rounded-lg border border-stone-300 bg-white p-2 text-sm outline-amber-500"
+            />
+            <button className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-white">
+              Añadir
+            </button>
+          </form>
+        </section>
+      )}
 
       <section>
         <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-stone-400">

@@ -3,6 +3,8 @@ import { requireProfile } from '@/lib/gate'
 import type { Contribution, EventRow, RsvpStatus } from '@/lib/types'
 import { addContribution, claimContribution, setRsvp, toggleContribution } from '@/app/actions'
 import Grid from './grid'
+import Expenses from './expenses'
+import CopyButton from '@/components/copy-button'
 
 function dayRange(start: string, end: string) {
   const days: string[] = []
@@ -48,20 +50,28 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const event = data as EventRow
   const clubSlug = (data.clubs as unknown as { slug: string } | null)?.slug
 
-  const [{ data: members }, { data: rsvps }, { data: avail }, { data: contribs }] =
-    await Promise.all([
-      supabase
-        .from('event_members')
-        .select('user_id, role, users(display_name)')
-        .eq('event_id', event.id),
-      supabase.from('rsvps').select('*').eq('event_id', event.id),
-      supabase.from('availability').select('user_id, slots').eq('event_id', event.id),
-      supabase
-        .from('contributions')
-        .select('*')
-        .eq('event_id', event.id)
-        .order('created_at'),
-    ])
+  const [
+    { data: members },
+    { data: rsvps },
+    { data: avail },
+    { data: contribs },
+    { data: guests },
+    { data: expenses },
+    { data: balances },
+    { data: settlements },
+  ] = await Promise.all([
+    supabase
+      .from('event_members')
+      .select('user_id, role, users(display_name)')
+      .eq('event_id', event.id),
+    supabase.from('rsvps').select('*').eq('event_id', event.id),
+    supabase.from('availability').select('user_id, slots').eq('event_id', event.id),
+    supabase.from('contributions').select('*').eq('event_id', event.id).order('created_at'),
+    supabase.from('guests').select('*').eq('event_id', event.id),
+    supabase.from('expenses').select('*').eq('event_id', event.id).order('spent_at'),
+    supabase.from('event_balances').select('*').eq('event_id', event.id),
+    supabase.from('settlements').select('*').eq('event_id', event.id).order('created_at'),
+  ])
 
   const nameOf = new Map(
     (members ?? []).map((m) => [
@@ -85,13 +95,21 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
   return (
     <main className="mx-auto w-full max-w-md p-6">
-      <header className="mb-1 flex items-baseline justify-between">
+      <header className="mb-1 flex items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold text-stone-800">{event.title}</h1>
-        {clubSlug && (
-          <Link href={`/club/${clubSlug}`} className="text-sm text-stone-500 underline">
-            club
-          </Link>
-        )}
+        <span className="flex items-center gap-3 text-sm">
+          {isOrganizer && (
+            <Link href={`/e/${event.slug}/invites`} className="text-amber-700 underline">
+              invitar
+            </Link>
+          )}
+          <CopyButton path={`/e/${event.slug}`} label="copiar enlace" />
+          {clubSlug && (
+            <Link href={`/club/${clubSlug}`} className="text-stone-500 underline">
+              club
+            </Link>
+          )}
+        </span>
       </header>
       <p className="mb-6 text-sm text-stone-500">
         {event.status === 'scheduling' && 'buscando fecha — pinta tu disponibilidad'}
@@ -246,9 +264,25 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         </form>
       </section>
 
+      <Expenses
+        eventId={event.id}
+        slug={event.slug}
+        myId={profile.id}
+        isOrganizer={!!isOrganizer}
+        nameOf={nameOf}
+        members={(members ?? []).map((m) => ({
+          user_id: m.user_id,
+          in: (rsvps ?? []).some((r) => r.user_id === m.user_id && r.status === 'in'),
+        }))}
+        guests={guests ?? []}
+        expenses={expenses ?? []}
+        balances={balances ?? []}
+        settlements={settlements ?? []}
+      />
+
       <p className="text-xs text-stone-400">
-        Gastos, balances y encuestas: el modelo de datos ya está vivo (docs/04) — su interfaz
-        llega en el v0 completo.
+        Encuestas: el modelo de datos ya está vivo (docs/04) — su interfaz es lo siguiente en la
+        lista (docs/06).
       </p>
     </main>
   )
