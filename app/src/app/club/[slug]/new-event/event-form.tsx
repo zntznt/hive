@@ -95,20 +95,22 @@ export default function EventForm({
         <label className="flex items-center gap-2">
           <input type="checkbox" name="allow_guests" /> Permitir invitados (+1)
         </label>
-        <div className="flex items-center gap-2">
-          <label htmlFor="capacity">Lugares máx.</label>
-          <input id="capacity" name="capacity" type="number" min={1} placeholder="∞" className="w-20 rounded-lg border border-stone-300 p-2" />
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <label className="flex items-center gap-2" htmlFor="capacity">
+            Lugares máx.
+            <input id="capacity" name="capacity" type="number" min={1} placeholder="∞" className="w-20 rounded-lg border border-stone-300 p-2" />
+          </label>
           <label className="flex items-center gap-2">
             <input type="checkbox" name="waitlist_enabled" /> lista de espera
           </label>
         </div>
-        <div className="flex items-center gap-2">
-          <label htmlFor="confirm_deadline">Confirmar antes de</label>
-          <input id="confirm_deadline" name="confirm_deadline" type="datetime-local" className="rounded-lg border border-stone-300 p-2" />
+        <div>
+          <label className="block" htmlFor="confirm_deadline">Confirmar antes de</label>
+          <input id="confirm_deadline" name="confirm_deadline" type="datetime-local" className="mt-1 w-full rounded-lg border border-stone-300 p-2" />
         </div>
-        <div className="flex items-center gap-2">
-          <label htmlFor="join_policy">Enlace</label>
-          <select id="join_policy" name="join_policy" defaultValue="club_members_only" className="rounded-lg border border-stone-300 p-2">
+        <div>
+          <label className="block" htmlFor="join_policy">Quién puede entrar con el enlace</label>
+          <select id="join_policy" name="join_policy" defaultValue="club_members_only" className="mt-1 w-full rounded-lg border border-stone-300 p-2">
             <option value="club_members_only">solo miembros del club</option>
             <option value="anyone_with_link">cualquiera con el enlace</option>
             <option value="invite_only">solo con invitación</option>
