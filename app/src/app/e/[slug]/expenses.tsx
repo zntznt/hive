@@ -1,4 +1,4 @@
-import { addExpense, confirmSettlement, recordSettlement } from '@/app/actions'
+import { addExpense, confirmSettlement, deleteSettlement, recordSettlement } from '@/app/actions'
 import { fmtEur } from '@/lib/money'
 import { suggestTransfers, type NetPosition } from '@/lib/settle'
 
@@ -25,11 +25,23 @@ export default function Expenses({
   eventId, slug, myId, isOrganizer, nameOf, members, guests, expenses, balances, settlements,
 }: Props) {
   const total = expenses.reduce((s, e) => s + e.amount_cents, 0)
+  const pending = settlements.filter((s) => !s.confirmed)
+  // event_balances counts only confirmed settlements, so a freshly "marcado pagado"
+  // transfer would otherwise be re-suggested. Net out pending ones here so a paid
+  // debt drops off the list instead of inviting a duplicate Bizum.
+  const adj = new Map<string, number>()
+  for (const s of pending) {
+    adj.set(s.from_user, (adj.get(s.from_user) ?? 0) + s.amount_cents)
+    adj.set(s.to_user, (adj.get(s.to_user) ?? 0) - s.amount_cents)
+  }
   const nets: NetPosition[] = balances
-    .map((b) => ({ user_id: b.user_id, name: nameOf.get(b.user_id) ?? '—', net_cents: b.net_cents }))
+    .map((b) => ({
+      user_id: b.user_id,
+      name: nameOf.get(b.user_id) ?? '—',
+      net_cents: b.net_cents + (adj.get(b.user_id) ?? 0),
+    }))
     .filter((n) => n.net_cents !== 0)
   const suggestions = suggestTransfers(nets)
-  const pending = settlements.filter((s) => !s.confirmed)
 
   return (
     <section className="mb-8">
@@ -115,7 +127,7 @@ export default function Expenses({
                   {t.from.name} → {t.to.name} · <b>{fmtEur(t.amount_cents)}</b>
                 </span>
                 {(t.from.user_id === myId || isOrganizer) && (
-                  <form action={recordSettlement.bind(null, eventId, slug, t.to.user_id, t.amount_cents)}>
+                  <form action={recordSettlement.bind(null, eventId, slug, t.from.user_id, t.to.user_id, t.amount_cents)}>
                     <button className="text-xs text-amber-700 underline">marcar pagado</button>
                   </form>
                 )}
@@ -136,11 +148,18 @@ export default function Expenses({
                 <span className="text-stone-700">
                   {nameOf.get(s.from_user) ?? '—'} dice que pagó {fmtEur(s.amount_cents)} a {nameOf.get(s.to_user) ?? '—'}
                 </span>
-                {(s.to_user === myId || isOrganizer) && (
-                  <form action={confirmSettlement.bind(null, s.id, slug)}>
-                    <button className="text-xs text-amber-700 underline">confirmar recibido</button>
-                  </form>
-                )}
+                <span className="flex gap-3">
+                  {(s.from_user === myId || isOrganizer) && (
+                    <form action={deleteSettlement.bind(null, s.id, slug)}>
+                      <button className="text-xs text-stone-500 underline">retirar</button>
+                    </form>
+                  )}
+                  {(s.to_user === myId || isOrganizer) && (
+                    <form action={confirmSettlement.bind(null, s.id, slug)}>
+                      <button className="text-xs text-amber-700 underline">confirmar recibido</button>
+                    </form>
+                  )}
+                </span>
               </li>
             ))}
           </ul>

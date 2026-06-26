@@ -7,12 +7,14 @@ import Expenses from './expenses'
 import CopyButton from '@/components/copy-button'
 
 function dayRange(start: string, end: string) {
+  // walk in UTC so toISOString() reads the same date we stepped — parsing as
+  // local time on a UTC+ server shifted every day back by one (H2).
   const days: string[] = []
-  const d = new Date(`${start}T00:00:00`)
-  const stop = new Date(`${end}T00:00:00`)
+  const d = new Date(`${start}T00:00:00Z`)
+  const stop = new Date(`${end}T00:00:00Z`)
   while (d <= stop && days.length < 31) {
     days.push(d.toISOString().slice(0, 10))
-    d.setDate(d.getDate() + 1)
+    d.setUTCDate(d.getUTCDate() + 1)
   }
   return days
 }
@@ -21,22 +23,25 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const { supabase, profile } = await requireProfile()
   const { slug } = await params
 
-  let { data } = await supabase
+  // join_event is idempotent and enforces join_policy server-side. Always try it
+  // (unless already a member) — club members can *see* a club event but aren't
+  // event_members until they land here, and without that row every RSVP/
+  // availability/contribution write fails "not an event member" (H1).
+  const { data: alreadyMember } = await supabase
+    .from('event_members')
+    .select('event_id, events!inner(slug)')
+    .eq('events.slug', slug)
+    .eq('user_id', profile.id)
+    .maybeSingle()
+  if (!alreadyMember) {
+    await supabase.rpc('join_event', { event_slug: slug })
+  }
+
+  const { data } = await supabase
     .from('events')
     .select('*, clubs(slug)')
     .eq('slug', slug)
     .maybeSingle()
-  if (!data) {
-    // not a member yet — the share-link flow: try to join per the event's policy
-    const { error } = await supabase.rpc('join_event', { event_slug: slug })
-    if (!error) {
-      ;({ data } = await supabase
-        .from('events')
-        .select('*, clubs(slug)')
-        .eq('slug', slug)
-        .maybeSingle())
-    }
-  }
   if (!data) {
     return (
       <main className="mx-auto max-w-md p-6">

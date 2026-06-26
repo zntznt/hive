@@ -227,17 +227,17 @@ export async function addExpense(eventId: string, slug: string, formData: FormDa
 export async function recordSettlement(
   eventId: string,
   slug: string,
+  fromUser: string,
   toUser: string,
   amountCents: number
 ) {
   const supabase = await supabaseServer()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('not signed in')
+  // from_user comes from the suggested transfer (the debtor), NOT the caller —
+  // an organizer recording someone else's payment must not credit themselves.
+  // RLS (settlements_insert) still rejects a non-organizer forging from_user.
   const { error } = await supabase.from('settlements').insert({
     event_id: eventId,
-    from_user: user.id,
+    from_user: fromUser,
     to_user: toUser,
     amount_cents: amountCents,
   })
@@ -248,6 +248,14 @@ export async function recordSettlement(
 export async function confirmSettlement(id: string, slug: string) {
   const supabase = await supabaseServer()
   const { error } = await supabase.from('settlements').update({ confirmed: true }).eq('id', id)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/e/${slug}`)
+}
+
+export async function deleteSettlement(id: string, slug: string) {
+  const supabase = await supabaseServer()
+  // RLS settlements_delete only lets the payer retract an unconfirmed row
+  const { error } = await supabase.from('settlements').delete().eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath(`/e/${slug}`)
 }
