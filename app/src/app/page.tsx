@@ -6,12 +6,12 @@ import { signOut } from './actions'
 
 export default async function Home() {
   const supabase = await supabaseServer()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return <SignIn />
+  // getClaims() verifies locally (ES256), no Auth round trip
+  const { data: claimsData } = await supabase.auth.getClaims()
+  const uid = claimsData?.claims?.sub
+  if (!uid) return <SignIn />
 
-  const { data: profile } = await supabase.from('users').select('*').eq('id', user.id).single()
+  const { data: profile } = await supabase.from('users').select('*').eq('id', uid).single()
   if (!profile || profile.status !== 'active') redirect('/pending')
 
   // filter to OWN memberships explicitly: RLS implicitly does this for regular
@@ -19,7 +19,7 @@ export default async function Home() {
   const { data: memberships } = await supabase
     .from('club_members')
     .select('club_id, clubs(slug, name)')
-    .eq('user_id', user.id)
+    .eq('user_id', uid)
 
   const clubs = Array.from(
     new Map(

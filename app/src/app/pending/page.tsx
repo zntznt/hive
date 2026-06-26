@@ -4,14 +4,13 @@ import { signOut } from '../actions'
 
 export default async function PendingPage() {
   const supabase = await supabaseServer()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) redirect('/')
+  const { data: claimsData } = await supabase.auth.getClaims()
+  const uid = claimsData?.claims?.sub
+  if (!uid) redirect('/')
   const { data: profile } = await supabase
     .from('users')
     .select('display_name, status')
-    .eq('id', user.id)
+    .eq('id', uid)
     .single()
   if (profile?.status === 'active') redirect('/')
 

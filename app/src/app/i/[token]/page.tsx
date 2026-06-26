@@ -30,11 +30,9 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
     )
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: claimsData } = await supabase.auth.getClaims()
 
-  if (user) {
+  if (claimsData?.claims?.sub) {
     const { data: target, error } = await supabase.rpc('claim_invitation', {
       invite_token: token,
     })

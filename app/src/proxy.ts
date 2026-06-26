@@ -21,7 +21,10 @@ export async function proxy(request: NextRequest) {
       },
     }
   )
-  await supabase.auth.getUser()
+  // getClaims() verifies the JWT locally (ES256 keys) and still triggers the
+  // session refresh + cookie write through setAll above, without the per-request
+  // network round trip to Auth that getUser() makes.
+  await supabase.auth.getClaims()
   return response
 }
 
