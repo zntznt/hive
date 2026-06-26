@@ -88,7 +88,7 @@ begin
   end if;
   if amount is null or amount <= 0 then raise exception 'amount must be positive'; end if;
   if coalesce(trim(note_text), '') = '' then raise exception 'note is required'; end if;
-  select coalesce(c.currency, 'EUR') into cur
+  select coalesce(c.currency, 'MXN') into cur
     from events e left join clubs c on c.id = e.club_id where e.id = eid;
 
   insert into expenses (event_id, payer_user_id, amount_cents, currency, note, created_by)

@@ -16,20 +16,20 @@ Club-centric social event coordination: find the time (crab.fit-style grid) → 
 ## Status (verified)
 
 - ✅ `npm run build` passes (Next 16.2, TS strict)
-- ✅ Migration applied cleanly to the `hive-dev` Supabase project (`ijsjrlmfogfywzjqneud`, eu-west-1, free tier)
-- ✅ Seed loaded; derived views return correct balances (±1¢ documented rounding) and attendance
+- ✅ All 4 migrations applied cleanly to the `hive-us` Supabase project (`bjtzrqiefjgohgwjjkfx`, us-east-1, free tier). Currency is MXN. The old `hive-dev` (eu-west-1) is paused, kept as a fallback.
+- ✅ Seed loaded; derived views return correct balances (±1 cent documented rounding) and attendance
 - ✅ RLS tests pass: members can self-volunteer and claim open contributions but cannot assign to others; organizers can; `pending` accounts see zero rows
-- ✅ Dev server renders the sign-in page against the live project
+- ✅ Auth uses getClaims (local JWT verify, ES256) on the navigation hot path, not a per-page network round trip
 
 ## Try it
 
 ```bash
-cd app && npm run dev   # .env.local already points at hive-dev
+cd app && npm run dev   # .env.local already points at hive-us
 ```
 
-1. Open http://localhost:3000 and sign in with the email set as `admin_email` in `app_config` (already configured on the hive-dev project; magic link — Supabase's built-in mailer delivers to project owners, so configure SMTP before inviting others).
-2. Your account auto-activates (app admin via `app_config`) and auto-joins the demo club through a seeded invitation — that's the invite flow working.
-3. Browse: `/club/los-jueves` (categories, history, attendance) → «Twilight Imperium» (paint the grid, best slots, Fijar as organizer) → «Noche de Catan» (RSVP states) → `/admin` (Ana waits in the pending queue — verify her).
+1. Open http://localhost:3000 and sign in with the email set as `admin_email` in `app_config` (already configured on the hive-us project; magic link. Supabase's built-in mailer delivers to project owners, so configure SMTP before inviting others).
+2. Your account auto-activates (app admin via `app_config`) and auto-joins the demo club through a seeded invitation. That's the invite flow working.
+3. Browse: `/club/los-jueves` (categories, history, attendance), then «Twilight Imperium» (paint the grid, best slots, Fijar as organizer), «Noche de Catan» (RSVP states), and `/admin` (Ana waits in the pending queue to verify).
 
 Demo people (Marta organizer/demo-admin, Jorge, Lucía, Pablo, Ana-pending) are seed rows without passwords — they can't sign in; act as yourself.
 
