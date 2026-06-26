@@ -1,7 +1,13 @@
 import Link from 'next/link'
 import { requireProfile } from '@/lib/gate'
 import type { Contribution, EventRow, RsvpStatus } from '@/lib/types'
-import { addContribution, claimContribution, setRsvp, toggleContribution } from '@/app/actions'
+import {
+  addContribution,
+  claimContribution,
+  setEventStatus,
+  setRsvp,
+  toggleContribution,
+} from '@/app/actions'
 import Grid from './grid'
 import Expenses from './expenses'
 import CopyButton from '@/components/copy-button'
@@ -97,6 +103,12 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
   const contributions = (contribs ?? []) as Contribution[]
   const byStatus = (st: RsvpStatus) => (rsvps ?? []).filter((r) => r.status === st)
+  // confirmed = "in" with no waitlist position; waitlisted = "in" parked behind capacity
+  const confirmed = byStatus('in').filter((r) => r.waitlist_pos == null)
+  const waitlisted = byStatus('in')
+    .filter((r) => r.waitlist_pos != null)
+    .sort((a, b) => (a.waitlist_pos ?? 0) - (b.waitlist_pos ?? 0))
+  const myWaitPos = waitlisted.findIndex((r) => r.user_id === profile.id)
 
   return (
     <main className="mx-auto w-full max-w-md p-6">
@@ -116,14 +128,41 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           )}
         </span>
       </header>
-      <p className="mb-6 text-sm text-stone-500">
+      <p className="mb-3 text-sm text-stone-500">
         {event.status === 'scheduling' && 'buscando fecha — pinta tu disponibilidad'}
         {event.status === 'scheduled' &&
           `${new Date(event.chosen_start!).toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${event.location ? ` · ${event.location}` : ''}`}
-        {event.status === 'done' && `celebrado el ${new Date(event.chosen_start!).toLocaleDateString('es-ES')}`}
+        {event.status === 'done' &&
+          `celebrado${event.chosen_start ? ' el ' + new Date(event.chosen_start).toLocaleDateString('es-ES') : ''}`}
         {event.status === 'draft' && 'borrador'}
         {event.status === 'cancelled' && 'cancelado'}
       </p>
+
+      {isOrganizer && (event.status === 'scheduled' || event.status === 'done') && (
+        <div className="mb-6 flex gap-2 text-sm">
+          {event.status === 'scheduled' && (
+            <>
+              <form action={setEventStatus.bind(null, event.id, event.slug, 'done')}>
+                <button className="rounded-lg border border-stone-300 bg-white px-3 py-1 text-stone-700">
+                  Marcar celebrado
+                </button>
+              </form>
+              <form action={setEventStatus.bind(null, event.id, event.slug, 'cancelled')}>
+                <button className="rounded-lg border border-stone-300 bg-white px-3 py-1 text-stone-500">
+                  Cancelar evento
+                </button>
+              </form>
+            </>
+          )}
+          {event.status === 'done' && (
+            <form action={setEventStatus.bind(null, event.id, event.slug, 'scheduled')}>
+              <button className="rounded-lg border border-stone-300 bg-white px-3 py-1 text-stone-500">
+                Reabrir
+              </button>
+            </form>
+          )}
+        </div>
+      )}
 
       {event.status === 'scheduling' && event.sched_start_date && event.sched_end_date && (
         <section className="mb-8">
@@ -142,7 +181,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         </section>
       )}
 
-      {event.status !== 'scheduling' && (
+      {event.status !== 'scheduling' && event.status !== 'cancelled' && (
         <section className="mb-8">
           <div className="mb-3 flex gap-2">
             {(['in', 'out', 'maybe'] as RsvpStatus[]).map((st) => (
@@ -159,15 +198,28 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               </form>
             ))}
           </div>
+
+          {myRsvp?.status === 'in' && myWaitPos >= 0 && (
+            <p className="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              Estás en lista de espera (puesto {myWaitPos + 1}). Te avisamos si se libera una
+              plaza.
+            </p>
+          )}
+
           <p className="text-sm text-stone-500">
-            van {byStatus('in').length} · no van {byStatus('out').length} · quizás{' '}
-            {byStatus('maybe').length}
+            van {confirmed.length}
+            {event.capacity != null && `/${event.capacity}`} · no van {byStatus('out').length} ·
+            quizás {byStatus('maybe').length}
           </p>
-          {byStatus('in').length > 0 && (
+          {confirmed.length > 0 && (
             <p className="mt-1 text-sm text-stone-600">
-              {byStatus('in')
-                .map((r) => nameOf.get(r.user_id) ?? '—')
-                .join(', ')}
+              {confirmed.map((r) => nameOf.get(r.user_id) ?? '—').join(', ')}
+            </p>
+          )}
+          {waitlisted.length > 0 && (
+            <p className="mt-1 text-sm text-stone-500">
+              <span className="text-stone-400">lista de espera:</span>{' '}
+              {waitlisted.map((r) => nameOf.get(r.user_id) ?? '—').join(', ')}
             </p>
           )}
         </section>
@@ -277,7 +329,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         nameOf={nameOf}
         members={(members ?? []).map((m) => ({
           user_id: m.user_id,
-          in: (rsvps ?? []).some((r) => r.user_id === m.user_id && r.status === 'in'),
+          in: confirmed.some((r) => r.user_id === m.user_id),
         }))}
         guests={guests ?? []}
         expenses={expenses ?? []}

@@ -205,6 +205,17 @@ export async function updateJoinPolicy(eventId: string, slug: string, formData: 
   revalidatePath(`/e/${slug}/invites`)
 }
 
+export async function setEventStatus(
+  eventId: string,
+  slug: string,
+  status: 'done' | 'cancelled' | 'scheduled'
+) {
+  const supabase = await supabaseServer()
+  const { error } = await supabase.rpc('set_event_status', { eid: eventId, new_status: status })
+  if (error) throw new Error(error.message)
+  revalidatePath(`/e/${slug}`)
+}
+
 export async function addExpense(eventId: string, slug: string, formData: FormData) {
   const supabase = await supabaseServer()
   const { parseEurToCents } = await import('@/lib/money')
