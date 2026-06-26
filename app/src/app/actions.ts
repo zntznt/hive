@@ -127,18 +127,25 @@ export async function createCategory(clubId: string, clubSlug: string, formData:
   revalidatePath(`/club/${clubSlug}`)
 }
 
-export async function createEvent(clubId: string, clubSlug: string, formData: FormData) {
+// returns an error string for the form to show inline, or redirects on success.
+// (throwing would crash the page to a 500 and lose what the user typed.)
+export async function createEvent(
+  clubId: string,
+  clubSlug: string,
+  _prev: string | null,
+  formData: FormData
+): Promise<string | null> {
   const supabase = await supabaseServer()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) throw new Error('not signed in')
+  if (!user) return 'Tu sesión expiró. Vuelve a entrar.'
 
   const title = String(formData.get('title') ?? '').trim()
   const startDate = String(formData.get('sched_start_date') ?? '')
   const endDate = String(formData.get('sched_end_date') ?? '')
-  if (!title || !startDate || !endDate) throw new Error('Faltan campos obligatorios.')
-  if (endDate < startDate) throw new Error('La fecha final no puede ser antes de la inicial.')
+  if (!title || !startDate || !endDate) return 'Faltan campos obligatorios.'
+  if (endDate < startDate) return 'La fecha final no puede ser antes de la inicial.'
 
   const capacityRaw = String(formData.get('capacity') ?? '').trim()
   const deadlineRaw = String(formData.get('confirm_deadline') ?? '').trim()
@@ -166,7 +173,7 @@ export async function createEvent(clubId: string, clubSlug: string, formData: Fo
     sched_time_max: Number(formData.get('time_max') ?? 1380),
     sched_slot_minutes: Number(formData.get('slot_minutes') ?? 60),
   })
-  if (error) throw new Error(error.message)
+  if (error) return 'No se pudo crear el evento. Inténtalo de nuevo.'
   redirect(`/e/${slug}`)
 }
 
