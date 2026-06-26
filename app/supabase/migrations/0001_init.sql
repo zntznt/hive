@@ -37,7 +37,7 @@ create table clubs (
   id uuid primary key default gen_random_uuid(),
   slug text unique not null,
   name text not null,
-  currency char(3) not null default 'EUR',
+  currency char(3) not null default 'MXN',
   settings jsonb not null default '{}',
   created_by uuid references users(id),
   created_at timestamptz not null default now()

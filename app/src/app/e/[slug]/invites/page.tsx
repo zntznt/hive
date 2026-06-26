@@ -44,7 +44,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
           <CopyButton path={`/e/${slug}`} />
         </div>
         <p className="mt-1 text-xs text-stone-400">
-          Pégalo en el grupo de WhatsApp — los socios del club entran directos.
+          Pégalo en el grupo de WhatsApp y los miembros del club entran directo.
         </p>
         <form
           action={updateJoinPolicy.bind(null, event.id, slug)}
@@ -59,7 +59,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
             defaultValue={event.join_policy}
             className="rounded-lg border border-stone-300 bg-white p-2"
           >
-            <option value="club_members_only">solo socios del club</option>
+            <option value="club_members_only">solo miembros del club</option>
             <option value="anyone_with_link">cualquiera con el enlace</option>
             <option value="invite_only">solo con invitación</option>
           </select>
@@ -78,21 +78,21 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
           <input
             name="email"
             type="email"
-            placeholder="email"
+            placeholder="correo"
             className="w-full rounded-lg border border-stone-300 bg-white p-2 text-sm outline-amber-500"
           />
           <input
             name="phone"
-            placeholder="o WhatsApp (+34 …)"
+            placeholder="o WhatsApp (+52 …)"
             className="w-full rounded-lg border border-stone-300 bg-white p-2 text-sm outline-amber-500"
           />
           <button className="w-full rounded-lg bg-amber-500 p-2 text-sm font-medium text-white">
             Crear invitación
           </button>
           <p className="text-xs text-stone-400">
-            Aún no enviamos mensajes automáticos: copia el enlace personal que aparece abajo y
-            mándalo tú por WhatsApp o email. La invitación añade al club y al evento, y funciona
-            aunque la persona entre luego con otro correo.
+            Por ahora no mandamos mensajes solos. Copia el enlace personal que aparece abajo y
+            envíalo tú por WhatsApp o correo. La invitación lo agrega al club y al evento, y sirve
+            aunque luego entre con otro correo.
           </p>
         </form>
       </section>

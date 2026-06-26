@@ -17,7 +17,7 @@ export async function supabaseServer() {
               cookieStore.set(name, value, options)
             )
           } catch {
-            // called from a Server Component without a writable response —
+            // called from a Server Component without a writable response -
             // safe to ignore, proxy.ts refreshes sessions
           }
         },

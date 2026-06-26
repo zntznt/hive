@@ -13,8 +13,8 @@ type AttendanceRow = {
 
 function fmt(d: string | null) {
   return d
-    ? new Date(d).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
-    : '—'
+    ? new Date(d).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+    : '·'
 }
 
 export default async function ClubPage({
@@ -33,7 +33,7 @@ export default async function ClubPage({
     return (
       <main className="mx-auto max-w-md p-6">
         <p className="text-stone-600">
-          Este club no existe o todavía no eres socio. Pide el enlace de invitación.
+          Este club no existe o todavía no eres miembro. Pide el enlace de invitación.
         </p>
       </main>
     )
@@ -105,7 +105,7 @@ export default async function ClubPage({
           Próximos
         </h2>
         {upcoming.length === 0 && (
-          <p className="text-sm text-stone-500">Nada en el horizonte — todavía.</p>
+          <p className="text-sm text-stone-500">Nada en puerta por ahora.</p>
         )}
         <ul className="space-y-2">
           {upcoming.map((e) => (
@@ -182,7 +182,7 @@ export default async function ClubPage({
 
       <section>
         <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-stone-400">
-          Socios {cat ? `· asistencia a ${catName(cat)}` : ''}
+          Miembros {cat ? `· asistencia a ${catName(cat)}` : ''}
         </h2>
         <ul className="divide-y divide-stone-200 rounded-xl border border-stone-200 bg-white">
           {(roster ?? []).map((m) => {
@@ -191,7 +191,7 @@ export default async function ClubPage({
             return (
               <li key={m.user_id} className="flex items-center justify-between p-3 text-sm">
                 <span className="text-stone-800">
-                  {u?.display_name ?? '—'}
+                  {u?.display_name ?? '·'}
                   {m.role === 'admin' && (
                     <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">
                       admin

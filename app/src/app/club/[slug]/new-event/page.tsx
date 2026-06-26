@@ -14,7 +14,7 @@ export default async function NewEventPage({ params }: { params: Promise<{ slug:
   if (!club) {
     return (
       <main className="mx-auto max-w-md p-6">
-        <p className="text-stone-600">Este club no existe o no eres socio.</p>
+        <p className="text-stone-600">Este club no existe o no eres miembro.</p>
       </main>
     )
   }
@@ -117,7 +117,7 @@ export default async function NewEventPage({ params }: { params: Promise<{ slug:
           <div className="flex items-center gap-2">
             <label htmlFor="join_policy">Enlace</label>
             <select id="join_policy" name="join_policy" defaultValue="club_members_only" className="rounded-lg border border-stone-300 p-2">
-              <option value="club_members_only">solo socios del club</option>
+              <option value="club_members_only">solo miembros del club</option>
               <option value="anyone_with_link">cualquiera con el enlace</option>
               <option value="invite_only">solo con invitación</option>
             </select>

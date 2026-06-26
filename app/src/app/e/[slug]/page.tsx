@@ -13,7 +13,7 @@ import Expenses from './expenses'
 import CopyButton from '@/components/copy-button'
 
 function dayRange(start: string, end: string) {
-  // walk in UTC so toISOString() reads the same date we stepped — parsing as
+  // walk in UTC so toISOString() reads the same date we stepped - parsing as
   // local time on a UTC+ server shifted every day back by one (H2).
   const days: string[] = []
   const d = new Date(`${start}T00:00:00Z`)
@@ -30,7 +30,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const { slug } = await params
 
   // join_event is idempotent and enforces join_policy server-side. Always try it
-  // (unless already a member) — club members can *see* a club event but aren't
+  // (unless already a member) - club members can *see* a club event but aren't
   // event_members until they land here, and without that row every RSVP/
   // availability/contribution write fails "not an event member" (H1).
   const { data: alreadyMember } = await supabase
@@ -87,7 +87,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const nameOf = new Map(
     (members ?? []).map((m) => [
       m.user_id,
-      (m.users as unknown as { display_name: string } | null)?.display_name ?? '—',
+      (m.users as unknown as { display_name: string } | null)?.display_name ?? '·',
     ])
   )
   const myMembership = (members ?? []).find((m) => m.user_id === profile.id)
@@ -129,7 +129,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         </span>
       </header>
       <p className="mb-3 text-sm text-stone-500">
-        {event.status === 'scheduling' && 'buscando fecha — pinta tu disponibilidad'}
+        {event.status === 'scheduling' && 'buscando fecha. Marca cuándo puedes'}
         {event.status === 'scheduled' &&
           `${new Date(event.chosen_start!).toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${event.location ? ` · ${event.location}` : ''}`}
         {event.status === 'done' &&
@@ -213,13 +213,13 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           </p>
           {confirmed.length > 0 && (
             <p className="mt-1 text-sm text-stone-600">
-              {confirmed.map((r) => nameOf.get(r.user_id) ?? '—').join(', ')}
+              {confirmed.map((r) => nameOf.get(r.user_id) ?? '·').join(', ')}
             </p>
           )}
           {waitlisted.length > 0 && (
             <p className="mt-1 text-sm text-stone-500">
               <span className="text-stone-400">lista de espera:</span>{' '}
-              {waitlisted.map((r) => nameOf.get(r.user_id) ?? '—').join(', ')}
+              {waitlisted.map((r) => nameOf.get(r.user_id) ?? '·').join(', ')}
             </p>
           )}
         </section>
@@ -231,7 +231,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         </h2>
         {contributions.length === 0 && (
           <p className="mb-2 text-sm text-stone-500">
-            Nadie trae nada todavía — sé la primera abeja.
+            Nadie trae nada todavía. Estrena la lista.
           </p>
         )}
         <ul className="mb-3 space-y-2">
@@ -251,7 +251,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               </span>
               {c.assigned_to ? (
                 <span className="flex items-center gap-2 text-stone-500">
-                  {nameOf.get(c.assigned_to) ?? '—'}
+                  {nameOf.get(c.assigned_to) ?? '·'}
                   {(c.assigned_to === profile.id || isOrganizer) && (
                     <form action={toggleContribution.bind(null, c.id, event.slug, !c.done)}>
                       <button className="text-xs text-amber-700 underline">
@@ -315,7 +315,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           </div>
           {!isOrganizer && (
             <p className="text-xs text-stone-400">
-              Te lo apuntas tú — asignar a otras personas es cosa de quien organiza.
+              Te lo apuntas tú. Asignarle algo a alguien más lo hace quien organiza.
             </p>
           )}
         </form>
@@ -337,10 +337,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         settlements={settlements ?? []}
       />
 
-      <p className="text-xs text-stone-400">
-        Encuestas: el modelo de datos ya está vivo (docs/04) — su interfaz es lo siguiente en la
-        lista (docs/06).
-      </p>
+      <p className="text-xs text-stone-400">Las encuestas llegan pronto.</p>
     </main>
   )
 }

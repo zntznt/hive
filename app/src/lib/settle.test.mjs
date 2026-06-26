@@ -1,4 +1,4 @@
-// node src/lib/settle.test.mjs  — no framework, just assert
+// node src/lib/settle.test.mjs  - no framework, just assert
 import assert from 'node:assert'
 
 // inline copy of suggestTransfers (settle.ts is TS; this keeps the check dependency-free)
@@ -34,7 +34,7 @@ assert.deepEqual(suggestTransfers([]), [])
 assert.deepEqual(suggestTransfers([n('a', 0), n('b', 0)]), [])
 assert.deepEqual(suggestTransfers([n('a', 500)]), []) // creditor with no debtor
 
-// many small debtors, one big creditor — terminates, count bounded
+// many small debtors, one big creditor - terminates, count bounded
 t = suggestTransfers([n('big', 400), n('w', -100), n('x', -100), n('y', -100), n('z', -100)])
 assert.equal(t.length, 4)
 assert.equal(t.reduce((s, x) => s + x.amount_cents, 0), 400)

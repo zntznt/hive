@@ -137,8 +137,8 @@ export async function createEvent(clubId: string, clubSlug: string, formData: Fo
   const title = String(formData.get('title') ?? '').trim()
   const startDate = String(formData.get('sched_start_date') ?? '')
   const endDate = String(formData.get('sched_end_date') ?? '')
-  if (!title || !startDate || !endDate) throw new Error('faltan campos obligatorios')
-  if (endDate < startDate) throw new Error('la fecha final es anterior a la inicial')
+  if (!title || !startDate || !endDate) throw new Error('Faltan campos obligatorios.')
+  if (endDate < startDate) throw new Error('La fecha final no puede ser antes de la inicial.')
 
   const capacityRaw = String(formData.get('capacity') ?? '').trim()
   const deadlineRaw = String(formData.get('confirm_deadline') ?? '').trim()
@@ -218,9 +218,9 @@ export async function setEventStatus(
 
 export async function addExpense(eventId: string, slug: string, formData: FormData) {
   const supabase = await supabaseServer()
-  const { parseEurToCents } = await import('@/lib/money')
-  const cents = parseEurToCents(String(formData.get('amount') ?? ''))
-  if (!cents) throw new Error('importe no válido')
+  const { parseMoneyToCents } = await import('@/lib/money')
+  const cents = parseMoneyToCents(String(formData.get('amount') ?? ''))
+  if (!cents) throw new Error('La cantidad no es válida.')
   const participants = formData.getAll('participant').map(String)
   const user_ids = participants.filter((p) => p.startsWith('u:')).map((p) => p.slice(2))
   const guest_ids = participants.filter((p) => p.startsWith('g:')).map((p) => p.slice(2))
@@ -243,7 +243,7 @@ export async function recordSettlement(
   amountCents: number
 ) {
   const supabase = await supabaseServer()
-  // from_user comes from the suggested transfer (the debtor), NOT the caller —
+  // from_user comes from the suggested transfer (the debtor), NOT the caller -
   // an organizer recording someone else's payment must not credit themselves.
   // RLS (settlements_insert) still rejects a non-organizer forging from_user.
   const { error } = await supabase.from('settlements').insert({

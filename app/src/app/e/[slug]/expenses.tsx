@@ -1,5 +1,5 @@
 import { addExpense, confirmSettlement, deleteSettlement, recordSettlement } from '@/app/actions'
-import { fmtEur } from '@/lib/money'
+import { fmtMoney } from '@/lib/money'
 import { suggestTransfers, type NetPosition } from '@/lib/settle'
 
 type Expense = { id: string; payer_user_id: string; amount_cents: number; note: string }
@@ -37,7 +37,7 @@ export default function Expenses({
   const nets: NetPosition[] = balances
     .map((b) => ({
       user_id: b.user_id,
-      name: nameOf.get(b.user_id) ?? '—',
+      name: nameOf.get(b.user_id) ?? '·',
       net_cents: b.net_cents + (adj.get(b.user_id) ?? 0),
     }))
     .filter((n) => n.net_cents !== 0)
@@ -46,7 +46,7 @@ export default function Expenses({
   return (
     <section className="mb-8">
       <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-stone-400">
-        Gastos {total > 0 && <span className="text-stone-500">· {fmtEur(total)}</span>}
+        Gastos {total > 0 && <span className="text-stone-500">· {fmtMoney(total)}</span>}
       </h2>
 
       {expenses.length === 0 && (
@@ -56,9 +56,9 @@ export default function Expenses({
         {expenses.map((e) => (
           <li key={e.id} className="flex items-center justify-between rounded-xl border border-stone-200 bg-white p-3 text-sm">
             <span className="text-stone-800">
-              {e.note} <span className="text-stone-400">· pagó {nameOf.get(e.payer_user_id) ?? '—'}</span>
+              {e.note} <span className="text-stone-400">· pagó {nameOf.get(e.payer_user_id) ?? '·'}</span>
             </span>
-            <span className="font-medium text-stone-800">{fmtEur(e.amount_cents)}</span>
+            <span className="font-medium text-stone-800">{fmtMoney(e.amount_cents)}</span>
           </li>
         ))}
       </ul>
@@ -83,13 +83,13 @@ export default function Expenses({
             {members.map((m) => (
               <label key={m.user_id} className="flex items-center gap-2">
                 <input type="checkbox" name="participant" value={`u:${m.user_id}`} defaultChecked={m.in || m.user_id === myId} />
-                {nameOf.get(m.user_id) ?? '—'}
+                {nameOf.get(m.user_id) ?? '·'}
               </label>
             ))}
             {guests.filter((g) => !g.promoted_to_user_id).map((g) => (
               <label key={g.id} className="flex items-center gap-2">
                 <input type="checkbox" name="participant" value={`g:${g.id}`} />
-                {g.name} <span className="text-xs text-stone-400">(invitado de {nameOf.get(g.host_user_id) ?? '—'})</span>
+                {g.name} <span className="text-xs text-stone-400">(invitado de {nameOf.get(g.host_user_id) ?? '·'})</span>
               </label>
             ))}
           </div>
@@ -109,7 +109,7 @@ export default function Expenses({
                 <li key={n.user_id} className="flex items-center justify-between rounded-lg bg-white px-3 py-2">
                   <span className="text-stone-700">{n.name}</span>
                   <span className={n.net_cents >= 0 ? 'font-medium text-stone-800' : 'text-red-700'}>
-                    {n.net_cents > 0 ? '+' : ''}{fmtEur(n.net_cents)}
+                    {n.net_cents > 0 ? '+' : ''}{fmtMoney(n.net_cents)}
                   </span>
                 </li>
               ))}
@@ -124,7 +124,7 @@ export default function Expenses({
             {suggestions.map((t, i) => (
               <li key={i} className="flex items-center justify-between rounded-lg border border-stone-200 bg-white px-3 py-2">
                 <span className="text-stone-700">
-                  {t.from.name} → {t.to.name} · <b>{fmtEur(t.amount_cents)}</b>
+                  {t.from.name} → {t.to.name} · <b>{fmtMoney(t.amount_cents)}</b>
                 </span>
                 {(t.from.user_id === myId || isOrganizer) && (
                   <form action={recordSettlement.bind(null, eventId, slug, t.from.user_id, t.to.user_id, t.amount_cents)}>
@@ -146,7 +146,7 @@ export default function Expenses({
             {pending.map((s) => (
               <li key={s.id} className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
                 <span className="text-stone-700">
-                  {nameOf.get(s.from_user) ?? '—'} dice que pagó {fmtEur(s.amount_cents)} a {nameOf.get(s.to_user) ?? '—'}
+                  {nameOf.get(s.from_user) ?? '·'} dice que pagó {fmtMoney(s.amount_cents)} a {nameOf.get(s.to_user) ?? '·'}
                 </span>
                 <span className="flex gap-3">
                   {(s.from_user === myId || isOrganizer) && (
