@@ -277,3 +277,91 @@ export async function deleteSettlement(id: string, slug: string) {
   if (error) throw new Error(error.message)
   revalidatePath(`/e/${slug}`)
 }
+
+export async function createPoll(eventId: string, slug: string, formData: FormData) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
+  const question = String(formData.get('question') ?? '').trim()
+  const options = formData
+    .getAll('option')
+    .map((o) => String(o).trim())
+    .filter(Boolean)
+  if (!question || options.length < 2) return // need a question and at least two options
+
+  const { data: poll, error } = await supabase
+    .from('polls')
+    .insert({
+      event_id: eventId,
+      created_by: user.id,
+      question,
+      kind: formData.get('kind') === 'multi' ? 'multi' : 'single',
+      anonymous: formData.get('anonymous') === 'on',
+      show_results: formData.get('show_results') === 'after_close' ? 'after_close' : 'always',
+    })
+    .select('id')
+    .single()
+  if (error || !poll) throw new Error(error?.message ?? 'no se pudo crear la encuesta')
+
+  const { error: optErr } = await supabase
+    .from('poll_options')
+    .insert(options.map((label, sort) => ({ poll_id: poll.id, label, sort })))
+  if (optErr) throw new Error(optErr.message)
+  revalidatePath(`/e/${slug}`)
+}
+
+export async function castVote(
+  pollId: string,
+  optionId: string,
+  slug: string,
+  kind: 'single' | 'multi'
+) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
+
+  if (kind === 'multi') {
+    // toggle this option independently of the others
+    const { data: existing } = await supabase
+      .from('votes')
+      .select('option_id')
+      .eq('poll_id', pollId)
+      .eq('option_id', optionId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (existing) {
+      await supabase
+        .from('votes')
+        .delete()
+        .eq('poll_id', pollId)
+        .eq('option_id', optionId)
+        .eq('user_id', user.id)
+    } else {
+      await supabase.from('votes').insert({ poll_id: pollId, option_id: optionId, user_id: user.id })
+    }
+  } else {
+    // single choice: clear my prior vote, then set this one (unless I tapped the same to clear)
+    const { data: mine } = await supabase
+      .from('votes')
+      .select('option_id')
+      .eq('poll_id', pollId)
+      .eq('user_id', user.id)
+    await supabase.from('votes').delete().eq('poll_id', pollId).eq('user_id', user.id)
+    const alreadyOnThis = (mine ?? []).some((v) => v.option_id === optionId)
+    if (!alreadyOnThis) {
+      await supabase.from('votes').insert({ poll_id: pollId, option_id: optionId, user_id: user.id })
+    }
+  }
+  revalidatePath(`/e/${slug}`)
+}
+
+export async function applyPollOption(pollId: string, optionId: string, slug: string) {
+  const supabase = await supabaseServer()
+  const { error } = await supabase.rpc('apply_poll_option', { pid: pollId, oid: optionId })
+  if (error) throw new Error(error.message)
+  revalidatePath(`/e/${slug}`)
+}

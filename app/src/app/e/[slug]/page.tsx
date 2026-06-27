@@ -10,6 +10,7 @@ import {
 } from '@/app/actions'
 import Grid from './grid'
 import Expenses from './expenses'
+import Polls from './polls'
 import CopyButton from '@/components/copy-button'
 
 function dayRange(start: string, end: string) {
@@ -70,6 +71,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     { data: expenses },
     { data: balances },
     { data: settlements },
+    { data: polls },
   ] = await Promise.all([
     supabase
       .from('event_members')
@@ -82,6 +84,11 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     supabase.from('expenses').select('*').eq('event_id', event.id).order('spent_at'),
     supabase.from('event_balances').select('*').eq('event_id', event.id),
     supabase.from('settlements').select('*').eq('event_id', event.id).order('created_at'),
+    supabase
+      .from('polls')
+      .select('*, poll_options(id, label, sort), votes(option_id, user_id)')
+      .eq('event_id', event.id)
+      .order('created_at'),
   ])
 
   const nameOf = new Map(
@@ -337,7 +344,14 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         settlements={settlements ?? []}
       />
 
-      <p className="text-xs text-stone-400">Las encuestas llegan pronto.</p>
+      <Polls
+        eventId={event.id}
+        slug={event.slug}
+        myId={profile.id}
+        isOrganizer={!!isOrganizer}
+        nameOf={nameOf}
+        polls={(polls ?? []) as never}
+      />
     </main>
   )
 }
