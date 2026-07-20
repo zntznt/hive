@@ -2,6 +2,10 @@
 
 import { useActionState } from 'react'
 import { createEvent } from '@/app/actions'
+import { Input, Select, Checkbox } from '@/components/ui/Input'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
+import { LocationPicker, type Place } from '@/components/ui/LocationPicker'
 
 const HOURS = Array.from({ length: 25 }, (_, h) => ({
   value: h * 60,
@@ -14,118 +18,98 @@ export default function EventForm({
   clubId,
   slug,
   categories,
+  recentPlaces = [],
 }: {
   clubId: string
   slug: string
   categories: Category[]
+  recentPlaces?: Place[]
 }) {
-  const [error, formAction, pending] = useActionState(
-    createEvent.bind(null, clubId, slug),
-    null
-  )
-
-  const input = 'w-full rounded-xl border border-stone-300 bg-white p-3 outline-amber-500'
-  const lbl = 'block text-sm text-stone-600'
+  const [error, formAction, pending] = useActionState(createEvent.bind(null, clubId, slug), null)
 
   return (
-    <form action={formAction} className="space-y-4">
-      <div>
-        <label className={lbl} htmlFor="title">Título</label>
-        <input id="title" name="title" required placeholder="Noche de juegos" className={input} />
-      </div>
+    <form action={formAction} className="flex flex-col gap-4">
+      <Input id="title" name="title" label="Título" required placeholder="Noche de juegos" />
+
       <div className="flex gap-3">
         <div className="flex-1">
-          <label className={lbl} htmlFor="category_id">Categoría</label>
-          <select id="category_id" name="category_id" className={input} defaultValue="">
+          <Select id="category_id" name="category_id" label="Categoría" defaultValue="">
             <option value="">sin categoría</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.emoji ? `${c.emoji} ` : ''}{c.name}
+                {c.emoji ? `${c.emoji} ` : ''}
+                {c.name}
               </option>
             ))}
-          </select>
-        </div>
-        <div className="flex-1">
-          <label className={lbl} htmlFor="location">Lugar (opcional)</label>
-          <input id="location" name="location" placeholder="casa de…" className={input} />
+          </Select>
         </div>
       </div>
 
-      <fieldset className="rounded-xl border border-stone-200 bg-white p-3">
-        <legend className="px-1 text-sm font-medium text-stone-500">Buscar fecha</legend>
+      <LocationPicker name="location" label="Lugar (opcional)" recent={recentPlaces} />
+
+      <Card pad="sm">
+        <div className="mb-2 text-sm font-semibold text-ink-500">Buscar fecha</div>
         <div className="flex gap-3">
           <div className="flex-1">
-            <label className={lbl} htmlFor="sched_start_date">Desde</label>
-            <input id="sched_start_date" name="sched_start_date" type="date" required className={input} />
+            <Input id="sched_start_date" name="sched_start_date" type="date" label="Desde" required />
           </div>
           <div className="flex-1">
-            <label className={lbl} htmlFor="sched_end_date">Hasta</label>
-            <input id="sched_end_date" name="sched_end_date" type="date" required className={input} />
+            <Input id="sched_end_date" name="sched_end_date" type="date" label="Hasta" required />
           </div>
         </div>
-        <div className="mt-2 flex gap-3">
+        <div className="mt-2.5 flex gap-3">
           <div className="flex-1">
-            <label className={lbl} htmlFor="time_min">De</label>
-            <select id="time_min" name="time_min" defaultValue={1140} className={input}>
+            <Select id="time_min" name="time_min" label="De" defaultValue={1140}>
               {HOURS.slice(0, 24).map((h) => (
-                <option key={h.value} value={h.value}>{h.label}</option>
+                <option key={h.value} value={h.value}>
+                  {h.label}
+                </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="flex-1">
-            <label className={lbl} htmlFor="time_max">A</label>
-            <select id="time_max" name="time_max" defaultValue={1380} className={input}>
+            <Select id="time_max" name="time_max" label="A" defaultValue={1380}>
               {HOURS.slice(1).map((h) => (
-                <option key={h.value} value={h.value}>{h.label}</option>
+                <option key={h.value} value={h.value}>
+                  {h.label}
+                </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="flex-1">
-            <label className={lbl} htmlFor="slot_minutes">Celdas</label>
-            <select id="slot_minutes" name="slot_minutes" defaultValue={60} className={input}>
+            <Select id="slot_minutes" name="slot_minutes" label="Celdas" defaultValue={60}>
               <option value={30}>30 min</option>
               <option value={60}>1 h</option>
-            </select>
+            </Select>
           </div>
         </div>
-      </fieldset>
+      </Card>
 
-      <fieldset className="space-y-2 rounded-xl border border-stone-200 bg-white p-3 text-sm text-stone-700">
-        <legend className="px-1 text-sm font-medium text-stone-500">Opcional</legend>
-        <label className="flex items-center gap-2">
-          <input type="checkbox" name="allow_guests" /> Permitir invitados (+1)
-        </label>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <label className="flex items-center gap-2" htmlFor="capacity">
-            Lugares máx.
-            <input id="capacity" name="capacity" type="number" min={1} placeholder="∞" className="w-20 rounded-lg border border-stone-300 p-2" />
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" name="waitlist_enabled" /> lista de espera
-          </label>
-        </div>
-        <div>
-          <label className="block" htmlFor="confirm_deadline">Confirmar antes de</label>
-          <input id="confirm_deadline" name="confirm_deadline" type="datetime-local" className="mt-1 w-full rounded-lg border border-stone-300 p-2" />
-        </div>
-        <div>
-          <label className="block" htmlFor="join_policy">Quién puede entrar con el enlace</label>
-          <select id="join_policy" name="join_policy" defaultValue="club_members_only" className="mt-1 w-full rounded-lg border border-stone-300 p-2">
+      <Card pad="sm">
+        <div className="mb-2.5 text-sm font-semibold text-ink-500">Opcional</div>
+        <div className="flex flex-col gap-3 text-sm text-ink-700">
+          <Checkbox name="allow_guests" label="Permitir invitados (+1)" />
+          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
+            <label className="flex items-center gap-2" htmlFor="capacity">
+              Lugares máx.
+              <input id="capacity" name="capacity" type="number" min={1} placeholder="∞" className="w-20 rounded-md border border-line-input bg-paper p-2 text-ink-900" />
+            </label>
+            <Checkbox name="waitlist_enabled" label="lista de espera" />
+          </div>
+          <Input id="confirm_deadline" name="confirm_deadline" type="datetime-local" label="Confirmar antes de" />
+          <Select id="join_policy" name="join_policy" label="Quién puede entrar con el enlace" defaultValue="club_members_only">
             <option value="club_members_only">solo miembros del club</option>
             <option value="anyone_with_link">cualquiera con el enlace</option>
             <option value="invite_only">solo con invitación</option>
-          </select>
+          </Select>
         </div>
-      </fieldset>
+      </Card>
 
-      {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {error && <p className="rounded-md bg-danger-bg px-3.5 py-3 text-sm text-danger">{error}</p>}
 
-      <button
-        disabled={pending}
-        className="w-full rounded-xl bg-amber-500 p-3 font-medium text-white hover:bg-amber-600 disabled:opacity-50"
-      >
+      <Button block disabled={pending}>
         {pending ? 'Creando…' : 'Crear evento'}
-      </button>
+      </Button>
     </form>
   )
 }

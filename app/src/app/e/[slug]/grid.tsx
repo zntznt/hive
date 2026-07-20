@@ -3,6 +3,8 @@
 import { Fragment, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { pickSlot, saveAvailability } from '@/app/actions'
+import { Button } from '@/components/ui/Button'
+import { SectionHeader } from '@/components/ui/SectionHeader'
 
 type Props = {
   eventId: string
@@ -84,16 +86,14 @@ export default function Grid({
 
   return (
     <div>
-      <p className="mb-2 text-sm text-stone-500">
-        Toca las celdas en las que puedes. Cuanto más ámbar, más gente puede.
-      </p>
+      <p className="mb-2 text-sm text-ink-500">Toca las celdas en las que puedes. Cuanto más honey, más gente puede.</p>
       <div
-        className="grid gap-0.5 text-center text-[11px] text-stone-400"
+        className="grid gap-[3px] text-center text-[11px] text-ink-500"
         style={{ gridTemplateColumns: `44px repeat(${days.length}, 1fr)` }}
       >
         <div />
         {days.map((d) => (
-          <div key={d} className="pb-1">
+          <div key={d} className="pb-1 font-bold">
             {new Date(`${d}T00:00:00`).toLocaleDateString('es-ES', {
               weekday: 'short',
               day: 'numeric',
@@ -102,13 +102,11 @@ export default function Grid({
         ))}
         {Array.from({ length: slotsPerDay }).map((_, t) => (
           <Fragment key={t}>
-            <div className="pr-1 text-right leading-5">
-              {hhmm(timeMin + t * slotMinutes)}
-            </div>
+            <div className="pr-1 text-right leading-6">{hhmm(timeMin + t * slotMinutes)}</div>
             {days.map((_, d) => {
               const idx = d * slotsPerDay + t
               const n = counts[idx] ?? 0
-              const alpha = n === 0 ? 0 : 0.15 + 0.7 * (n / Math.max(totalMembers, 1))
+              const alpha = n === 0 ? 0 : 0.18 + 0.62 * (n / Math.max(totalMembers, 1))
               const mine = selected.has(idx)
               return (
                 <button
@@ -116,8 +114,8 @@ export default function Grid({
                   type="button"
                   onClick={() => toggle(idx)}
                   aria-label={`slot ${idx}`}
-                  className={`h-6 rounded-sm border ${mine ? 'border-stone-800 border-2' : 'border-stone-200'}`}
-                  style={{ backgroundColor: alpha ? `rgba(217,119,6,${alpha})` : '#fff' }}
+                  className={`h-6 rounded-[5px] ${mine ? 'border-2 border-charcoal' : 'border border-line-card'}`}
+                  style={{ backgroundColor: alpha ? `rgba(235,169,55,${alpha})` : 'var(--paper)' }}
                 />
               )
             })}
@@ -125,44 +123,31 @@ export default function Grid({
         ))}
       </div>
       <div className="mt-3 flex items-center justify-between">
-        <span className="text-xs text-stone-400">tu selección = borde negro</span>
-        <button
-          onClick={save}
-          disabled={!dirty || pending}
-          className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
-        >
+        <span className="text-[11px] text-ink-300">tu selección = borde charcoal</span>
+        <Button size="sm" onClick={save} disabled={!dirty || pending}>
           {pending ? 'Zumbando…' : 'Guardar disponibilidad'}
-        </button>
+        </Button>
       </div>
 
       {best.length > 0 && (
         <div className="mt-5">
-          <h3 className="mb-2 text-sm font-medium uppercase tracking-wide text-stone-400">
-            Mejores huecos
-          </h3>
-          <ul className="space-y-1">
+          <SectionHeader>Mejores huecos</SectionHeader>
+          <ul className="flex flex-col gap-1.5">
             {best.map((s) => (
-              <li
-                key={s.idx}
-                className="flex items-center justify-between rounded-lg border border-stone-200 bg-white p-2 text-sm"
-              >
-                <span className="text-stone-700">
+              <li key={s.idx} className="flex items-center justify-between rounded-md border border-line-card bg-paper p-2 text-sm">
+                <span className="text-ink-700">
                   {slotDate(s.idx).toLocaleString('es-ES', {
                     weekday: 'short',
                     day: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit',
                   })}
-                  <span className="ml-2 text-stone-400">
+                  <span className="ml-2 text-ink-300">
                     {s.n}/{totalMembers}
                   </span>
                 </span>
                 {isOrganizer && (
-                  <button
-                    onClick={() => finalize(s.idx)}
-                    disabled={pending}
-                    className="rounded-lg border border-amber-500 px-2 py-1 text-xs font-medium text-amber-700"
-                  >
+                  <button onClick={() => finalize(s.idx)} disabled={pending} className="rounded-md border-[1.5px] border-honey-500 px-2 py-1 text-xs font-bold text-honey-700">
                     Fijar (3 h)
                   </button>
                 )}

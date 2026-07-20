@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { supabaseBrowser } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/Button'
+import { BrandMark } from '@/components/ui/BrandMark'
+import { BeeLoader } from '@/components/ui/BeeLoader'
 
 type Props = {
   token: string
@@ -37,49 +40,59 @@ export default function InviteSignIn({ token, title, inviter, clubName, presetEm
 
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center p-6">
-      <p className="mb-1 text-sm font-medium text-amber-600">Hive</p>
-      <h1 className="mb-1 text-2xl font-semibold text-stone-800">
-        {inviter ? `${inviter} te invita a` : 'Te invitaron a'}
-      </h1>
-      <p className="mb-8 text-xl text-stone-700">
-        «{title}»{clubName ? <span className="text-stone-400"> · {clubName}</span> : null}
-      </p>
+      {/* Same dark hero card treatment as /signin.tsx. */}
+      <div className="rounded-2xl bg-charcoal px-7 py-8 shadow-pop">
+        <div className="mb-6">
+          <BrandMark variant="invert" />
+        </div>
 
-      {sent ? (
-        <p className="rounded-xl bg-amber-50 p-4 text-stone-700">
-          Revisa tu correo. Te mandamos un enlace que te lleva directo al evento; ábrelo en este
-          mismo navegador.
-        </p>
-      ) : (
-        <form onSubmit={send} className="space-y-3">
-          {phoneOnly && (
-            <p className="rounded-xl bg-amber-50 p-3 text-sm text-stone-600">
-              Te invitaron por WhatsApp. Por ahora se entra con correo; pon el tuyo y tu
-              invitación queda ligada.
+        {sent ? (
+          <div className="space-y-4">
+            <h1 className="font-display text-2xl font-bold text-on-dark">Revisa tu correo</h1>
+            <p className="text-sm text-on-dark-mute">
+              Te mandamos un enlace que te lleva directo al evento. Ábrelo en este mismo navegador.
             </p>
-          )}
-          <label className="block text-sm text-stone-600" htmlFor="email">
-            Tu correo
-          </label>
-          <input
-            id="email"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="tu@correo.com"
-            className="w-full rounded-xl border border-stone-300 bg-white p-3 outline-amber-500"
-          />
-          <button
-            disabled={sending}
-            className="w-full rounded-xl bg-amber-500 p-3 font-medium text-white hover:bg-amber-600 disabled:opacity-50"
-          >
-            {sending ? 'Enviando…' : 'Entrar'}
-          </button>
-          {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-          <p className="pt-2 text-xs text-stone-400">Sin contraseñas, sin formularios.</p>
-        </form>
-      )}
+            <BeeLoader />
+          </div>
+        ) : (
+          <>
+            <h1 className="font-display text-2xl leading-[1.2] font-bold text-on-dark">
+              {inviter ? `${inviter} te invita a` : 'Te invitaron a'}
+            </h1>
+            <p className="mt-1 mb-6 text-lg text-on-dark">
+              «{title}»
+              {clubName ? <span className="text-on-dark-mute"> · {clubName}</span> : null}
+            </p>
+            <form onSubmit={send} className="space-y-3">
+              {phoneOnly && (
+                <p className="rounded-md border border-charcoal-3 bg-charcoal-2 p-3 text-xs text-on-dark-mute">
+                  Te invitaron por WhatsApp. Por ahora se entra con correo; pon el tuyo y tu
+                  invitación queda ligada.
+                </p>
+              )}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[12.5px] font-semibold text-on-dark-mute" htmlFor="email">
+                  Tu correo
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="tu@correo.com"
+                  className="rounded-md border border-charcoal-3 bg-charcoal-2 px-[14px] py-[13px] text-sm text-on-dark outline-none placeholder:text-on-dark-mute focus:border-honey-500"
+                />
+              </div>
+              <Button display block size="lg" disabled={sending}>
+                {sending ? 'Enviando…' : 'Entrar'}
+              </Button>
+              {error && <p className="rounded-md bg-danger-bg p-3 text-xs text-danger">{error}</p>}
+              <p className="pt-1 text-center text-xs text-on-dark-mute">Sin contraseñas, sin formularios.</p>
+            </form>
+          </>
+        )}
+      </div>
     </main>
   )
 }
