@@ -2,13 +2,15 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { requireProfile } from '@/lib/gate'
 import type { Profile } from '@/lib/types'
-import { setUserStatus, toggleAppAdmin, decideChangeRequest, decideJoinRequest, updateNotificationTemplate } from '../actions'
+import { setUserStatus, toggleAppAdmin, decideChangeRequest, decideJoinRequest } from '../actions'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { Chip } from '@/components/ui/Chip'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { HexAvatar } from '@/components/ui/HexAvatar'
+import { TemplateRow } from './template-row'
 
 const CHANGE_KIND_LABEL: Record<string, string> = {
   about: 'Acerca de',
@@ -88,11 +90,14 @@ export default async function AdminPage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5 text-sm font-bold text-ink-900">
                         <Badge tone="pending">{CHANGE_KIND_LABEL[r.kind] ?? r.kind}</Badge>
-                        {club?.name ?? 'club'}
+                        {requester?.display_name ?? '·'}
+                        {club && (
+                          <Link href={`/club/${club.slug}`}>
+                            <Chip variant="sage">{club.name}</Chip>
+                          </Link>
+                        )}
                       </div>
-                      <div className="mt-0.5 text-xs text-ink-500">
-                        {requester?.display_name ?? '·'} propone {summary}
-                      </div>
+                      <div className="mt-0.5 text-xs text-ink-500">{summary}</div>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -116,8 +121,16 @@ export default async function AdminPage() {
                   <div className="mb-2 flex items-center gap-2.5">
                     <HexAvatar name={requester?.display_name ?? '·'} size={28} />
                     <div className="min-w-0">
-                      <div className="text-sm font-bold text-ink-900">{requester?.display_name ?? '·'}</div>
-                      <div className="text-xs text-ink-500">quiere unirse a {club?.name ?? 'un club'}</div>
+                      <div className="flex flex-wrap items-center gap-1.5 text-sm font-bold text-ink-900">
+                        <Badge tone="pending">Solicitud de unión</Badge>
+                        {requester?.display_name ?? '·'}
+                        {club && (
+                          <Link href={`/club/${club.slug}`}>
+                            <Chip variant="sage">{club.name}</Chip>
+                          </Link>
+                        )}
+                      </div>
+                      <div className="mt-0.5 text-xs text-ink-500">quiere unirse al club</div>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -202,33 +215,15 @@ export default async function AdminPage() {
 
           <section>
             <SectionHeader>Plantillas de notificación</SectionHeader>
-            <div className="flex flex-col gap-4">
-              {templateKeys.map((key) => {
-                const email = templates.find((t) => t.key === key && t.channel === 'email')
-                const whatsapp = templates.find((t) => t.key === key && t.channel === 'whatsapp')
-                return (
-                  <Card key={key} pad="sm">
-                    <div className="mb-2.5 text-sm font-bold text-ink-900">{key}</div>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      {email && (
-                        <form action={updateNotificationTemplate.bind(null, 'email', key)} className="flex flex-col gap-1.5">
-                          <span className="text-xs font-bold uppercase text-ink-300">Correo</span>
-                          <input name="subject" defaultValue={email.subject ?? ''} placeholder="Asunto" className="rounded-md border border-line-input bg-paper p-1.5 text-xs text-ink-900" />
-                          <textarea name="body" defaultValue={email.body} rows={4} className="rounded-md border border-line-input bg-paper p-1.5 text-xs text-ink-900" />
-                          <button className="self-start text-xs font-bold text-honey-700">Guardar</button>
-                        </form>
-                      )}
-                      {whatsapp && (
-                        <form action={updateNotificationTemplate.bind(null, 'whatsapp', key)} className="flex flex-col gap-1.5">
-                          <span className="text-xs font-bold uppercase text-ink-300">WhatsApp (no conectado aún)</span>
-                          <textarea name="body" defaultValue={whatsapp.body} rows={4} className="rounded-md border border-line-input bg-paper p-1.5 text-xs text-ink-900" />
-                          <button className="self-start text-xs font-bold text-honey-700">Guardar</button>
-                        </form>
-                      )}
-                    </div>
-                  </Card>
-                )
-              })}
+            <div className="divide-y divide-line-divider overflow-hidden rounded-lg border border-line-card bg-paper">
+              {templateKeys.map((key) => (
+                <TemplateRow
+                  key={key}
+                  tplKey={key}
+                  email={templates.find((t) => t.key === key && t.channel === 'email')}
+                  whatsapp={templates.find((t) => t.key === key && t.channel === 'whatsapp')}
+                />
+              ))}
             </div>
           </section>
         </>
