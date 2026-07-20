@@ -291,8 +291,10 @@ insert into storage.buckets (id, name, public) values
   ('payment-proofs', 'payment-proofs', false)
 on conflict (id) do nothing;
 
--- avatars: everyone can read (public bucket); only the owner (folder = uid) can write
-create policy avatars_select on storage.objects for select using (bucket_id = 'avatars');
+-- avatars: public bucket, so reads go through the public object URL without
+-- any SELECT policy (Supabase security advisor: a broad SELECT policy here
+-- would only add an unneeded "list every file in the bucket" capability).
+-- Only the owner (folder = uid) can write.
 create policy avatars_write on storage.objects for insert with check (
   bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy avatars_update on storage.objects for update using (
@@ -300,8 +302,7 @@ create policy avatars_update on storage.objects for update using (
 create policy avatars_delete on storage.objects for delete using (
   bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
 
--- banners: everyone can read (public bucket); folder = club id, club managers can write
-create policy banners_select on storage.objects for select using (bucket_id = 'banners');
+-- banners: public bucket, same reasoning; folder = club id, club managers can write
 create policy banners_write on storage.objects for insert with check (
   bucket_id = 'banners' and is_club_manager((storage.foldername(name))[1]::uuid));
 create policy banners_update on storage.objects for update using (
