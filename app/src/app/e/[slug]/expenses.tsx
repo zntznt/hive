@@ -1,10 +1,25 @@
-import { addExpense, confirmSettlement, deleteSettlement, recordSettlement } from '@/app/actions'
+import { addExpense, deleteSettlement } from '@/app/actions'
+import { supabaseServer } from '@/lib/supabase/server'
 import { fmtMoney } from '@/lib/money'
 import { suggestTransfers, type NetPosition } from '@/lib/settle'
+import { SectionHeader } from '@/components/ui/SectionHeader'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
+import { BalanceRow } from '@/components/ui/BalanceRow'
+import { PAYMENT_METHOD_LABELS } from '@/lib/payment-method-labels'
+import { SettleUpFlow, ConfirmPaymentModal } from '@/components/settle-up'
 
 type Expense = { id: string; payer_user_id: string; amount_cents: number; note: string }
 type Balance = { user_id: string; paid_cents: number; owed_cents: number; net_cents: number }
-type Settlement = { id: string; from_user: string; to_user: string; amount_cents: number; confirmed: boolean }
+type Settlement = {
+  id: string
+  from_user: string
+  to_user: string
+  amount_cents: number
+  confirmed: boolean
+  method: string | null
+  proof_path: string | null
+}
 type Guest = { id: string; name: string; host_user_id: string; promoted_to_user_id: string | null }
 type Member = { user_id: string; in: boolean }
 
@@ -21,14 +36,23 @@ type Props = {
   settlements: Settlement[]
 }
 
-export default function Expenses({
-  eventId, slug, myId, isOrganizer, nameOf, members, guests, expenses, balances, settlements,
+export default async function Expenses({
+  eventId,
+  slug,
+  myId,
+  isOrganizer,
+  nameOf,
+  members,
+  guests,
+  expenses,
+  balances,
+  settlements,
 }: Props) {
   const total = expenses.reduce((s, e) => s + e.amount_cents, 0)
   const pending = settlements.filter((s) => !s.confirmed)
   // event_balances counts only confirmed settlements, so a freshly "marcado pagado"
   // transfer would otherwise be re-suggested. Net out pending ones here so a paid
-  // debt drops off the list instead of inviting a duplicate Bizum.
+  // debt drops off the list instead of inviting a duplicate transfer.
   const adj = new Map<string, number>()
   for (const s of pending) {
     adj.set(s.from_user, (adj.get(s.from_user) ?? 0) + s.amount_cents)
@@ -43,74 +67,79 @@ export default function Expenses({
     .filter((n) => n.net_cents !== 0)
   const suggestions = suggestTransfers(nets)
 
+  const supabase = await supabaseServer()
+  const creditorIds = [...new Set(suggestions.map((t) => t.to.user_id))]
+  const { data: methodRows } = creditorIds.length
+    ? await supabase.from('payment_methods').select('user_id, kind, value').in('user_id', creditorIds).order('sort')
+    : { data: [] as { user_id: string; kind: string; value: string }[] }
+  const methodsFor = (uid: string) => (methodRows ?? []).filter((m) => m.user_id === uid)
+
+  // signed URLs for private payment-proof screenshots the current user is allowed to see
+  const proofFor = new Map<string, string>()
+  for (const s of pending) {
+    if (s.proof_path && (s.to_user === myId || s.from_user === myId)) {
+      const { data } = await supabase.storage.from('payment-proofs').createSignedUrl(s.proof_path, 300)
+      if (data?.signedUrl) proofFor.set(s.id, data.signedUrl)
+    }
+  }
+
   return (
     <section className="mb-8">
-      <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-stone-400">
-        Gastos {total > 0 && <span className="text-stone-500">· {fmtMoney(total)}</span>}
-      </h2>
+      <SectionHeader>
+        Gastos {total > 0 && <span className="font-normal normal-case tracking-normal text-ink-500">· {fmtMoney(total)}</span>}
+      </SectionHeader>
 
-      {expenses.length === 0 && (
-        <p className="mb-2 text-sm text-stone-500">Sin gastos todavía.</p>
-      )}
-      <ul className="mb-3 space-y-1">
+      {expenses.length === 0 && <p className="mb-2 text-sm text-ink-500">Sin gastos todavía.</p>}
+      <ul className="mb-3 flex flex-col gap-1.5">
         {expenses.map((e) => (
-          <li key={e.id} className="flex items-center justify-between rounded-xl border border-stone-200 bg-white p-3 text-sm">
-            <span className="text-stone-800">
-              {e.note} <span className="text-stone-400">· pagó {nameOf.get(e.payer_user_id) ?? '·'}</span>
-            </span>
-            <span className="font-medium text-stone-800">{fmtMoney(e.amount_cents)}</span>
+          <li key={e.id}>
+            <Card pad="sm" className="flex items-center justify-between text-sm">
+              <span className="text-ink-900">
+                {e.note} <span className="text-ink-300">· pagó {nameOf.get(e.payer_user_id) ?? '·'}</span>
+              </span>
+              <span className="font-bold text-ink-900">{fmtMoney(e.amount_cents)}</span>
+            </Card>
           </li>
         ))}
       </ul>
 
-      <details className="mb-4 rounded-xl border border-dashed border-stone-300 p-3">
-        <summary className="cursor-pointer text-sm font-medium text-amber-700">
-          Añadir gasto (lo pagaste tú)
-        </summary>
-        <form action={addExpense.bind(null, eventId, slug)} className="mt-3 space-y-2">
+      <details className="mb-4 rounded-lg border-[1.5px] border-dashed border-line-input p-3">
+        <summary className="cursor-pointer text-sm font-bold text-honey-700">Añadir gasto (lo pagaste tú)</summary>
+        <form action={addExpense.bind(null, eventId, slug)} className="mt-3 flex flex-col gap-2">
           <div className="flex gap-2">
-            <input
-              name="note" required placeholder="Pizzas"
-              className="w-full rounded-lg border border-stone-300 bg-white p-2 text-sm outline-amber-500"
-            />
-            <input
-              name="amount" required placeholder="42,50" inputMode="decimal"
-              className="w-28 rounded-lg border border-stone-300 bg-white p-2 text-sm outline-amber-500"
-            />
+            <input name="note" required placeholder="Pizzas" className="w-full rounded-md border border-line-input bg-paper p-2 text-sm text-ink-900" />
+            <input name="amount" required placeholder="42,50" inputMode="decimal" className="w-28 rounded-md border border-line-input bg-paper p-2 text-sm text-ink-900" />
           </div>
-          <p className="text-xs text-stone-500">Entre quiénes se reparte:</p>
-          <div className="grid grid-cols-2 gap-1 text-sm text-stone-700">
+          <p className="text-xs text-ink-500">Entre quiénes se reparte:</p>
+          <div className="grid grid-cols-2 gap-1 text-sm text-ink-700">
             {members.map((m) => (
               <label key={m.user_id} className="flex items-center gap-2">
-                <input type="checkbox" name="participant" value={`u:${m.user_id}`} defaultChecked={m.in || m.user_id === myId} />
+                <input type="checkbox" name="participant" value={`u:${m.user_id}`} defaultChecked={m.in || m.user_id === myId} className="accent-honey-500" />
                 {nameOf.get(m.user_id) ?? '·'}
               </label>
             ))}
-            {guests.filter((g) => !g.promoted_to_user_id).map((g) => (
-              <label key={g.id} className="flex items-center gap-2">
-                <input type="checkbox" name="participant" value={`g:${g.id}`} />
-                {g.name} <span className="text-xs text-stone-400">(invitado de {nameOf.get(g.host_user_id) ?? '·'})</span>
-              </label>
-            ))}
+            {guests
+              .filter((g) => !g.promoted_to_user_id)
+              .map((g) => (
+                <label key={g.id} className="flex items-center gap-2">
+                  <input type="checkbox" name="participant" value={`g:${g.id}`} className="accent-honey-500" />
+                  {g.name} <span className="text-xs text-ink-300">(invitado de {nameOf.get(g.host_user_id) ?? '·'})</span>
+                </label>
+              ))}
           </div>
-          <button className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-white">
-            Guardar gasto
-          </button>
+          <Button size="sm">Guardar gasto</Button>
         </form>
       </details>
 
       {nets.length > 0 && (
         <>
-          <h3 className="mb-1 text-sm font-medium uppercase tracking-wide text-stone-400">Balances</h3>
-          <ul className="mb-3 space-y-1 text-sm">
+          <SectionHeader>Balances</SectionHeader>
+          <ul className="mb-3 flex flex-col gap-1.5">
             {nets
               .sort((a, b) => b.net_cents - a.net_cents)
               .map((n) => (
-                <li key={n.user_id} className="flex items-center justify-between rounded-lg bg-white px-3 py-2">
-                  <span className="text-stone-700">{n.name}</span>
-                  <span className={n.net_cents >= 0 ? 'font-medium text-stone-800' : 'text-red-700'}>
-                    {n.net_cents > 0 ? '+' : ''}{fmtMoney(n.net_cents)}
-                  </span>
+                <li key={n.user_id}>
+                  <BalanceRow name={n.name} netCents={n.net_cents} />
                 </li>
               ))}
           </ul>
@@ -119,18 +148,28 @@ export default function Expenses({
 
       {suggestions.length > 0 && (
         <>
-          <h3 className="mb-1 text-sm font-medium uppercase tracking-wide text-stone-400">Liquidar</h3>
-          <ul className="mb-3 space-y-1 text-sm">
+          <SectionHeader>Liquidar</SectionHeader>
+          <ul className="mb-3 flex flex-col gap-1.5">
             {suggestions.map((t, i) => (
-              <li key={i} className="flex items-center justify-between rounded-lg border border-stone-200 bg-white px-3 py-2">
-                <span className="text-stone-700">
-                  {t.from.name} → {t.to.name} · <b>{fmtMoney(t.amount_cents)}</b>
-                </span>
-                {(t.from.user_id === myId || isOrganizer) && (
-                  <form action={recordSettlement.bind(null, eventId, slug, t.from.user_id, t.to.user_id, t.amount_cents)}>
-                    <button className="text-xs text-amber-700 underline">marcar pagado</button>
-                  </form>
-                )}
+              <li key={i}>
+                <Card pad="sm" className="flex items-center justify-between text-sm">
+                  <span className="text-ink-700">
+                    {t.from.name} → {t.to.name} · <b>{fmtMoney(t.amount_cents)}</b>
+                  </span>
+                  {(t.from.user_id === myId || isOrganizer) && (
+                    <SettleUpFlow
+                      eventId={eventId}
+                      slug={slug}
+                      fromUserId={t.from.user_id}
+                      toUserId={t.to.user_id}
+                      toName={t.to.name}
+                      amountCents={t.amount_cents}
+                      toPaymentMethods={methodsFor(t.to.user_id)}
+                    >
+                      Pagar
+                    </SettleUpFlow>
+                  )}
+                </Card>
               </li>
             ))}
           </ul>
@@ -139,27 +178,34 @@ export default function Expenses({
 
       {pending.length > 0 && (
         <>
-          <h3 className="mb-1 text-sm font-medium uppercase tracking-wide text-stone-400">
-            Pagos por confirmar
-          </h3>
-          <ul className="space-y-1 text-sm">
+          <SectionHeader>Pagos por confirmar</SectionHeader>
+          <ul className="flex flex-col gap-1.5">
             {pending.map((s) => (
-              <li key={s.id} className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-                <span className="text-stone-700">
-                  {nameOf.get(s.from_user) ?? '·'} dice que pagó {fmtMoney(s.amount_cents)} a {nameOf.get(s.to_user) ?? '·'}
-                </span>
-                <span className="flex gap-3">
-                  {(s.from_user === myId || isOrganizer) && (
-                    <form action={deleteSettlement.bind(null, s.id, slug)}>
-                      <button className="text-xs text-stone-500 underline">retirar</button>
-                    </form>
+              <li key={s.id}>
+                <Card pad="sm" className="flex items-center justify-between border-honey-200 bg-honey-50 text-sm">
+                  <span className="text-ink-700">
+                    {nameOf.get(s.from_user) ?? '·'} dice que pagó {fmtMoney(s.amount_cents)} a {nameOf.get(s.to_user) ?? '·'}
+                    {s.method && <span className="text-ink-500"> · {PAYMENT_METHOD_LABELS[s.method] ?? s.method}</span>}
+                  </span>
+                  {s.to_user === myId ? (
+                    <ConfirmPaymentModal
+                      settlementId={s.id}
+                      slug={slug}
+                      fromName={nameOf.get(s.from_user) ?? '·'}
+                      amountCents={s.amount_cents}
+                      method={s.method}
+                      proofSignedUrl={proofFor.get(s.id) ?? null}
+                    >
+                      Confirmar
+                    </ConfirmPaymentModal>
+                  ) : (
+                    (s.from_user === myId || isOrganizer) && (
+                      <form action={deleteSettlement.bind(null, s.id, slug)}>
+                        <button className="text-xs font-bold text-ink-500">retirar</button>
+                      </form>
+                    )
                   )}
-                  {(s.to_user === myId || isOrganizer) && (
-                    <form action={confirmSettlement.bind(null, s.id, slug)}>
-                      <button className="text-xs text-amber-700 underline">confirmar recibido</button>
-                    </form>
-                  )}
-                </span>
+                </Card>
               </li>
             ))}
           </ul>
