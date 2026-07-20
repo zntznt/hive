@@ -22,8 +22,8 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
   if (!inv) {
     return (
       <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center p-6 text-center">
-        <h1 className="mb-2 text-xl font-semibold text-stone-800">Invitación no encontrada</h1>
-        <p className="text-stone-500">
+        <h1 className="mb-2 font-display text-xl font-bold text-ink-900">Invitación no encontrada</h1>
+        <p className="text-ink-500">
           El enlace no es válido. Pide a quien organiza que te mande otro.
         </p>
       </main>
@@ -39,8 +39,8 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
     if (error) {
       return (
         <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center p-6 text-center">
-          <h1 className="mb-2 text-xl font-semibold text-stone-800">No se pudo usar la invitación</h1>
-          <p className="text-stone-500">{error.message}</p>
+          <h1 className="mb-2 font-display text-xl font-bold text-ink-900">No se pudo usar la invitación</h1>
+          <p className="text-ink-500">{error.message}</p>
         </main>
       )
     }
@@ -48,13 +48,12 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
     redirect(t.event_slug ? `/e/${t.event_slug}` : t.club_slug ? `/club/${t.club_slug}` : '/')
   }
 
-  const what = inv.event_title ?? inv.club_name ?? 'Hive'
   return (
     <InviteSignIn
       token={token}
-      title={what}
+      clubName={inv.club_name}
+      eventTitle={inv.event_title}
       inviter={inv.inviter}
-      clubName={inv.event_title ? inv.club_name : null}
       presetEmail={inv.email}
       phoneOnly={!inv.email && !!inv.phone}
     />
