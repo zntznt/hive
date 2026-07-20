@@ -573,6 +573,48 @@ export async function createEvent(
   redirect(`/e/${slug}`)
 }
 
+// events_update RLS already restricts this to an event organizer. The
+// scheduling window (dates/hours/cell size) is only ever sent once a time
+// hasn't been picked yet - see event-form.tsx, which hides those fields
+// once the event is scheduled.
+export async function updateEvent(eventId: string, slug: string, _prev: string | null, formData: FormData): Promise<string | null> {
+  const supabase = await supabaseServer()
+  const title = String(formData.get('title') ?? '').trim()
+  if (!title) return 'Falta el título.'
+
+  const capacityRaw = String(formData.get('capacity') ?? '').trim()
+  const deadlineRaw = String(formData.get('confirm_deadline') ?? '').trim()
+  const categoryRaw = String(formData.get('category_id') ?? '')
+
+  const patch: Record<string, unknown> = {
+    title,
+    category_id: categoryRaw || null,
+    location: String(formData.get('location') ?? '').trim() || null,
+    join_policy: String(formData.get('join_policy') ?? 'club_members_only'),
+    allow_guests: formData.get('allow_guests') === 'on',
+    capacity: capacityRaw ? Number(capacityRaw) : null,
+    waitlist_enabled: formData.get('waitlist_enabled') === 'on' && !!capacityRaw,
+    confirm_deadline: deadlineRaw ? new Date(deadlineRaw).toISOString() : null,
+  }
+
+  if (formData.has('sched_start_date')) {
+    const startDate = String(formData.get('sched_start_date') ?? '')
+    const endDate = String(formData.get('sched_end_date') ?? '')
+    if (!startDate || !endDate) return 'Faltan las fechas de búsqueda.'
+    if (endDate < startDate) return 'La fecha final no puede ser antes de la inicial.'
+    patch.sched_start_date = startDate
+    patch.sched_end_date = endDate
+    patch.sched_time_min = Number(formData.get('time_min') ?? 1140)
+    patch.sched_time_max = Number(formData.get('time_max') ?? 1380)
+    patch.sched_slot_minutes = Number(formData.get('slot_minutes') ?? 60)
+  }
+
+  const { error } = await supabase.from('events').update(patch).eq('id', eventId)
+  if (error) return 'No se pudo guardar. Inténtalo de nuevo.'
+  revalidatePath(`/e/${slug}`)
+  redirect(`/e/${slug}`)
+}
+
 export async function createInvitation(
   eventId: string,
   clubId: string | null,

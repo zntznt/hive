@@ -156,6 +156,11 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   return (
     <main className="mx-auto w-full max-w-md p-6">
       <div className="mb-2.5 flex justify-end gap-3 text-sm">
+        {isOrganizer && event.status !== 'cancelled' && (
+          <Link href={`/e/${event.slug}/edit`} className="font-bold text-honey-700">
+            editar
+          </Link>
+        )}
         {isOrganizer && (
           <Link href={`/e/${event.slug}/invites`} className="font-bold text-honey-700">
             invitar

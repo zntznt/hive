@@ -1,11 +1,18 @@
 'use client'
 
 import { useActionState, useState } from 'react'
-import { createEvent } from '@/app/actions'
+import { createEvent, updateEvent } from '@/app/actions'
 import { Input, Select, Checkbox } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { LocationPicker, type Place } from '@/components/ui/LocationPicker'
+
+function toDatetimeLocal(iso: string | null) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 function Fieldset({ legend, hint, children }: { legend: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -24,19 +31,47 @@ const HOURS = Array.from({ length: 25 }, (_, h) => ({
 
 type Category = { id: string; name: string; emoji: string | null }
 
+type Initial = {
+  id: string
+  title: string
+  category_id: string | null
+  location: string | null
+  allow_guests: boolean
+  capacity: number | null
+  waitlist_enabled: boolean
+  confirm_deadline: string | null
+  join_policy: string
+  status: string
+  sched_start_date: string | null
+  sched_end_date: string | null
+  sched_time_min: number
+  sched_time_max: number
+  sched_slot_minutes: number
+}
+
 export default function EventForm({
   clubId,
   slug,
   categories,
   recentPlaces = [],
+  initial,
 }: {
   clubId: string
   slug: string
   categories: Category[]
   recentPlaces?: Place[]
+  initial?: Initial
 }) {
-  const [error, formAction, pending] = useActionState(createEvent.bind(null, clubId, slug), null)
-  const [title, setTitle] = useState('')
+  const edit = !!initial
+  const [error, formAction, pending] = useActionState(
+    edit ? updateEvent.bind(null, initial!.id, slug) : createEvent.bind(null, clubId, slug),
+    null
+  )
+  const [title, setTitle] = useState(initial?.title ?? '')
+  // still finding a time: the scheduling window can change. Once a slot's
+  // picked, those fields are locked - editing them here wouldn't touch the
+  // already-chosen chosen_start/chosen_end anyway.
+  const showSchedWindow = !edit || initial?.status === 'scheduling'
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -44,7 +79,7 @@ export default function EventForm({
 
       <div className="flex gap-3">
         <div className="flex-1">
-          <Select id="category_id" name="category_id" label="Categoría" defaultValue="">
+          <Select id="category_id" name="category_id" label="Categoría" defaultValue={initial?.category_id ?? ''}>
             <option value="">sin categoría</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
@@ -56,57 +91,73 @@ export default function EventForm({
         </div>
       </div>
 
-      <LocationPicker name="location" label="Lugar (opcional)" recent={recentPlaces} />
+      <LocationPicker name="location" label="Lugar (opcional)" defaultValue={initial?.location ?? ''} recent={recentPlaces} />
 
-      <Fieldset legend="Buscar fecha" hint="La ventana de fechas y horas donde los miembros marcan cuándo pueden.">
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <Input id="sched_start_date" name="sched_start_date" type="date" label="Desde" required />
+      {showSchedWindow && (
+        <Fieldset legend="Buscar fecha" hint="La ventana de fechas y horas donde los miembros marcan cuándo pueden.">
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <Input id="sched_start_date" name="sched_start_date" type="date" label="Desde" required defaultValue={initial?.sched_start_date ?? undefined} />
+            </div>
+            <div className="flex-1">
+              <Input id="sched_end_date" name="sched_end_date" type="date" label="Hasta" required defaultValue={initial?.sched_end_date ?? undefined} />
+            </div>
           </div>
-          <div className="flex-1">
-            <Input id="sched_end_date" name="sched_end_date" type="date" label="Hasta" required />
+          <div className="mt-2.5 flex gap-3">
+            <div className="flex-1">
+              <Select id="time_min" name="time_min" label="De" defaultValue={initial?.sched_time_min ?? 1140}>
+                {HOURS.slice(0, 24).map((h) => (
+                  <option key={h.value} value={h.value}>
+                    {h.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="flex-1">
+              <Select id="time_max" name="time_max" label="A" defaultValue={initial?.sched_time_max ?? 1380}>
+                {HOURS.slice(1).map((h) => (
+                  <option key={h.value} value={h.value}>
+                    {h.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="flex-1">
+              <Select id="slot_minutes" name="slot_minutes" label="Celdas" defaultValue={initial?.sched_slot_minutes ?? 60}>
+                <option value={30}>30 min</option>
+                <option value={60}>1 h</option>
+              </Select>
+            </div>
           </div>
-        </div>
-        <div className="mt-2.5 flex gap-3">
-          <div className="flex-1">
-            <Select id="time_min" name="time_min" label="De" defaultValue={1140}>
-              {HOURS.slice(0, 24).map((h) => (
-                <option key={h.value} value={h.value}>
-                  {h.label}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="flex-1">
-            <Select id="time_max" name="time_max" label="A" defaultValue={1380}>
-              {HOURS.slice(1).map((h) => (
-                <option key={h.value} value={h.value}>
-                  {h.label}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="flex-1">
-            <Select id="slot_minutes" name="slot_minutes" label="Celdas" defaultValue={60}>
-              <option value={30}>30 min</option>
-              <option value={60}>1 h</option>
-            </Select>
-          </div>
-        </div>
-      </Fieldset>
+        </Fieldset>
+      )}
 
       <Fieldset legend="Opcional">
         <div className="flex flex-col gap-3 text-sm text-ink-700">
-          <Checkbox name="allow_guests" label="Permitir invitados (+1)" />
+          <Checkbox name="allow_guests" label="Permitir invitados (+1)" defaultChecked={initial?.allow_guests} />
           <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
             <label className="flex items-center gap-2" htmlFor="capacity">
               Lugares máx.
-              <input id="capacity" name="capacity" type="number" min={1} placeholder="∞" className="w-20 rounded-md border border-line-input bg-paper p-2 text-ink-900" />
+              <input
+                id="capacity"
+                name="capacity"
+                type="number"
+                min={1}
+                placeholder="∞"
+                defaultValue={initial?.capacity ?? undefined}
+                className="w-20 rounded-md border border-line-input bg-paper p-2 text-ink-900"
+              />
             </label>
-            <Checkbox name="waitlist_enabled" label="lista de espera" />
+            <Checkbox name="waitlist_enabled" label="lista de espera" defaultChecked={initial?.waitlist_enabled} />
           </div>
-          <Input id="confirm_deadline" name="confirm_deadline" type="datetime-local" label="Confirmar antes de" />
-          <Select id="join_policy" name="join_policy" label="Quién puede entrar con el enlace" defaultValue="club_members_only">
+          <Input
+            id="confirm_deadline"
+            name="confirm_deadline"
+            type="datetime-local"
+            label="Confirmar antes de"
+            defaultValue={toDatetimeLocal(initial?.confirm_deadline ?? null)}
+          />
+          <Select id="join_policy" name="join_policy" label="Quién puede entrar con el enlace" defaultValue={initial?.join_policy ?? 'club_members_only'}>
             <option value="club_members_only">solo miembros del club</option>
             <option value="anyone_with_link">cualquiera con el enlace</option>
             <option value="invite_only">solo con invitación</option>
@@ -117,7 +168,7 @@ export default function EventForm({
       {error && <p className="rounded-md bg-danger-bg px-3.5 py-3 text-sm text-danger">{error}</p>}
 
       <Button block display size="lg" disabled={pending || !title.trim()}>
-        {pending ? 'Creando…' : 'Crear evento'}
+        {pending ? 'Guardando…' : edit ? 'Guardar cambios' : 'Crear evento'}
       </Button>
       {!title.trim() && <p className="-mt-2 text-center text-xs text-ink-300">Dale un título primero.</p>}
     </form>
