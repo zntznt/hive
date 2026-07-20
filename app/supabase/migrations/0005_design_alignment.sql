@@ -135,7 +135,7 @@ begin
   if r.status <> 'pending' then raise exception 'already decided'; end if;
 
   if r.kind = 'about' then
-    update clubs set description = r.payload->>'description' where id = r.club_id;
+    update clubs set description = r.payload->>'description', links = coalesce(r.payload->'links', links) where id = r.club_id;
   elsif r.kind = 'category_add' then
     insert into event_categories (club_id, name, emoji) values (r.club_id, r.payload->>'name', r.payload->>'emoji');
   elsif r.kind = 'category_edit' then
@@ -145,6 +145,8 @@ begin
     delete from event_categories where id = (r.payload->>'category_id')::uuid and club_id = r.club_id;
   elsif r.kind = 'banner' then
     update clubs set banner_url = r.payload->>'banner_url' where id = r.club_id;
+  elsif r.kind = 'avatar' then
+    update clubs set avatar_url = r.payload->>'avatar_url' where id = r.club_id;
   elsif r.kind = 'member_removal' then
     delete from club_members where club_id = r.club_id and user_id = (r.payload->>'user_id')::uuid;
   else

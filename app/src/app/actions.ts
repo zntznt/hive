@@ -114,6 +114,17 @@ export async function removeGuest(guestId: string, slug: string) {
   revalidatePath(`/e/${slug}`)
 }
 
+// event_members_insert RLS already restricts this to an existing organizer/admin
+export async function addCoOrganizer(eventId: string, slug: string, userId: string) {
+  const supabase = await supabaseServer()
+  const { error } = await supabase.from('event_members').upsert(
+    { event_id: eventId, user_id: userId, role: 'organizer' },
+    { onConflict: 'event_id,user_id' }
+  )
+  if (error) throw new Error(error.message)
+  revalidatePath(`/e/${slug}`)
+}
+
 export async function claimContribution(id: string, slug: string) {
   const supabase = await supabaseServer()
   const {
@@ -132,6 +143,23 @@ export async function claimContribution(id: string, slug: string) {
 export async function toggleContribution(id: string, slug: string, done: boolean) {
   const supabase = await supabaseServer()
   const { error } = await supabase.from('contributions').update({ done }).eq('id', id)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/e/${slug}`)
+}
+
+export async function updateContribution(id: string, slug: string, formData: FormData) {
+  const supabase = await supabaseServer()
+  const title = String(formData.get('title') ?? '').trim()
+  const qty = String(formData.get('qty') ?? '').trim() || null
+  if (!title) return
+  const { error } = await supabase.from('contributions').update({ title, qty }).eq('id', id)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/e/${slug}`)
+}
+
+export async function removeContribution(id: string, slug: string) {
+  const supabase = await supabaseServer()
+  const { error } = await supabase.from('contributions').delete().eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath(`/e/${slug}`)
 }
@@ -226,8 +254,12 @@ export async function updateClubAbout(clubId: string, clubSlug: string, formData
   } = await supabase.auth.getUser()
   if (!user) throw new Error('not signed in')
   const description = String(formData.get('description') ?? '').trim()
-  const whatsapp = String(formData.get('whatsapp_link') ?? '').trim()
-  const links = whatsapp ? [{ label: 'WhatsApp', url: whatsapp }] : []
+  const labels = formData.getAll('link_label').map(String)
+  const urls = formData.getAll('link_url').map(String)
+  const links = labels
+    .map((label, i) => ({ label: label.trim(), url: (urls[i] ?? '').trim() }))
+    .filter((l) => l.label && l.url)
+    .slice(0, 4)
   const perm = await clubPermission(supabase, user.id, clubId)
 
   if (perm.isAdmin) {
@@ -265,6 +297,37 @@ export async function updateClubBanner(clubId: string, clubSlug: string, bannerU
     if (error) throw new Error(error.message)
   }
   revalidatePath(`/club/${clubSlug}`)
+}
+
+export async function updateClubAvatar(clubId: string, clubSlug: string, avatarUrl: string) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
+  const perm = await clubPermission(supabase, user.id, clubId)
+  if (perm.isAdmin) {
+    const { error } = await supabase.from('clubs').update({ avatar_url: avatarUrl }).eq('id', clubId)
+    if (error) throw new Error(error.message)
+  } else {
+    const { error } = await supabase.from('change_requests').insert({
+      club_id: clubId,
+      kind: 'avatar',
+      payload: { avatar_url: avatarUrl },
+      requested_by: user.id,
+    })
+    if (error) throw new Error(error.message)
+  }
+  revalidatePath(`/club/${clubSlug}`)
+}
+
+// `path` is whichever page is showing the invitations list (club page or an
+// event's invites page) - callers pass their own route to revalidate.
+export async function revokeInvitation(invitationId: string, path: string) {
+  const supabase = await supabaseServer()
+  const { error } = await supabase.from('invitations').delete().eq('id', invitationId)
+  if (error) throw new Error(error.message)
+  revalidatePath(path)
 }
 
 export async function updateMemberRole(clubId: string, clubSlug: string, userId: string, role: 'member' | 'organizer' | 'admin') {
@@ -591,6 +654,20 @@ export async function addExpense(eventId: string, slug: string, formData: FormDa
   revalidatePath(`/e/${slug}`)
 }
 
+// event_balances is a computed view over expenses/expense_shares/settlements,
+// so editing the amount here alone flows through to everyone's balance on
+// the next read - no manual delta/reconciliation bookkeeping needed.
+export async function updateExpense(id: string, slug: string, formData: FormData) {
+  const supabase = await supabaseServer()
+  const { parseMoneyToCents } = await import('@/lib/money')
+  const note = String(formData.get('note') ?? '').trim()
+  const cents = parseMoneyToCents(String(formData.get('amount') ?? ''))
+  if (!note || !cents) throw new Error('Pon una nota y una cantidad válida.')
+  const { error } = await supabase.from('expenses').update({ note, amount_cents: cents }).eq('id', id)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/e/${slug}`)
+}
+
 export async function recordSettlement(
   eventId: string,
   slug: string,
@@ -671,6 +748,22 @@ export async function createPoll(eventId: string, slug: string, formData: FormDa
     .from('poll_options')
     .insert(options.map((label, sort) => ({ poll_id: poll.id, label, sort })))
   if (optErr) throw new Error(optErr.message)
+  revalidatePath(`/e/${slug}`)
+}
+
+// "closed" is derived (closes_at <= now), same as the read side already
+// computes - closing/reopening just sets or clears that timestamp.
+export async function closePoll(id: string, slug: string) {
+  const supabase = await supabaseServer()
+  const { error } = await supabase.from('polls').update({ closes_at: new Date().toISOString() }).eq('id', id)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/e/${slug}`)
+}
+
+export async function reopenPoll(id: string, slug: string) {
+  const supabase = await supabaseServer()
+  const { error } = await supabase.from('polls').update({ closes_at: null }).eq('id', id)
+  if (error) throw new Error(error.message)
   revalidatePath(`/e/${slug}`)
 }
 
@@ -794,4 +887,26 @@ export async function requestAccountDeletion(formData: FormData) {
   if (error) throw new Error(error.message)
   await supabase.auth.signOut()
   redirect('/')
+}
+
+export async function addSavedPlace(formData: FormData) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
+  const name = String(formData.get('name') ?? '').trim()
+  const addr = String(formData.get('addr') ?? '').trim() || null
+  const query = String(formData.get('query') ?? '').trim() || name
+  if (!name) return
+  const { error } = await supabase.from('saved_places').insert({ user_id: user.id, name, addr, query })
+  if (error) throw new Error(error.message)
+  revalidatePath('/account')
+}
+
+export async function removeSavedPlace(id: string) {
+  const supabase = await supabaseServer()
+  const { error } = await supabase.from('saved_places').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+  revalidatePath('/account')
 }

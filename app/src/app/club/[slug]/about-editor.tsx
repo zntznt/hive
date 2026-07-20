@@ -7,29 +7,45 @@ import { Button } from '@/components/ui/Button'
 import { Textarea, Input } from '@/components/ui/Input'
 import { updateClubAbout } from '@/app/actions'
 
+type LinkRow = { label: string; url: string }
+
 export function AboutEditor({
   clubId,
   slug,
   isAdmin,
   description,
-  whatsappLink,
+  links,
 }: {
   clubId: string
   slug: string
   isAdmin: boolean
   description: string
-  whatsappLink: string
+  links: LinkRow[]
 }) {
   const [open, setOpen] = useState(false)
   const [desc, setDesc] = useState(description)
-  const [wa, setWa] = useState(whatsappLink)
+  const [rows, setRows] = useState<LinkRow[]>(links.length ? links : [])
   const [pending, startTransition] = useTransition()
   const router = useRouter()
+
+  function addLink() {
+    if (rows.length >= 4) return
+    setRows((rs) => [...rs, { label: '', url: '' }])
+  }
+  function updateLink(i: number, patch: Partial<LinkRow>) {
+    setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)))
+  }
+  function removeLink(i: number) {
+    setRows((rs) => rs.filter((_, j) => j !== i))
+  }
 
   function submit() {
     const fd = new FormData()
     fd.set('description', desc)
-    fd.set('whatsapp_link', wa)
+    for (const r of rows) {
+      fd.append('link_label', r.label)
+      fd.append('link_url', r.url)
+    }
     startTransition(async () => {
       await updateClubAbout(clubId, slug, fd)
       setOpen(false)
@@ -61,7 +77,30 @@ export function AboutEditor({
         >
           <div className="flex flex-col gap-3.5">
             <Textarea label="Descripción" value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} />
-            <Input label="Grupo de WhatsApp (opcional)" value={wa} onChange={(e) => setWa(e.target.value)} placeholder="chat.whatsapp.com/…" />
+            <div>
+              <label className="mb-1.5 block text-[12.5px] font-semibold text-ink-700">Enlaces</label>
+              <div className="flex flex-col gap-2">
+                {rows.map((r, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Input
+                      value={r.label}
+                      placeholder="Etiqueta"
+                      onChange={(e) => updateLink(i, { label: e.target.value })}
+                      className="w-[38%] flex-none"
+                    />
+                    <Input value={r.url} placeholder="link.com/…" onChange={(e) => updateLink(i, { url: e.target.value })} className="flex-1" />
+                    <button aria-label="Quitar enlace" onClick={() => removeLink(i)} className="flex-shrink-0 text-ink-300">
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                {rows.length < 4 && (
+                  <button onClick={addLink} className="self-start text-[12.5px] font-bold text-honey-700">
+                    ＋ Añadir enlace
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </Modal>
       )}

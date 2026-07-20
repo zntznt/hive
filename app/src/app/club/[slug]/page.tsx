@@ -12,16 +12,27 @@ import { HexAvatar } from '@/components/ui/HexAvatar'
 import { MapPinIcon } from '@/components/ui/Icon'
 import CopyButton from '@/components/copy-button'
 import { BannerUpload } from './banner-upload'
+import { AvatarUpload } from './avatar-upload'
 import { AboutEditor } from './about-editor'
 import { AddCategoryButton, EditCategoryButton } from './category-editor'
 import { MemberRow } from './member-row'
 import { InviteModal } from './invite-modal'
 import { DangerZone } from './danger-zone'
-import { updateClubJoinMode } from '@/app/actions'
+import { updateClubJoinMode, decideChangeRequest, decideJoinRequest, revokeInvitation } from '@/app/actions'
 
 type Category = { id: string; name: string; emoji: string | null }
 type AttendanceRow = { user_id: string; category_id: string | null; events_attended: number; last_attended_at: string }
 type Link_ = { label: string; url: string }
+
+const CHANGE_KIND_LABEL: Record<string, string> = {
+  about: 'Acerca de',
+  category_add: 'Nueva categoría',
+  category_edit: 'Editar categoría',
+  category_delete: 'Eliminar categoría',
+  banner: 'Portada',
+  avatar: 'Foto del club',
+  member_removal: 'Quitar miembro',
+}
 
 function fmt(d: string | null) {
   return d ? new Date(d).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) : '·'
@@ -73,15 +84,57 @@ export default async function ClubPage({
   const isManager = isAdmin || isOrganizer
   const adminCount = (roster ?? []).filter((m) => m.role === 'admin').length
 
-  const [{ count: pendingChangeCount }, { count: pendingJoinCount }, { data: pendingInvites }] = isManager
+  // upcoming-event RSVP counts (going/maybe) for each EvCard's footer row
+  const rsvpCountsByEvent = new Map<string, { going: number; maybe: number }>()
+  if (upcoming.length > 0) {
+    const { data: rsvpRows } = await supabase
+      .from('rsvps')
+      .select('event_id, status, waitlist_pos')
+      .in(
+        'event_id',
+        upcoming.map((e) => e.id)
+      )
+    for (const r of rsvpRows ?? []) {
+      const cur = rsvpCountsByEvent.get(r.event_id) ?? { going: 0, maybe: 0 }
+      if (r.status === 'in' && r.waitlist_pos == null) cur.going++
+      else if (r.status === 'maybe') cur.maybe++
+      rsvpCountsByEvent.set(r.event_id, cur)
+    }
+  }
+
+  // past-event "still owed" totals for the history list
+  const owedByEvent = new Map<string, number>()
+  if (past.length > 0) {
+    const { data: pastBal } = await supabase
+      .from('event_balances')
+      .select('event_id, net_cents')
+      .in(
+        'event_id',
+        past.map((e) => e.id)
+      )
+      .lt('net_cents', 0)
+    for (const r of pastBal ?? []) owedByEvent.set(r.event_id, (owedByEvent.get(r.event_id) ?? 0) - r.net_cents)
+  }
+
+  const [{ data: changeReqs }, { data: joinReqs }, { data: pendingInvites }] = isManager
     ? await Promise.all([
-        supabase.from('change_requests').select('id', { count: 'exact', head: true }).eq('club_id', club.id).eq('status', 'pending'),
-        supabase.from('club_join_requests').select('id', { count: 'exact', head: true }).eq('club_id', club.id).eq('status', 'pending'),
+        supabase
+          .from('change_requests')
+          .select('id, kind, payload, created_at, users:requested_by(display_name)')
+          .eq('club_id', club.id)
+          .eq('status', 'pending')
+          .order('created_at'),
+        supabase
+          .from('club_join_requests')
+          .select('id, user_id, created_at, users:user_id(display_name)')
+          .eq('club_id', club.id)
+          .eq('status', 'pending')
+          .order('created_at'),
         isAdmin
           ? supabase.from('invitations').select('*').eq('club_id', club.id).is('claimed_by_user_id', null).order('created_at', { ascending: false })
           : Promise.resolve({ data: [] }),
       ])
-    : [{ count: 0 }, { count: 0 }, { data: [] }]
+    : [{ data: [] }, { data: [] }, { data: [] }]
 
   // money still out across this club's events: sum each member's negative
   // event_balances into a per-person outstanding total.
@@ -103,7 +156,6 @@ export default async function ClubPage({
   }
 
   const links = (club.links ?? []) as Link_[]
-  const whatsappLink = links.find((l) => l.label === 'WhatsApp')?.url ?? ''
 
   return (
     <main className="mx-auto w-full max-w-md p-6">
@@ -117,7 +169,11 @@ export default async function ClubPage({
 
       <header className="mb-4 flex items-center justify-between">
         <span className="flex items-center gap-3">
-          <HexAvatar name={club.name} size={40} />
+          {isManager ? (
+            <AvatarUpload clubId={club.id} slug={slug} clubName={club.name} avatarUrl={club.avatar_url} />
+          ) : (
+            <HexAvatar name={club.name} size={40} src={club.avatar_url} />
+          )}
           <span className="text-xl font-extrabold text-ink-900">{club.name}</span>
         </span>
         <Link href="/" className="text-[13px] text-ink-500">
@@ -125,21 +181,24 @@ export default async function ClubPage({
         </Link>
       </header>
 
-      <Card className="mb-4.5 mb-[18px]">
+      <Card className="mb-[18px]">
         <div className="flex items-start justify-between gap-2.5">
           <p className="text-[13.5px] leading-relaxed text-ink-700">{club.description || 'Todavía sin descripción.'}</p>
-          {isManager && <AboutEditor clubId={club.id} slug={slug} isAdmin={isAdmin} description={club.description ?? ''} whatsappLink={whatsappLink} />}
+          {isManager && <AboutEditor clubId={club.id} slug={slug} isAdmin={isAdmin} description={club.description ?? ''} links={links} />}
         </div>
-        {whatsappLink && (
+        {links.length > 0 && (
           <div className="mt-2.5 flex flex-wrap gap-2">
-            <a
-              href={whatsappLink.startsWith('http') ? whatsappLink : `https://${whatsappLink}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-pill bg-cream-sunk px-3 py-1 text-xs font-bold text-honey-700"
-            >
-              🔗 Grupo de WhatsApp
-            </a>
+            {links.map((l) => (
+              <a
+                key={l.label}
+                href={l.url.startsWith('http') ? l.url : `https://${l.url}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-pill bg-cream-sunk px-3 py-1 text-xs font-bold text-honey-700"
+              >
+                🔗 {l.label}
+              </a>
+            ))}
           </div>
         )}
       </Card>
@@ -179,7 +238,7 @@ export default async function ClubPage({
         ) : (
           <div className="flex flex-col gap-3.5">
             {upcoming.map((e) => (
-              <EvCard key={e.id} e={e} catName={catName(e.category_id)} />
+              <EvCard key={e.id} e={e} catName={catName(e.category_id)} counts={rsvpCountsByEvent.get(e.id)} />
             ))}
           </div>
         )}
@@ -202,7 +261,14 @@ export default async function ClubPage({
             href={`/e/${e.slug}`}
             className="flex items-center justify-between gap-2.5 rounded-md border border-line-card bg-paper px-[13px] py-[11px] text-sm"
           >
-            <span className="min-w-0 text-ink-900">{e.title}</span>
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="min-w-0 truncate text-ink-900">{e.title}</span>
+              {(owedByEvent.get(e.id) ?? 0) > 0 && (
+                <span className="flex-shrink-0 rounded-pill bg-honey-100 px-[9px] py-0.5 text-[10.5px] font-extrabold text-honey-800">
+                  aún se debe {fmtMoney(owedByEvent.get(e.id)!)}
+                </span>
+              )}
+            </span>
             <span className="flex-shrink-0 text-ink-300">
               {catName(e.category_id) ?? ''} · {fmt(e.chosen_start)}
             </span>
@@ -210,37 +276,74 @@ export default async function ClubPage({
         ))}
       </div>
 
-      {isManager && !!pendingChangeCount && (
+      {isManager && (changeReqs ?? []).length > 0 && (
         <>
-          <SectionHeader
-            action={
-              <Link href="/admin" className="text-[12.5px] font-bold text-honey-700">
-                Revisar en Admin →
-              </Link>
-            }
-          >
-            Esperando a los admins · {pendingChangeCount}
-          </SectionHeader>
-          <p className="mb-6 text-sm text-ink-500">
-            {pendingChangeCount} propuesta{pendingChangeCount === 1 ? '' : 's'} de cambio esperando aprobación.
-          </p>
+          <SectionHeader>Esperando a los admins · {(changeReqs ?? []).length}</SectionHeader>
+          <div className="mb-6 flex flex-col gap-2">
+            {(changeReqs ?? []).map((r) => {
+              const requester = r.users as unknown as { display_name: string } | null
+              const payload = r.payload as Record<string, string>
+              const summary = payload?.name ? `"${payload.name}"` : payload?.description ? 'editar descripción y enlaces' : CHANGE_KIND_LABEL[r.kind] ?? r.kind
+              return (
+                <Card key={r.id} pad="sm" className="border-honey-200 bg-honey-50">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <span className="min-w-0 text-sm font-bold text-ink-900">
+                      {CHANGE_KIND_LABEL[r.kind] ?? r.kind} · {requester?.display_name ?? '·'}
+                    </span>
+                    {isAdmin ? null : (
+                      <span className="flex flex-shrink-0 items-center gap-1.5 rounded-pill bg-honey-100 px-[11px] py-[5px] text-[11px] font-bold text-honey-800">
+                        pendiente
+                      </span>
+                    )}
+                  </div>
+                  <p className="mb-2 text-[12.5px] text-ink-500">{summary}</p>
+                  {isAdmin && (
+                    <div className="flex gap-2">
+                      <form action={decideChangeRequest.bind(null, r.id, slug, false)}>
+                        <button className="text-[12.5px] font-bold text-ink-500">Rechazar</button>
+                      </form>
+                      <form action={decideChangeRequest.bind(null, r.id, slug, true)}>
+                        <Button size="sm">Aprobar</Button>
+                      </form>
+                    </div>
+                  )}
+                </Card>
+              )
+            })}
+          </div>
         </>
       )}
 
-      {isManager && !!pendingJoinCount && (
+      {isManager && (joinReqs ?? []).length > 0 && (
         <>
-          <SectionHeader
-            action={
-              <Link href="/admin" className="text-[12.5px] font-bold text-honey-700">
-                Revisar en Admin →
-              </Link>
-            }
-          >
-            Solicitudes para unirse · {pendingJoinCount}
-          </SectionHeader>
-          <p className="mb-6 text-sm text-ink-500">
-            {pendingJoinCount} persona{pendingJoinCount === 1 ? '' : 's'} esperando aprobación para entrar al club.
-          </p>
+          <SectionHeader>Solicitudes para unirse · {(joinReqs ?? []).length}</SectionHeader>
+          <div className="mb-6 flex flex-col gap-2">
+            {(joinReqs ?? []).map((r) => {
+              const requester = r.users as unknown as { display_name: string } | null
+              return (
+                <Card key={r.id} pad="sm" className="flex items-center justify-between border-honey-200 bg-honey-50">
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <HexAvatar name={requester?.display_name ?? '·'} size={28} />
+                    <span className="text-sm text-ink-900">{requester?.display_name ?? '·'}</span>
+                  </span>
+                  {isAdmin ? (
+                    <span className="flex flex-shrink-0 gap-2">
+                      <form action={decideJoinRequest.bind(null, r.id, slug, false)}>
+                        <button className="text-[12.5px] font-bold text-ink-500">Rechazar</button>
+                      </form>
+                      <form action={decideJoinRequest.bind(null, r.id, slug, true)}>
+                        <Button size="sm">Aprobar</Button>
+                      </form>
+                    </span>
+                  ) : (
+                    <span className="flex flex-shrink-0 items-center gap-1.5 rounded-pill bg-honey-100 px-[11px] py-[5px] text-[11px] font-bold text-honey-800">
+                      pendiente
+                    </span>
+                  )}
+                </Card>
+              )
+            })}
+          </div>
         </>
       )}
 
@@ -264,6 +367,19 @@ export default async function ClubPage({
             />
           )
         })}
+        {isAdmin &&
+          (pendingInvites ?? []).map((inv) => (
+            <div key={inv.id} className="flex items-center justify-between gap-2 border-t border-line-divider px-[13px] py-[11px] text-sm">
+              <span className="flex min-w-0 items-center gap-2.5">
+                <HexAvatar name={inv.email ?? inv.phone ?? '?'} size={28} />
+                <span className="min-w-0 truncate text-ink-500">{inv.email ?? inv.phone}</span>
+                <Badge>invitado</Badge>
+              </span>
+              <form action={revokeInvitation.bind(null, inv.id, `/club/${slug}`)} className="flex-shrink-0">
+                <button className="text-[12.5px] font-bold text-ink-500">Revocar</button>
+              </form>
+            </div>
+          ))}
       </div>
       {cat && (
         <p className="mb-6 text-xs text-ink-300">
@@ -275,17 +391,6 @@ export default async function ClubPage({
             .filter(Boolean)
             .join(' · ')}
         </p>
-      )}
-
-      {isAdmin && (pendingInvites ?? []).length > 0 && (
-        <div className="mb-6 flex flex-col gap-2">
-          {(pendingInvites ?? []).map((inv) => (
-            <div key={inv.id} className="flex items-center justify-between gap-2 rounded-md border border-line-card bg-paper px-[13px] py-[11px] text-sm">
-              <span className="min-w-0 truncate text-ink-500">{inv.email ?? inv.phone}</span>
-              <Badge>invitado</Badge>
-            </div>
-          ))}
-        </div>
       )}
 
       {isAdmin && (
@@ -348,7 +453,7 @@ export default async function ClubPage({
   )
 }
 
-function EvCard({ e, catName }: { e: EventRow; catName: string | undefined }) {
+function EvCard({ e, catName, counts }: { e: EventRow; catName: string | undefined; counts: { going: number; maybe: number } | undefined }) {
   const cancelled = e.status === 'cancelled'
   return (
     <Link
@@ -380,6 +485,14 @@ function EvCard({ e, catName }: { e: EventRow; catName: string | undefined }) {
         ) : (
           <Chip variant="honey">{e.status === 'scheduling' ? 'buscando fecha' : e.status === 'scheduled' ? fmt(e.chosen_start) : e.status}</Chip>
         )}
+      </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 px-3.5 pb-3.5 text-[12.5px] text-ink-700">
+        <span>
+          📅 {e.status === 'scheduling' ? 'sin fecha aún' : e.status === 'scheduled' ? fmt(e.chosen_start) : e.status}
+        </span>
+        <span>
+          👥 van {counts?.going ?? 0} · quizás {counts?.maybe ?? 0}
+        </span>
       </div>
     </Link>
   )
