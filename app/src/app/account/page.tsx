@@ -5,6 +5,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader'
 import AvatarProfileForm from './avatar-profile-form'
 import NotifPrefsForm from './notif-prefs-form'
 import PaymentMethodsForm, { type PaymentMethod } from './payment-methods-form'
+import { SavedPlaces } from './saved-places'
 import DangerZone from './danger-zone'
 
 // Columns added by migration 0005 that aren't on the (still pre-redesign)
@@ -21,7 +22,7 @@ type AccountExtra = {
 export default async function AccountPage() {
   const { supabase, profile } = await requireProfile()
 
-  const [{ data: extra }, { data: methods }] = await Promise.all([
+  const [{ data: extra }, { data: methods }, { data: places }] = await Promise.all([
     supabase
       .from('users')
       .select('avatar_kind, avatar_bug, avatar_photo_url, notif_email, notif_whatsapp')
@@ -32,6 +33,7 @@ export default async function AccountPage() {
       .select('id, kind, value, sort')
       .eq('user_id', profile.id)
       .order('sort'),
+    supabase.from('saved_places').select('id, name, addr, query').eq('user_id', profile.id).order('created_at'),
   ])
 
   const account = extra as AccountExtra | null
@@ -77,6 +79,8 @@ export default async function AccountPage() {
       </section>
 
       <PaymentMethodsForm methods={paymentMethods} />
+
+      <SavedPlaces places={places ?? []} />
 
       <NotifPrefsForm
         notifEmail={account?.notif_email ?? true}
