@@ -1,11 +1,21 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import { createEvent } from '@/app/actions'
 import { Input, Select, Checkbox } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { LocationPicker, type Place } from '@/components/ui/LocationPicker'
+
+function Fieldset({ legend, hint, children }: { legend: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <Card pad="sm">
+      <div className="eyebrow mb-1">{legend}</div>
+      {hint && <div className="mb-3 text-xs text-ink-300">{hint}</div>}
+      <div className={hint ? undefined : 'mt-3'}>{children}</div>
+    </Card>
+  )
+}
 
 const HOURS = Array.from({ length: 25 }, (_, h) => ({
   value: h * 60,
@@ -26,10 +36,11 @@ export default function EventForm({
   recentPlaces?: Place[]
 }) {
   const [error, formAction, pending] = useActionState(createEvent.bind(null, clubId, slug), null)
+  const [title, setTitle] = useState('')
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
-      <Input id="title" name="title" label="Título" required placeholder="Noche de juegos" />
+      <Input id="title" name="title" label="Título" required placeholder="Noche de juegos" value={title} onChange={(e) => setTitle(e.target.value)} />
 
       <div className="flex gap-3">
         <div className="flex-1">
@@ -47,8 +58,7 @@ export default function EventForm({
 
       <LocationPicker name="location" label="Lugar (opcional)" recent={recentPlaces} />
 
-      <Card pad="sm">
-        <div className="mb-2 text-sm font-semibold text-ink-500">Buscar fecha</div>
+      <Fieldset legend="Buscar fecha" hint="La ventana de fechas y horas donde los miembros marcan cuándo pueden.">
         <div className="flex gap-3">
           <div className="flex-1">
             <Input id="sched_start_date" name="sched_start_date" type="date" label="Desde" required />
@@ -83,10 +93,9 @@ export default function EventForm({
             </Select>
           </div>
         </div>
-      </Card>
+      </Fieldset>
 
-      <Card pad="sm">
-        <div className="mb-2.5 text-sm font-semibold text-ink-500">Opcional</div>
+      <Fieldset legend="Opcional">
         <div className="flex flex-col gap-3 text-sm text-ink-700">
           <Checkbox name="allow_guests" label="Permitir invitados (+1)" />
           <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
@@ -103,13 +112,14 @@ export default function EventForm({
             <option value="invite_only">solo con invitación</option>
           </Select>
         </div>
-      </Card>
+      </Fieldset>
 
       {error && <p className="rounded-md bg-danger-bg px-3.5 py-3 text-sm text-danger">{error}</p>}
 
-      <Button block disabled={pending}>
+      <Button block display size="lg" disabled={pending || !title.trim()}>
         {pending ? 'Creando…' : 'Crear evento'}
       </Button>
+      {!title.trim() && <p className="-mt-2 text-center text-xs text-ink-300">Dale un título primero.</p>}
     </form>
   )
 }
