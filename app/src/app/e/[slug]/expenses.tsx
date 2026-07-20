@@ -1,13 +1,13 @@
-import { addExpense, deleteSettlement } from '@/app/actions'
+import { deleteSettlement } from '@/app/actions'
 import { supabaseServer } from '@/lib/supabase/server'
 import { fmtMoney } from '@/lib/money'
 import { suggestTransfers, type NetPosition } from '@/lib/settle'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
 import { BalanceRow } from '@/components/ui/BalanceRow'
 import { PAYMENT_METHOD_LABELS } from '@/lib/payment-method-labels'
 import { SettleUpFlow, ConfirmPaymentModal } from '@/components/settle-up'
+import { AddExpenseButton, EditExpenseButton } from './expense-modal'
 
 type Expense = { id: string; payer_user_id: string; amount_cents: number; note: string }
 type Balance = { user_id: string; paid_cents: number; owed_cents: number; net_cents: number }
@@ -85,51 +85,35 @@ export default async function Expenses({
 
   return (
     <section className="mb-8">
-      <SectionHeader>
-        Gastos {total > 0 && <span className="font-normal normal-case tracking-normal text-ink-500">· {fmtMoney(total)}</span>}
+      <SectionHeader
+        action={
+          <span className="flex items-center gap-3">
+            {total > 0 && <span className="text-[12.5px] normal-case tracking-normal text-ink-500">{fmtMoney(total)}</span>}
+            <AddExpenseButton eventId={eventId} slug={slug} myId={myId} members={members.map((m) => ({ ...m, name: nameOf.get(m.user_id) ?? '·' }))} guests={guests} nameOf={nameOf} />
+          </span>
+        }
+      >
+        Gastos
       </SectionHeader>
 
       {expenses.length === 0 && <p className="mb-2 text-sm text-ink-500">Sin gastos todavía.</p>}
       <ul className="mb-3 flex flex-col gap-1.5">
         {expenses.map((e) => (
           <li key={e.id}>
-            <Card pad="sm" className="flex items-center justify-between text-sm">
-              <span className="text-ink-900">
+            <Card pad="sm" className="flex items-center justify-between gap-2 text-sm">
+              <span className="min-w-0 truncate text-ink-900">
                 {e.note} <span className="text-ink-300">· pagó {nameOf.get(e.payer_user_id) ?? '·'}</span>
               </span>
-              <span className="font-bold text-ink-900">{fmtMoney(e.amount_cents)}</span>
+              <span className="flex flex-shrink-0 items-center gap-2.5">
+                <span className="font-bold text-ink-900">{fmtMoney(e.amount_cents)}</span>
+                {(e.payer_user_id === myId || isOrganizer) && (
+                  <EditExpenseButton id={e.id} slug={slug} note={e.note} amount={(e.amount_cents / 100).toFixed(2)} />
+                )}
+              </span>
             </Card>
           </li>
         ))}
       </ul>
-
-      <details className="mb-4 rounded-lg border-[1.5px] border-dashed border-line-input p-3">
-        <summary className="cursor-pointer text-sm font-bold text-honey-700">Añadir gasto (lo pagaste tú)</summary>
-        <form action={addExpense.bind(null, eventId, slug)} className="mt-3 flex flex-col gap-2">
-          <div className="flex gap-2">
-            <input name="note" required placeholder="Pizzas" className="w-full rounded-md border border-line-input bg-paper p-2 text-sm text-ink-900" />
-            <input name="amount" required placeholder="42,50" inputMode="decimal" className="w-28 rounded-md border border-line-input bg-paper p-2 text-sm text-ink-900" />
-          </div>
-          <p className="text-xs text-ink-500">Entre quiénes se reparte:</p>
-          <div className="grid grid-cols-2 gap-1 text-sm text-ink-700">
-            {members.map((m) => (
-              <label key={m.user_id} className="flex items-center gap-2">
-                <input type="checkbox" name="participant" value={`u:${m.user_id}`} defaultChecked={m.in || m.user_id === myId} className="accent-honey-500" />
-                {nameOf.get(m.user_id) ?? '·'}
-              </label>
-            ))}
-            {guests
-              .filter((g) => !g.promoted_to_user_id)
-              .map((g) => (
-                <label key={g.id} className="flex items-center gap-2">
-                  <input type="checkbox" name="participant" value={`g:${g.id}`} className="accent-honey-500" />
-                  {g.name} <span className="text-xs text-ink-300">(invitado de {nameOf.get(g.host_user_id) ?? '·'})</span>
-                </label>
-              ))}
-          </div>
-          <Button size="sm">Guardar gasto</Button>
-        </form>
-      </details>
 
       {nets.length > 0 && (
         <>

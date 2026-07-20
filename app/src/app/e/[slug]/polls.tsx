@@ -1,8 +1,9 @@
-import { applyPollOption, castVote, createPoll } from '@/app/actions'
+import { applyPollOption, castVote, closePoll, reopenPoll } from '@/app/actions'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
 import { PollOption } from '@/components/ui/PollOption'
+import { AddPollButton } from './poll-modal'
 
 type Option = { id: string; label: string; sort: number }
 type Vote = { option_id: string; user_id: string }
@@ -31,7 +32,7 @@ type Props = {
 export default function Polls({ eventId, slug, myId, isOrganizer, nameOf, polls }: Props) {
   return (
     <section className="mb-8">
-      <SectionHeader>Encuestas</SectionHeader>
+      <SectionHeader action={<AddPollButton eventId={eventId} slug={slug} />}>Encuestas</SectionHeader>
 
       {polls.length === 0 && <p className="mb-3 text-sm text-ink-500">Nadie ha preguntado nada todavía.</p>}
 
@@ -51,10 +52,15 @@ export default function Polls({ eventId, slug, myId, isOrganizer, nameOf, polls 
               <Card pad="sm">
                 <div className="mb-2 flex items-baseline justify-between gap-2">
                   <span className="font-bold text-ink-900">{p.question}</span>
-                  <span className="flex-shrink-0 text-xs text-ink-300">
+                  <span className="flex flex-shrink-0 items-center gap-2 text-xs text-ink-300">
                     {nameOf.get(p.created_by) ?? '·'}
                     {p.anonymous ? ' · anónima' : ''}
-                    {closed ? ' · cerrada' : ''}
+                    {closed && <Badge>cerrada</Badge>}
+                    {isOrganizer && (
+                      <form action={(closed ? reopenPoll : closePoll).bind(null, p.id, slug)}>
+                        <button className="font-bold text-ink-500">{closed ? 'reabrir' : 'cerrar'}</button>
+                      </form>
+                    )}
                   </span>
                 </div>
 
@@ -89,29 +95,6 @@ export default function Polls({ eventId, slug, myId, isOrganizer, nameOf, polls 
           )
         })}
       </ul>
-
-      <details className="rounded-lg border-[1.5px] border-dashed border-line-input p-3">
-        <summary className="cursor-pointer text-sm font-bold text-honey-700">Nueva encuesta</summary>
-        <form action={createPoll.bind(null, eventId, slug)} className="mt-3 flex flex-col gap-2">
-          <input name="question" required placeholder="¿A qué jugamos?" className="w-full rounded-md border border-line-input bg-paper p-2 text-sm text-ink-900" />
-          <input name="option" placeholder="Opción 1" className="w-full rounded-md border border-line-input bg-paper p-2 text-sm text-ink-900" />
-          <input name="option" placeholder="Opción 2" className="w-full rounded-md border border-line-input bg-paper p-2 text-sm text-ink-900" />
-          <input name="option" placeholder="Opción 3 (opcional)" className="w-full rounded-md border border-line-input bg-paper p-2 text-sm text-ink-900" />
-          <input name="option" placeholder="Opción 4 (opcional)" className="w-full rounded-md border border-line-input bg-paper p-2 text-sm text-ink-900" />
-          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-sm text-ink-700">
-            <label className="flex items-center gap-2">
-              <input type="checkbox" name="kind" value="multi" className="accent-honey-500" /> varias opciones
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" name="anonymous" className="accent-honey-500" /> anónima
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" name="show_results" value="after_close" className="accent-honey-500" /> resultados al cerrar
-            </label>
-          </div>
-          <Button size="sm">Crear encuesta</Button>
-        </form>
-      </details>
     </section>
   )
 }
