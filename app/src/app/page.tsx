@@ -2,15 +2,17 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
 import SignIn from './signin'
-import { signOut } from './actions'
+import { signOut, toggleContribution } from './actions'
 import { getPlateItems, plateCount, type PlateItem } from '@/lib/plate'
 import { Chip } from '@/components/ui/Chip'
+import { Badge } from '@/components/ui/Badge'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { UserAvatar } from '@/components/ui/Avatar'
 import { HexAvatar } from '@/components/ui/HexAvatar'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { PlateItemRow } from '@/components/ui/PlateItemRow'
+import { SettleUpFlow, ConfirmPaymentModal } from '@/components/settle-up'
 
 type UpcomingEvent = {
   id: string
@@ -58,11 +60,9 @@ function plateRowContent(item: PlateItem): { emoji: string; tone: 'honey' | 'sag
   }
 }
 
-function rsvpChip(eventStatus: string, myStatus?: string) {
+function rsvpChip(eventStatus: string, myStatus?: string, waitlisted?: boolean) {
   if (eventStatus === 'scheduling') return <Chip variant="neutral">buscando fecha</Chip>
-  if (myStatus === 'in') return <Chip variant="honey">vas</Chip>
-  if (myStatus === 'maybe') return <Chip variant="neutral">quizás</Chip>
-  if (myStatus === 'out') return <Chip variant="neutral">no vas</Chip>
+  if (myStatus === 'in') return waitlisted ? <Badge tone="pending">en espera</Badge> : <Chip variant="honey">vas</Chip>
   return null
 }
 
@@ -89,14 +89,16 @@ export default async function Home() {
   const clubs = Array.from(
     new Map(
       (memberships ?? [])
-        .map((m) => m.clubs as unknown as { slug: string; name: string } | null)
-        .filter((c): c is { slug: string; name: string } => !!c)
-        .map((c) => [c.slug, c])
+        .map((m) => {
+          const c = m.clubs as unknown as { slug: string; name: string } | null
+          return c ? ([m.club_id, { id: m.club_id, ...c }] as const) : null
+        })
+        .filter((c): c is readonly [string, { id: string; slug: string; name: string }] => !!c)
     ).values()
   )
   const clubIds = [...new Set((memberships ?? []).map((m) => m.club_id).filter((id): id is string => !!id))]
 
-  const [board, upcomingResult] = await Promise.all([
+  const [board, allUpcomingResult, memberCountResult] = await Promise.all([
     getPlateItems(supabase, profile.id),
     clubIds.length
       ? supabase
@@ -106,19 +108,42 @@ export default async function Home() {
           .in('status', ['scheduling', 'scheduled'])
           .order('chosen_start', { ascending: true, nullsFirst: false })
           .order('created_at', { ascending: false })
-          .limit(5)
       : Promise.resolve({ data: [] as UpcomingEvent[] }),
+    clubIds.length
+      ? supabase.from('club_members').select('club_id').in('club_id', clubIds)
+      : Promise.resolve({ data: [] as { club_id: string }[] }),
   ])
 
   const total = plateCount(board)
   const shownPlate = [...board.toPay, ...board.toConfirm, ...board.tasks, ...board.bringing].slice(0, 4)
+  const payMethodTargets = [...new Set(shownPlate.filter((i) => i.kind === 'pay').map((i) => i.toUserId))]
+  const { data: payMethodRows } = payMethodTargets.length
+    ? await supabase.from('payment_methods').select('user_id, kind, value').in('user_id', payMethodTargets).order('sort')
+    : { data: [] as { user_id: string; kind: string; value: string }[] }
+  const payMethodsFor = (uid: string) => (payMethodRows ?? []).filter((m) => m.user_id === uid)
 
-  const upcoming = (upcomingResult.data ?? []) as UpcomingEvent[]
-  const eventIds = upcoming.map((e) => e.id)
+  const allUpcoming = (allUpcomingResult.data ?? []) as UpcomingEvent[]
+  const eventIds = allUpcoming.map((e) => e.id)
   const { data: myRsvps } = eventIds.length
-    ? await supabase.from('rsvps').select('event_id, status').eq('user_id', profile.id).in('event_id', eventIds)
-    : { data: [] as { event_id: string; status: string }[] }
-  const rsvpByEvent = new Map((myRsvps ?? []).map((r) => [r.event_id, r.status]))
+    ? await supabase.from('rsvps').select('event_id, status, waitlist_pos').eq('user_id', profile.id).in('event_id', eventIds)
+    : { data: [] as { event_id: string; status: string; waitlist_pos: number | null }[] }
+  const rsvpByEvent = new Map((myRsvps ?? []).map((r) => [r.event_id, r]))
+
+  // "coming up" only shows what you're actually committed to: events still
+  // finding a time (nothing to RSVP to yet) plus scheduled events you're in
+  // (confirmed or waitlisted) - not every upcoming event across your clubs.
+  const upcoming = allUpcoming
+    .filter((e) => e.status === 'scheduling' || rsvpByEvent.get(e.id)?.status === 'in')
+    .slice(0, 5)
+
+  const memberCountByClub = new Map<string, number>()
+  for (const row of memberCountResult.data ?? []) {
+    memberCountByClub.set(row.club_id, (memberCountByClub.get(row.club_id) ?? 0) + 1)
+  }
+  const upcomingCountByClub = new Map<string, number>()
+  for (const e of allUpcoming) {
+    if (e.club_id) upcomingCountByClub.set(e.club_id, (upcomingCountByClub.get(e.club_id) ?? 0) + 1)
+  }
 
   return (
     <main className="mx-auto w-full max-w-md p-6">
@@ -159,6 +184,35 @@ export default async function Home() {
           <div className="flex flex-col gap-2">
             {shownPlate.map((item) => {
               const { emoji, tone, title } = plateRowContent(item)
+              const action =
+                item.kind === 'pay' ? (
+                  <SettleUpFlow
+                    eventId={item.eventId}
+                    slug={item.eventSlug}
+                    fromUserId={profile.id}
+                    toUserId={item.toUserId}
+                    toName={item.toName}
+                    amountCents={item.amountCents}
+                    toPaymentMethods={payMethodsFor(item.toUserId)}
+                  >
+                    Pagar
+                  </SettleUpFlow>
+                ) : item.kind === 'confirm' ? (
+                  <ConfirmPaymentModal
+                    settlementId={item.settlementId}
+                    slug={item.eventSlug}
+                    fromName={item.fromName}
+                    amountCents={item.amountCents}
+                    method={item.method}
+                    proofSignedUrl={item.proofSignedUrl}
+                  >
+                    Confirmar
+                  </ConfirmPaymentModal>
+                ) : (
+                  <form action={toggleContribution.bind(null, item.contributionId, item.eventSlug, true)}>
+                    <button className="font-bold text-honey-700">Hecho</button>
+                  </form>
+                )
               return (
                 <PlateItemRow
                   key={plateKey(item)}
@@ -168,7 +222,7 @@ export default async function Home() {
                   eventTitle={item.eventTitle}
                   eventHref={`/e/${item.eventSlug}`}
                   note={item.clubName ?? undefined}
-                  action={<Link href={`/e/${item.eventSlug}`}>Ver →</Link>}
+                  action={action}
                 />
               )
             })}
@@ -201,7 +255,7 @@ export default async function Home() {
                       {e.location ? ` · ${e.location}` : ''}
                     </span>
                   </span>
-                  {rsvpChip(e.status, rsvpByEvent.get(e.id))}
+                  {rsvpChip(e.status, rsvpByEvent.get(e.id)?.status, rsvpByEvent.get(e.id)?.waitlist_pos != null)}
                 </Link>
               ))}
             </div>
@@ -226,7 +280,13 @@ export default async function Home() {
                 className="flex items-center gap-3 rounded-lg border border-line-card bg-paper p-4 shadow-card"
               >
                 <HexAvatar name={c.name} size={34} />
-                <span className="truncate text-sm font-bold text-ink-900">{c.name}</span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-bold text-ink-900">{c.name}</span>
+                  <span className="text-[12.5px] text-ink-500">
+                    {memberCountByClub.get(c.id) ?? 0} miembro{(memberCountByClub.get(c.id) ?? 0) === 1 ? '' : 's'} ·{' '}
+                    {upcomingCountByClub.get(c.id) ?? 0} próximo{(upcomingCountByClub.get(c.id) ?? 0) === 1 ? '' : 's'}
+                  </span>
+                </span>
               </Link>
             ))}
           </div>
