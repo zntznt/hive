@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/Badge'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import AvatarProfileForm from './avatar-profile-form'
 import NotifPrefsForm from './notif-prefs-form'
+import WhatsappForm from './whatsapp-form'
 import PaymentMethodsForm, { type PaymentMethod } from './payment-methods-form'
 import { SavedPlaces } from './saved-places'
 import DangerZone from './danger-zone'
@@ -67,12 +68,7 @@ export default async function AccountPage() {
             </span>
             <Badge tone="active">verificado</Badge>
           </div>
-          <div className="flex items-center justify-between gap-2 rounded-md border border-line-card bg-paper px-3.5 py-2.5 text-sm">
-            <span className="min-w-0 truncate text-ink-900">
-              WhatsApp{' '}
-              <span className="text-ink-500">· {profile.phone_whatsapp ?? 'no agregado'}</span>
-            </span>
-          </div>
+          <WhatsappForm phone={profile.phone_whatsapp} />
         </div>
         <p className="mt-2.5 text-xs text-ink-300">
           Hive solo usa enlaces mágicos por correo para entrar, no hay contraseñas.

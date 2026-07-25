@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendEmail } from './email'
+import { sendWhatsapp } from './whatsapp'
 
 export type TemplateKey =
   | 'waitlist_promoted'
@@ -34,19 +35,27 @@ export function renderTemplate(tpl: string, vars: Record<string, string>) {
   return tpl.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? '')
 }
 
-// Queues a notification_outbox row. The channel comes from the recipient's
+// Queues notification_outbox rows. Channels come from the recipient's
 // per-topic matrix (users.notif_prefs) when the template maps to a topic,
 // falling back to the global notif_email/notif_whatsapp toggles; a fully
-// opted-out topic queues nothing at all. WhatsApp rows just log today since
-// no provider is connected. Call dispatchQueuedNotifications right after to
-// actually send instead of leaving rows queued indefinitely.
+// opted-out topic queues nothing at all.
+//
+// Both channels can fire for the same notification: ticking WhatsApp used to
+// be inert because email was checked first and wins by default, so a member
+// who asked for WhatsApp silently kept getting email only. Each enabled
+// channel now gets its own row. A channel with nowhere to deliver (WhatsApp
+// without a linked number, email without an address) is skipped, and if that
+// leaves nothing at all we fall back to whichever address does exist, so
+// opting into WhatsApp before linking a number never means silence.
+// Call dispatchQueuedNotifications right after to actually send instead of
+// leaving rows queued indefinitely.
 export async function queueNotification(
   supabase: SupabaseClient,
   { userId, template, vars }: { userId: string; template: TemplateKey; vars: Record<string, string> }
 ) {
   const { data: user } = await supabase
     .from('users')
-    .select('notif_email, notif_whatsapp, notif_prefs')
+    .select('email, phone_whatsapp, notif_email, notif_whatsapp, notif_prefs')
     .eq('id', userId)
     .maybeSingle()
 
@@ -54,10 +63,20 @@ export async function queueNotification(
   const pref = topic ? ((user?.notif_prefs ?? {}) as PrefsMatrix)[topic] : undefined
   const emailOn = pref?.email ?? user?.notif_email ?? true
   const whatsappOn = pref?.whatsapp ?? user?.notif_whatsapp ?? false
+  if (!emailOn && !whatsappOn) return
 
-  const channel = emailOn ? 'email' : whatsappOn ? 'whatsapp' : null
-  if (!channel) return
-  await supabase.from('notification_outbox').insert({ user_id: userId, channel, template, payload: vars })
+  const channels: ('email' | 'whatsapp')[] = []
+  if (emailOn && user?.email) channels.push('email')
+  if (whatsappOn && user?.phone_whatsapp) channels.push('whatsapp')
+  if (!channels.length) {
+    if (user?.email) channels.push('email')
+    else if (user?.phone_whatsapp) channels.push('whatsapp')
+    else return
+  }
+
+  await supabase
+    .from('notification_outbox')
+    .insert(channels.map((channel) => ({ user_id: userId, channel, template, payload: vars })))
 }
 
 // Direct send against a CMS template, for recipients who don't have a
@@ -76,9 +95,10 @@ export async function sendTemplatedEmail(
 }
 
 // Pulls queued rows (small table at this app's scale, no worker needed) and
-// actually sends the email ones via Resend; whatsapp rows are marked
-// 'logged' since no provider is wired up yet - flipping that on later is
-// just adding a sendWhatsapp() branch here, the CMS/templates are ready.
+// sends each one on its own channel: Resend for email, Zernio for WhatsApp.
+// Either provider being unconfigured marks the row 'logged' rather than
+// 'failed', so a half-configured install degrades quietly instead of
+// filling the admin panel with red.
 export async function dispatchQueuedNotifications(supabase: SupabaseClient, limit = 20) {
   const { data: rows } = await supabase
     .from('notification_outbox')
@@ -89,23 +109,18 @@ export async function dispatchQueuedNotifications(supabase: SupabaseClient, limi
   if (!rows?.length) return
 
   for (const row of rows) {
-    if (row.channel === 'whatsapp') {
-      await supabase
-        .from('notification_outbox')
-        .update({ status: 'logged', error: 'WhatsApp no está conectado todavía' })
-        .eq('id', row.id)
-      continue
-    }
-
+    const channel = row.channel as 'email' | 'whatsapp'
     const [{ data: tpl }, { data: user }] = await Promise.all([
-      supabase.from('notification_templates').select('*').eq('channel', row.channel).eq('key', row.template).maybeSingle(),
-      supabase.from('users').select('email, display_name, notif_prefs').eq('id', row.user_id).maybeSingle(),
+      supabase.from('notification_templates').select('*').eq('channel', channel).eq('key', row.template).maybeSingle(),
+      supabase.from('users').select('email, phone_whatsapp, display_name, notif_prefs').eq('id', row.user_id).maybeSingle(),
     ])
 
-    if (!tpl || !user?.email) {
+    const destination = channel === 'email' ? user?.email : user?.phone_whatsapp
+    if (!tpl || !user || !destination) {
+      const missing = channel === 'email' ? 'sin correo registrado' : 'sin número de WhatsApp'
       await supabase
         .from('notification_outbox')
-        .update({ status: 'logged', error: !tpl ? 'sin plantilla' : 'sin correo registrado' })
+        .update({ status: 'logged', error: !tpl ? 'sin plantilla' : missing })
         .eq('id', row.id)
       continue
     }
@@ -114,7 +129,7 @@ export async function dispatchQueuedNotifications(supabase: SupabaseClient, limi
     // the recipient's Account matrix at send time
     const topic = TOPIC_OF[row.template as TemplateKey]
     const pref = topic ? ((user.notif_prefs ?? {}) as PrefsMatrix)[topic] : undefined
-    if (pref?.email === false) {
+    if (pref?.[channel] === false) {
       await supabase
         .from('notification_outbox')
         .update({ status: 'logged', error: 'silenciado por preferencias' })
@@ -123,9 +138,20 @@ export async function dispatchQueuedNotifications(supabase: SupabaseClient, limi
     }
 
     const vars = { name: user.display_name, ...(row.payload as Record<string, string>) }
-    const subject = renderTemplate(tpl.subject ?? 'Hive', vars)
-    const html = renderTemplate(tpl.body, vars).replace(/\n/g, '<br>')
-    const result = await sendEmail({ to: user.email, subject, html })
+    const body = renderTemplate(tpl.body, vars)
+    const result =
+      channel === 'email'
+        ? await sendEmail({
+            to: destination,
+            subject: renderTemplate(tpl.subject ?? 'Hive', vars),
+            html: body.replace(/\n/g, '<br>'),
+          })
+        : await sendWhatsapp({
+            to: destination,
+            templateName: row.template,
+            variables: vars,
+            body,
+          })
 
     await supabase
       .from('notification_outbox')

@@ -10,8 +10,9 @@ import { NOTIF_TOPICS } from '@/lib/notif-topics'
 type Matrix = Partial<Record<string, { email?: boolean; whatsapp?: boolean }>>
 
 // Topic x channel notification matrix. Every row is a notification the
-// pipeline really sends; WhatsApp columns save fine but only log until a
-// provider is connected.
+// pipeline really sends. Both columns can be on at once: each ticked channel
+// queues its own outbox row. WhatsApp needs a linked number to deliver,
+// otherwise the notification falls back to correo.
 export default function NotifPrefsForm({
   notifEmail,
   notifWhatsapp,
@@ -64,7 +65,7 @@ export default function NotifPrefsForm({
           })}
         </div>
         <p className="text-xs text-ink-300">
-          Hive no tiene bandeja propia. Todo llega a donde ya estás: correo o WhatsApp (WhatsApp todavía no está conectado, se queda registrado).
+          Hive no tiene bandeja propia. Todo llega a donde ya estás: correo o WhatsApp. Para recibir por WhatsApp agrega tu número arriba, en &quot;Cómo entras&quot;.
         </p>
         {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
         <Button type="submit" size="sm" className="self-start" disabled={saving}>

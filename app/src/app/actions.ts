@@ -1043,6 +1043,32 @@ export async function updateNotifPrefs(formData: FormData) {
   revalidatePath('/account')
 }
 
+// Links (or clears) the WhatsApp number notifications are delivered to.
+// Sign-in stays email-only, so this is purely a delivery address; it is
+// stored normalized to E.164 because that is what the provider expects.
+export async function updateWhatsappPhone(formData: FormData) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
+
+  const raw = String(formData.get('phone') ?? '').trim()
+  let phone: string | null = null
+  if (raw) {
+    const { normalizePhone } = await import('@/lib/phone')
+    phone = normalizePhone(raw)
+    if (!phone) throw new Error('Ese número no parece válido. Usa 10 dígitos, por ejemplo 55 1234 5678.')
+  }
+
+  const { error } = await supabase.from('users').update({ phone_whatsapp: phone }).eq('id', user.id)
+  if (error) {
+    if (error.code === '23505') throw new Error('Ese número ya está registrado en otra cuenta.')
+    throw new Error(error.message)
+  }
+  revalidatePath('/account')
+}
+
 export async function savePaymentMethods(formData: FormData) {
   const supabase = await supabaseServer()
   const {
