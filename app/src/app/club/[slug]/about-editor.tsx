@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Textarea, Input } from '@/components/ui/Input'
+import { useToast } from '@/components/ui/Toast'
 import { updateClubAbout } from '@/app/actions'
 
 type LinkRow = { label: string; url: string }
@@ -27,6 +28,7 @@ export function AboutEditor({
   const [rows, setRows] = useState<LinkRow[]>(links.length ? links : [])
   const [pending, startTransition] = useTransition()
   const router = useRouter()
+  const toast = useToast()
 
   function addLink() {
     if (rows.length >= 4) return
@@ -49,6 +51,7 @@ export function AboutEditor({
     startTransition(async () => {
       await updateClubAbout(clubId, slug, fd)
       setOpen(false)
+      toast(isAdmin ? 'Acerca de actualizado.' : 'Enviado a los admins para aprobar.')
       router.refresh()
     })
   }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { useToast } from '@/components/ui/Toast'
 import { addExpense, updateExpense } from '@/app/actions'
 
 type Member = { user_id: string; name: string; in: boolean }
@@ -34,6 +35,7 @@ export function AddExpenseButton({
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const toast = useToast()
 
   function toggle(key: string) {
     setParticipants((s) => {
@@ -53,6 +55,7 @@ export function AddExpenseButton({
       try {
         await addExpense(eventId, slug, fd)
         setOpen(false)
+        toast('Gasto guardado. Se actualizó el reparto.')
         setNote('')
         setAmount('')
         router.refresh()
@@ -91,8 +94,18 @@ export function AddExpenseButton({
               <div className="flex-1">
                 <Input label="Qué fue" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Pizzas" autoFocus />
               </div>
-              <div className="w-28">
-                <Input label="Cantidad" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="42.50" inputMode="decimal" />
+              <div className="w-[110px]">
+                <span className="mb-1.5 block text-[12.5px] font-semibold text-ink-700">Cantidad</span>
+                <div className="flex items-center gap-1 rounded-md border-[1.5px] border-line-input bg-paper px-3">
+                  <span className="text-ink-500">$</span>
+                  <input
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="42.50"
+                    inputMode="decimal"
+                    className="w-full border-none bg-transparent py-[11px] text-sm text-ink-900 outline-none"
+                  />
+                </div>
               </div>
             </div>
             <div>
@@ -116,6 +129,9 @@ export function AddExpenseButton({
                   </label>
                 ))}
               </div>
+              <p className="mt-2.5 text-xs text-ink-300">
+                Lo pagaste tú, así que te deben el total; se reparte en partes iguales entre quienes marques.
+              </p>
             </div>
             {error && <p className="text-xs text-danger">{error}</p>}
           </div>
@@ -132,6 +148,7 @@ export function EditExpenseButton({ id, slug, note, amount }: { id: string; slug
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const toast = useToast()
 
   function submit() {
     const fd = new FormData()
@@ -141,6 +158,7 @@ export function EditExpenseButton({ id, slug, note, amount }: { id: string; slug
       try {
         await updateExpense(id, slug, fd)
         setOpen(false)
+        toast('Gasto actualizado.')
         router.refresh()
       } catch (e) {
         setError(e instanceof Error ? e.message : 'No se pudo guardar.')

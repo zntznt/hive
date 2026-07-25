@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { HexAvatar } from '@/components/ui/HexAvatar'
+import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { MapPinIcon } from '@/components/ui/Icon'
 import CopyButton from '@/components/copy-button'
 import { BannerUpload } from './banner-upload'
@@ -126,7 +127,7 @@ export default async function ClubPage({
           .order('created_at'),
         supabase
           .from('club_join_requests')
-          .select('id, user_id, created_at, users:user_id(display_name)')
+          .select('id, user_id, created_at, users:user_id(display_name, avatar_kind, avatar_bug, avatar_color, avatar_photo_url)')
           .eq('club_id', club.id)
           .eq('status', 'pending')
           .order('created_at'),
@@ -138,11 +139,11 @@ export default async function ClubPage({
 
   // money still out across this club's events: sum each member's negative
   // event_balances into a per-person outstanding total.
-  let owedByMember: { userId: string; name: string; cents: number; eventCount: number }[] = []
+  let owedByMember: { userId: string; user: AvatarUser; cents: number; eventCount: number }[] = []
   if (events.length > 0) {
     const eventIds = events.map((e) => e.id)
     const { data: balRows } = await supabase.from('event_balances').select('event_id, user_id, net_cents').in('event_id', eventIds).lt('net_cents', 0)
-    const nameOf = new Map((roster ?? []).map((m) => [m.user_id, (m.users as unknown as { display_name: string } | null)?.display_name ?? '·']))
+    const userOf = new Map((roster ?? []).map((m) => [m.user_id, m.users as unknown as AvatarUser | null]))
     const totals = new Map<string, { cents: number; events: Set<string> }>()
     for (const r of balRows ?? []) {
       const cur = totals.get(r.user_id) ?? { cents: 0, events: new Set<string>() }
@@ -151,7 +152,7 @@ export default async function ClubPage({
       totals.set(r.user_id, cur)
     }
     owedByMember = [...totals.entries()]
-      .map(([userId, v]) => ({ userId, name: nameOf.get(userId) ?? '·', cents: -v.cents, eventCount: v.events.size }))
+      .map(([userId, v]) => ({ userId, user: userOf.get(userId) ?? { display_name: '·' }, cents: -v.cents, eventCount: v.events.size }))
       .sort((a, b) => b.cents - a.cents)
   }
 
@@ -278,7 +279,15 @@ export default async function ClubPage({
 
       {isManager && (changeReqs ?? []).length > 0 && (
         <>
-          <SectionHeader>Esperando a los admins · {(changeReqs ?? []).length}</SectionHeader>
+          <SectionHeader
+            action={
+              <Link href="/admin" className="text-[12.5px] font-bold text-honey-700">
+                Revisar en Admin →
+              </Link>
+            }
+          >
+            Esperando a los admins · {(changeReqs ?? []).length}
+          </SectionHeader>
           <div className="mb-6 flex flex-col gap-2">
             {(changeReqs ?? []).map((r) => {
               const requester = r.users as unknown as { display_name: string } | null
@@ -316,14 +325,22 @@ export default async function ClubPage({
 
       {isManager && (joinReqs ?? []).length > 0 && (
         <>
-          <SectionHeader>Solicitudes para unirse · {(joinReqs ?? []).length}</SectionHeader>
+          <SectionHeader
+            action={
+              <Link href="/admin" className="text-[12.5px] font-bold text-honey-700">
+                Revisar en Admin →
+              </Link>
+            }
+          >
+            Solicitudes para unirse · {(joinReqs ?? []).length}
+          </SectionHeader>
           <div className="mb-6 flex flex-col gap-2">
             {(joinReqs ?? []).map((r) => {
-              const requester = r.users as unknown as { display_name: string } | null
+              const requester = r.users as unknown as AvatarUser | null
               return (
                 <Card key={r.id} pad="sm" className="flex items-center justify-between border-honey-200 bg-honey-50">
                   <span className="flex min-w-0 items-center gap-2.5">
-                    <HexAvatar name={requester?.display_name ?? '·'} size={28} />
+                    <UserAvatar user={requester ?? { display_name: '·' }} size={28} />
                     <span className="text-sm text-ink-900">{requester?.display_name ?? '·'}</span>
                   </span>
                   {isAdmin ? (
@@ -347,26 +364,23 @@ export default async function ClubPage({
         </>
       )}
 
-      <SectionHeader action={isAdmin ? <InviteModal clubId={club.id} slug={slug} clubName={club.name} /> : null}>
+      <SectionHeader action={isManager ? <InviteModal clubId={club.id} slug={slug} clubName={club.name} isAdmin={isAdmin} /> : null}>
         Miembros · {(roster ?? []).length} {cat ? `· asistencia a ${catName(cat)}` : ''}
       </SectionHeader>
       <div className="mb-2 overflow-hidden rounded-lg border border-line-card bg-paper">
-        {(roster ?? []).map((m) => {
-          const u = m.users as unknown as { display_name: string } | null
-          return (
-            <MemberRow
-              key={m.user_id}
-              clubId={club.id}
-              slug={slug}
-              userId={m.user_id}
-              name={u?.display_name ?? '·'}
-              role={m.role}
-              isAdmin={isAdmin}
-              isOrganizer={isOrganizer}
-              isSelf={m.user_id === profile.id}
-            />
-          )
-        })}
+        {(roster ?? []).map((m) => (
+          <MemberRow
+            key={m.user_id}
+            clubId={club.id}
+            slug={slug}
+            userId={m.user_id}
+            user={(m.users as unknown as AvatarUser | null) ?? { display_name: '·' }}
+            role={m.role}
+            isAdmin={isAdmin}
+            isOrganizer={isOrganizer}
+            isSelf={m.user_id === profile.id}
+          />
+        ))}
         {isAdmin &&
           (pendingInvites ?? []).map((inv) => (
             <div key={inv.id} className="flex items-center justify-between gap-2 border-t border-line-divider px-[13px] py-[11px] text-sm">
@@ -428,12 +442,12 @@ export default async function ClubPage({
             {owedByMember.map((o, i) => (
               <Link
                 key={o.userId}
-                href={`/events?club=${club.id}&owed=true&person=${encodeURIComponent(o.name)}`}
+                href={`/events?club=${club.id}&owed=true&person=${o.userId}`}
                 className={`flex items-center justify-between gap-2 px-[13px] py-[11px] ${i ? 'border-t border-line-divider' : ''}`}
               >
                 <span className="flex items-center gap-2.5">
-                  <HexAvatar name={o.name} size={28} />
-                  <span className="text-sm text-ink-900">{o.name}</span>
+                  <UserAvatar user={o.user} size={28} />
+                  <span className="text-sm text-ink-900">{o.user.display_name}</span>
                 </span>
                 <span className="text-[13px] font-extrabold text-danger">
                   {fmtMoney(o.cents)} <span className="font-semibold text-ink-300">· {o.eventCount} evento{o.eventCount > 1 ? 's' : ''} →</span>

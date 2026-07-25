@@ -114,6 +114,21 @@ export async function removeGuest(guestId: string, slug: string) {
   revalidatePath(`/e/${slug}`)
 }
 
+// The organizer's "abrir un lugar" on the waitlist card: raise capacity by
+// one and let promote_waitlist (0003) reconcile, which seats the first in
+// line and queues their waitlist_promoted notification.
+export async function promoteNextWaitlisted(eventId: string, slug: string) {
+  const supabase = await supabaseServer()
+  const { data: ev } = await supabase.from('events').select('capacity').eq('id', eventId).single()
+  if (ev?.capacity == null) return
+  const { error } = await supabase.from('events').update({ capacity: ev.capacity + 1 }).eq('id', eventId)
+  if (error) throw new Error(error.message)
+  const { error: promoteErr } = await supabase.rpc('promote_waitlist', { eid: eventId })
+  if (promoteErr) throw new Error(promoteErr.message)
+  await dispatchQueuedNotifications(supabase)
+  revalidatePath(`/e/${slug}`)
+}
+
 // event_members_insert RLS already restricts this to an existing organizer/admin
 export async function addCoOrganizer(eventId: string, slug: string, userId: string) {
   const supabase = await supabaseServer()
@@ -347,13 +362,17 @@ export async function createClubInvitation(clubId: string, clubSlug: string, for
   const email = String(formData.get('email') ?? '').trim() || null
   const phone = String(formData.get('phone') ?? '').trim() || null
   if (!email && !phone) return
+  // organizers invite members only; the role picker is admin territory
+  const roleRaw = String(formData.get('invited_role') ?? 'member')
+  const perm = await clubPermission(supabase, user.id, clubId)
+  const invited_role = perm.isAdmin && ['member', 'organizer', 'admin'].includes(roleRaw) ? roleRaw : 'member'
   const [{ data: inviter }, { data: club }] = await Promise.all([
     supabase.from('users').select('display_name').eq('id', user.id).single(),
     supabase.from('clubs').select('name').eq('id', clubId).single(),
   ])
   const { data: invitation, error } = await supabase
     .from('invitations')
-    .insert({ club_id: clubId, email, phone, invited_by: user.id })
+    .insert({ club_id: clubId, email, phone, invited_by: user.id, invited_role })
     .select('token')
     .single()
   if (error) throw new Error(error.message)
@@ -570,6 +589,23 @@ export async function createEvent(
     sched_slot_minutes: Number(formData.get('slot_minutes') ?? 60),
   })
   if (error) return 'No se pudo crear el evento. Inténtalo de nuevo.'
+
+  // "nuevos eventos en tus clubs" notification (Account matrix topic
+  // new_event): every other club member hears about it per their prefs.
+  const [{ data: fellows }, { data: creator }, { data: clubRow }] = await Promise.all([
+    supabase.from('club_members').select('user_id').eq('club_id', clubId).neq('user_id', user.id),
+    supabase.from('users').select('display_name').eq('id', user.id).single(),
+    supabase.from('clubs').select('name').eq('id', clubId).single(),
+  ])
+  const link = `${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/e/${slug}`
+  for (const m of fellows ?? []) {
+    await queueNotification(supabase, {
+      userId: m.user_id,
+      template: 'new_event',
+      vars: { creator: creator?.display_name ?? 'Alguien', title, club: clubRow?.name ?? 'tu club', link },
+    })
+  }
+  await dispatchQueuedNotifications(supabase)
   redirect(`/e/${slug}`)
 }
 
@@ -732,6 +768,25 @@ export async function recordSettlement(
     proof_path: proofPath,
   })
   if (error) throw new Error(error.message)
+
+  // "te pagaron" notification: the recipient hears a payment was claimed and
+  // needs their confirmation (Account matrix topic: payments).
+  const [{ data: payer }, { data: ev }] = await Promise.all([
+    supabase.from('users').select('display_name').eq('id', fromUser).single(),
+    supabase.from('events').select('title').eq('id', eventId).single(),
+  ])
+  const { fmtMoney } = await import('@/lib/money')
+  await queueNotification(supabase, {
+    userId: toUser,
+    template: 'payment_received',
+    vars: {
+      from: payer?.display_name ?? 'Alguien',
+      amount: fmtMoney(amountCents),
+      event: ev?.title ?? 'un evento',
+      link: `${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/e/${slug}`,
+    },
+  })
+  await dispatchQueuedNotifications(supabase)
   revalidatePath(`/e/${slug}`)
   revalidatePath('/plate')
   revalidatePath('/')
@@ -739,8 +794,29 @@ export async function recordSettlement(
 
 export async function confirmSettlement(id: string, slug: string) {
   const supabase = await supabaseServer()
+  const { data: row } = await supabase
+    .from('settlements')
+    .select('from_user, to_user, amount_cents, event_id, events(title)')
+    .eq('id', id)
+    .maybeSingle()
   const { error } = await supabase.from('settlements').update({ confirmed: true }).eq('id', id)
   if (error) throw new Error(error.message)
+
+  // close the loop with the payer: their claimed payment got confirmed
+  if (row) {
+    const { data: recipient } = await supabase.from('users').select('display_name').eq('id', row.to_user).single()
+    const { fmtMoney } = await import('@/lib/money')
+    await queueNotification(supabase, {
+      userId: row.from_user,
+      template: 'payment_confirmed',
+      vars: {
+        to: recipient?.display_name ?? 'Alguien',
+        amount: fmtMoney(row.amount_cents),
+        event: (row.events as unknown as { title: string } | null)?.title ?? 'un evento',
+      },
+    })
+    await dispatchQueuedNotifications(supabase)
+  }
   revalidatePath(`/e/${slug}`)
   revalidatePath('/plate')
   revalidatePath('/')
@@ -886,15 +962,29 @@ export async function updateProfile(formData: FormData) {
   revalidatePath('/')
 }
 
+// Saves the Account page's topic x channel notification matrix. The legacy
+// notif_email/notif_whatsapp globals stay in sync as "any topic on for this
+// channel", so templates without a topic (invitations) keep behaving.
 export async function updateNotifPrefs(formData: FormData) {
   const supabase = await supabaseServer()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) throw new Error('not signed in')
+  const { NOTIF_TOPICS } = await import('@/lib/notif-topics')
+  const prefs: Record<string, { email: boolean; whatsapp: boolean }> = {}
+  let anyEmail = false
+  let anyWhatsapp = false
+  for (const t of NOTIF_TOPICS) {
+    const email = formData.get(`t_${t.key}_email`) === 'on'
+    const whatsapp = formData.get(`t_${t.key}_whatsapp`) === 'on'
+    prefs[t.key] = { email, whatsapp }
+    anyEmail = anyEmail || email
+    anyWhatsapp = anyWhatsapp || whatsapp
+  }
   const { error } = await supabase
     .from('users')
-    .update({ notif_email: formData.get('notif_email') === 'on', notif_whatsapp: formData.get('notif_whatsapp') === 'on' })
+    .update({ notif_prefs: prefs, notif_email: anyEmail, notif_whatsapp: anyWhatsapp })
     .eq('id', user.id)
   if (error) throw new Error(error.message)
   revalidatePath('/account')

@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
+import { useToast } from '@/components/ui/Toast'
 import { addCoOrganizer } from '@/app/actions'
 
 type Candidate = { user_id: string; user: AvatarUser }
@@ -12,11 +13,13 @@ export function CoOrganizerButton({ eventId, slug, candidates }: { eventId: stri
   const [open, setOpen] = useState(false)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
+  const toast = useToast()
 
-  function invite(userId: string) {
+  function invite(userId: string, name: string) {
     startTransition(async () => {
       await addCoOrganizer(eventId, slug, userId)
       setOpen(false)
+      toast(`${name} ya puede co-organizar. Le avisamos por correo.`)
       router.refresh()
     })
   }
@@ -34,7 +37,7 @@ export function CoOrganizerButton({ eventId, slug, candidates }: { eventId: stri
               <button
                 key={c.user_id}
                 disabled={pending}
-                onClick={() => invite(c.user_id)}
+                onClick={() => invite(c.user_id, c.user.display_name)}
                 className="flex items-center gap-2.5 rounded-md border border-line-card bg-paper p-2.5 text-left text-sm font-bold text-ink-900 disabled:opacity-60"
               >
                 <UserAvatar user={c.user} size={28} />

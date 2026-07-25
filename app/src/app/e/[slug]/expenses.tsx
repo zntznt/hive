@@ -8,6 +8,8 @@ import { BalanceRow } from '@/components/ui/BalanceRow'
 import { PAYMENT_METHOD_LABELS } from '@/lib/payment-method-labels'
 import { SettleUpFlow, ConfirmPaymentModal } from '@/components/settle-up'
 import { AddExpenseButton, EditExpenseButton } from './expense-modal'
+import { PayStrip } from './pay-strip'
+import type { PaymentMethod } from '@/app/account/payment-methods-form'
 
 type Expense = { id: string; payer_user_id: string; amount_cents: number; note: string }
 type Balance = { user_id: string; paid_cents: number; owed_cents: number; net_cents: number }
@@ -73,6 +75,12 @@ export default async function Expenses({
     ? await supabase.from('payment_methods').select('user_id, kind, value').in('user_id', creditorIds).order('sort')
     : { data: [] as { user_id: string; kind: string; value: string }[] }
   const methodsFor = (uid: string) => (methodRows ?? []).filter((m) => m.user_id === uid)
+
+  // your own payback methods, editable from the pay strip's "mis datos"
+  const myDebts = suggestions.filter((t) => t.from.user_id === myId && methodsFor(t.to.user_id).length > 0)
+  const { data: myMethodRows } = myDebts.length
+    ? await supabase.from('payment_methods').select('id, kind, value, sort').eq('user_id', myId).order('sort')
+    : { data: [] as PaymentMethod[] }
 
   // signed URLs for private payment-proof screenshots the current user is allowed to see
   const proofFor = new Map<string, string>()
@@ -157,6 +165,18 @@ export default async function Expenses({
               </li>
             ))}
           </ul>
+          {myDebts.map((t) => {
+            const m = methodsFor(t.to.user_id)[0]
+            return (
+              <PayStrip
+                key={t.to.user_id}
+                toName={t.to.name}
+                methodKind={m.kind}
+                methodValue={m.value}
+                myMethods={(myMethodRows ?? []) as PaymentMethod[]}
+              />
+            )
+          })}
         </>
       )}
 

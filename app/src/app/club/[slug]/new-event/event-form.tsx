@@ -5,6 +5,7 @@ import { createEvent, updateEvent } from '@/app/actions'
 import { Input, Select, Checkbox } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { Dropdown } from '@/components/ui/Dropdown'
 import { LocationPicker, type Place } from '@/components/ui/LocationPicker'
 
 function toDatetimeLocal(iso: string | null) {
@@ -53,12 +54,14 @@ export default function EventForm({
   clubId,
   slug,
   categories,
+  savedPlaces = [],
   recentPlaces = [],
   initial,
 }: {
   clubId: string
   slug: string
   categories: Category[]
+  savedPlaces?: Place[]
   recentPlaces?: Place[]
   initial?: Initial
 }) {
@@ -68,6 +71,7 @@ export default function EventForm({
     null
   )
   const [title, setTitle] = useState(initial?.title ?? '')
+  const [categoryId, setCategoryId] = useState(initial?.category_id ?? '')
   // still finding a time: the scheduling window can change. Once a slot's
   // picked, those fields are locked - editing them here wouldn't touch the
   // already-chosen chosen_start/chosen_end anyway.
@@ -77,21 +81,19 @@ export default function EventForm({
     <form action={formAction} className="flex flex-col gap-4">
       <Input id="title" name="title" label="Título" required placeholder="Noche de juegos" value={title} onChange={(e) => setTitle(e.target.value)} />
 
-      <div className="flex gap-3">
-        <div className="flex-1">
-          <Select id="category_id" name="category_id" label="Categoría" defaultValue={initial?.category_id ?? ''}>
-            <option value="">sin categoría</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.emoji ? `${c.emoji} ` : ''}
-                {c.name}
-              </option>
-            ))}
-          </Select>
-        </div>
-      </div>
+      <Dropdown
+        name="category_id"
+        label="Categoría"
+        value={categoryId}
+        onChange={setCategoryId}
+        placeholder="Sin categoría"
+        options={[
+          { value: '', label: 'Sin categoría' },
+          ...categories.map((c) => ({ value: c.id, label: `${c.emoji ? `${c.emoji} ` : ''}${c.name}` })),
+        ]}
+      />
 
-      <LocationPicker name="location" label="Lugar (opcional)" defaultValue={initial?.location ?? ''} recent={recentPlaces} />
+      <LocationPicker name="location" label="Lugar (opcional)" defaultValue={initial?.location ?? ''} saved={savedPlaces} recent={recentPlaces} />
 
       {showSchedWindow && (
         <Fieldset legend="Buscar fecha" hint="La ventana de fechas y horas donde los miembros marcan cuándo pueden.">

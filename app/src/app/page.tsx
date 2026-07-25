@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
 import SignIn from './signin'
-import { signOut, toggleContribution } from './actions'
+import { signOut } from './actions'
 import { getPlateItems, plateCount, type PlateItem } from '@/lib/plate'
 import { Chip } from '@/components/ui/Chip'
 import { Badge } from '@/components/ui/Badge'
@@ -13,6 +13,8 @@ import { HexAvatar } from '@/components/ui/HexAvatar'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { PlateItemRow } from '@/components/ui/PlateItemRow'
 import { SettleUpFlow, ConfirmPaymentModal } from '@/components/settle-up'
+import { CreateClubButton } from './create-club-modal'
+import { MarkDoneButton } from './plate/mark-done-modal'
 
 type UpcomingEvent = {
   id: string
@@ -170,17 +172,18 @@ export default async function Home() {
         </div>
       </header>
 
-      {total > 0 && (
-        <section className="mb-7">
-          <SectionHeader
-            action={
-              <Link href="/plate" className="text-[12.5px] font-bold text-honey-700">
-                Ver todo →
-              </Link>
-            }
-          >
-            En tu plato · {total}
-          </SectionHeader>
+      <section className="mb-7">
+        <SectionHeader
+          action={
+            <Link href="/plate" className="text-[12.5px] font-bold text-honey-700">
+              Ver todo →
+            </Link>
+          }
+        >
+          En tu plato · {total}
+        </SectionHeader>
+        {total === 0 && <p className="text-[13px] text-ink-500">Todo en orden. Nada te necesita ahorita.</p>}
+        {total > 0 && (
           <div className="flex flex-col gap-2">
             {shownPlate.map((item) => {
               const { emoji, tone, title } = plateRowContent(item)
@@ -209,9 +212,13 @@ export default async function Home() {
                     Confirmar
                   </ConfirmPaymentModal>
                 ) : (
-                  <form action={toggleContribution.bind(null, item.contributionId, item.eventSlug, true)}>
-                    <button className="font-bold text-honey-700">Hecho</button>
-                  </form>
+                  <MarkDoneButton
+                    contributionId={item.contributionId}
+                    slug={item.eventSlug}
+                    kind={item.kind}
+                    title={item.title}
+                    eventTitle={item.eventTitle}
+                  />
                 )
               return (
                 <PlateItemRow
@@ -232,12 +239,20 @@ export default async function Home() {
               </Link>
             )}
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {clubIds.length > 0 && (
         <section className="mb-7">
-          <SectionHeader>Lo que viene</SectionHeader>
+          <SectionHeader
+            action={
+              <Link href={`/events?person=${profile.id}&when=past`} className="text-[12.5px] font-bold text-honey-700">
+                Tu historial →
+              </Link>
+            }
+          >
+            Lo que viene
+          </SectionHeader>
           {upcoming.length === 0 ? (
             <EmptyState emoji="📅" hint="Nada en puerta todavía." />
           ) : (
@@ -292,12 +307,7 @@ export default async function Home() {
           </div>
         )}
 
-        <Link
-          href="/club/new"
-          className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border-[1.5px] border-line-input bg-paper px-[18px] py-[11px] text-sm font-extrabold text-ink-700"
-        >
-          <span aria-hidden="true">+</span> Crear un club
-        </Link>
+        <CreateClubButton />
       </section>
 
       {profile.is_app_admin && (

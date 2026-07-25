@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { HexAvatar } from '@/components/ui/HexAvatar'
+import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
@@ -14,7 +14,7 @@ export function MemberRow({
   clubId,
   slug,
   userId,
-  name,
+  user,
   role,
   isAdmin,
   isOrganizer,
@@ -23,12 +23,13 @@ export function MemberRow({
   clubId: string
   slug: string
   userId: string
-  name: string
+  user: AvatarUser
   role: Role
   isAdmin: boolean
   isOrganizer: boolean
   isSelf: boolean
 }) {
+  const name = user.display_name
   const [pending, startTransition] = useTransition()
   const [confirmRemove, setConfirmRemove] = useState(false)
   const [requestedRemoval, setRequestedRemoval] = useState(false)
@@ -44,7 +45,7 @@ export function MemberRow({
   return (
     <div className="flex items-center justify-between gap-2 border-t border-line-divider px-[13px] py-[11px] first:border-t-0">
       <span className="flex min-w-0 items-center gap-2.5">
-        <HexAvatar name={name} size={28} />
+        <UserAvatar user={user} size={28} />
         <span className="text-sm text-ink-900">{name}</span>
         {(!isAdmin || isSelf) && role !== 'member' && <Badge tone={role === 'admin' ? 'admin' : 'neutral'}>{role}</Badge>}
       </span>

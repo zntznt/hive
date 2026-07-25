@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { requireProfile } from '@/lib/gate'
 import type { Contribution, EventRow, RsvpStatus } from '@/lib/types'
-import { addGuest, removeGuest, setEventStatus, setRsvp, toggleContribution, claimContribution, removeContribution } from '@/app/actions'
+import { addGuest, removeGuest, setEventStatus, setRsvp, toggleContribution, removeContribution } from '@/app/actions'
 import Grid from './grid'
 import Expenses from './expenses'
 import Polls from './polls'
@@ -18,6 +18,7 @@ import { rsvpButtonClass, RSVP_OPTIONS } from '@/components/ui/RsvpToggle'
 import { AddContributionButton, EditContributionButton } from './contribution-modal'
 import { CoOrganizerButton } from './co-organizer-modal'
 import { RequestJoinClubButton } from './request-join-button'
+import { ClaimContributionButton, PromoteNextButton } from './claim-modal'
 
 function dayRange(start: string, end: string) {
   // walk in UTC so toISOString() reads the same date we stepped - parsing as
@@ -136,6 +137,12 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     .sort((a, b) => (a.waitlist_pos ?? 0) - (b.waitlist_pos ?? 0))
   const myWaitPos = waitlisted.findIndex((r) => r.user_id === profile.id)
   const myGuests = (guests ?? []).filter((g) => g.host_user_id === profile.id && !g.promoted_to_user_id)
+
+  // +N badge on each attendee pill: how many unpromoted guests they bring
+  const guestCountByHost = new Map<string, number>()
+  for (const g of guests ?? []) {
+    if (!g.promoted_to_user_id) guestCountByHost.set(g.host_user_id, (guestCountByHost.get(g.host_user_id) ?? 0) + 1)
+  }
 
   const organizers = (members ?? []).filter((m) => m.role === 'organizer')
   const coOrganizerCandidates = (clubMembers ?? [])
@@ -316,6 +323,10 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             ))}
           </div>
 
+          {myRsvp?.status === 'in' && myWaitPos < 0 && (
+            <p className="mb-2 text-[13px] text-ink-500">Vas. ¡Nos vemos ahí!</p>
+          )}
+
           <p className="text-sm text-ink-500">
             van {confirmed.length}
             {event.capacity != null && `/${event.capacity}`} · no van {byStatus('out').length} · quizás {byStatus('maybe').length}
@@ -325,6 +336,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             <div className="mt-2.5 flex flex-wrap gap-2">
               {confirmed.map((r) => {
                 const u = userOf.get(r.user_id)
+                const plus = guestCountByHost.get(r.user_id) ?? 0
                 return (
                   <Link
                     key={r.user_id}
@@ -334,6 +346,9 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                   >
                     <UserAvatar user={u ?? { display_name: nameOf.get(r.user_id) ?? '·' }} size={22} />
                     {nameOf.get(r.user_id)}
+                    {plus > 0 && (
+                      <span className="rounded-full bg-honey-100 px-[7px] py-px text-[10.5px] text-honey-800">+{plus}</span>
+                    )}
                   </Link>
                 )
               })}
@@ -375,6 +390,11 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                   </div>
                 ))}
               </div>
+              {isOrganizer && waitlisted.length > 0 && (
+                <div className="mt-2.5">
+                  <PromoteNextButton eventId={event.id} slug={event.slug} nextName={nameOf.get(waitlisted[0].user_id) ?? '·'} />
+                </div>
+              )}
               <p className="mt-2 text-[11.5px] text-ink-300">Cuando se libera una plaza, el primero en la fila entra solo y le avisamos por correo y WhatsApp.</p>
             </div>
           )}
@@ -442,9 +462,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                   )}
                 </span>
               ) : (
-                <form action={claimContribution.bind(null, c.id, event.slug)}>
-                  <Button size="sm">Me lo pido</Button>
-                </form>
+                <ClaimContributionButton id={c.id} slug={event.slug} title={c.title} eventTitle={event.title} />
               )}
             </Card>
           </li>

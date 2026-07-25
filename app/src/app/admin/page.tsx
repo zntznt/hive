@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Chip } from '@/components/ui/Chip'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { HexAvatar } from '@/components/ui/HexAvatar'
+import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { TemplateRow } from './template-row'
 
 const CHANGE_KIND_LABEL: Record<string, string> = {
@@ -40,7 +40,7 @@ export default async function AdminPage() {
       .order('created_at'),
     supabase
       .from('club_join_requests')
-      .select('id, status, created_at, user_id, clubs(name, slug), users:user_id(display_name)')
+      .select('id, status, created_at, user_id, clubs(name, slug), users:user_id(display_name, avatar_kind, avatar_bug, avatar_color, avatar_photo_url)')
       .eq('status', 'pending')
       .order('created_at'),
   ])
@@ -115,11 +115,11 @@ export default async function AdminPage() {
             })}
             {(joinReqs ?? []).map((r) => {
               const club = r.clubs as unknown as { name: string; slug: string } | null
-              const requester = r.users as unknown as { display_name: string } | null
+              const requester = r.users as unknown as AvatarUser | null
               return (
                 <Card key={r.id} pad="sm" className="border-honey-200 bg-honey-50">
                   <div className="mb-2 flex items-center gap-2.5">
-                    <HexAvatar name={requester?.display_name ?? '·'} size={28} />
+                    <UserAvatar user={requester ?? { display_name: '·' }} size={28} />
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5 text-sm font-bold text-ink-900">
                         <Badge tone="pending">Solicitud de unión</Badge>

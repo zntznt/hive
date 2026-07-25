@@ -17,6 +17,7 @@ type AccountExtra = {
   avatar_photo_url: string | null
   notif_email: boolean
   notif_whatsapp: boolean
+  notif_prefs: Partial<Record<string, { email?: boolean; whatsapp?: boolean }>>
 }
 
 export default async function AccountPage() {
@@ -25,7 +26,7 @@ export default async function AccountPage() {
   const [{ data: extra }, { data: methods }, { data: places }] = await Promise.all([
     supabase
       .from('users')
-      .select('avatar_kind, avatar_bug, avatar_photo_url, notif_email, notif_whatsapp')
+      .select('avatar_kind, avatar_bug, avatar_photo_url, notif_email, notif_whatsapp, notif_prefs')
       .eq('id', profile.id)
       .single(),
     supabase
@@ -85,6 +86,7 @@ export default async function AccountPage() {
       <NotifPrefsForm
         notifEmail={account?.notif_email ?? true}
         notifWhatsapp={account?.notif_whatsapp ?? false}
+        prefs={account?.notif_prefs ?? {}}
       />
 
       <DangerZone />

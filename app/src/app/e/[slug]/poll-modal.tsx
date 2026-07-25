@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input, Checkbox } from '@/components/ui/Input'
+import { useToast } from '@/components/ui/Toast'
 import { createPoll } from '@/app/actions'
 
 export function AddPollButton({ eventId, slug }: { eventId: string; slug: string }) {
@@ -16,6 +17,7 @@ export function AddPollButton({ eventId, slug }: { eventId: string; slug: string
   const [afterClose, setAfterClose] = useState(false)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
+  const toast = useToast()
 
   function submit() {
     const fd = new FormData()
@@ -27,6 +29,7 @@ export function AddPollButton({ eventId, slug }: { eventId: string; slug: string
     startTransition(async () => {
       await createPoll(eventId, slug, fd)
       setOpen(false)
+      toast('La encuesta está viva.')
       setQuestion('')
       setOptions(['', '', '', ''])
       router.refresh()

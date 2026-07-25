@@ -27,10 +27,10 @@ export default async function EditEventPage({ params }: { params: Promise<{ slug
     supabase.from('saved_places').select('name, addr, query').eq('user_id', profile.id).order('created_at'),
   ])
   const yourPlaces: Place[] = (places ?? []).map((p) => ({ name: p.name, addr: p.addr ?? undefined, q: p.query }))
-  const pastPlaceNames = [...new Set((pastLocations ?? []).map((e) => e.location as string))].filter(
-    (name) => !yourPlaces.some((p) => p.name === name)
-  )
-  const recentPlaces: Place[] = [...yourPlaces, ...pastPlaceNames.map((name) => ({ name, q: name }))].slice(0, 8)
+  const recentPlaces: Place[] = [...new Set((pastLocations ?? []).map((e) => e.location as string))]
+    .filter((n) => !yourPlaces.some((p) => p.name === n))
+    .slice(0, 6)
+    .map((n) => ({ name: n, q: n }))
 
   return (
     <main className="mx-auto w-full max-w-md p-6">
@@ -44,6 +44,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ slug
         clubId={club.id}
         slug={slug}
         categories={categories ?? []}
+        savedPlaces={yourPlaces}
         recentPlaces={recentPlaces}
         initial={{
           id: event.id,

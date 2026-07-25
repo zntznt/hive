@@ -8,21 +8,55 @@ export type TemplateKey =
   | 'change_request_declined'
   | 'join_request_approved'
   | 'join_request_declined'
+  | 'new_event'
+  | 'payment_received'
+  | 'payment_confirmed'
+
+// The Account page's notification matrix rows. Every topic maps 1:n to the
+// template keys above; a template without a topic follows the old global
+// notif_email/notif_whatsapp columns.
+export type NotifTopic = 'new_event' | 'rsvp_waitlist' | 'payments' | 'approvals'
+
+export const TOPIC_OF: Partial<Record<TemplateKey, NotifTopic>> = {
+  new_event: 'new_event',
+  waitlist_promoted: 'rsvp_waitlist',
+  payment_received: 'payments',
+  payment_confirmed: 'payments',
+  change_request_approved: 'approvals',
+  change_request_declined: 'approvals',
+  join_request_approved: 'approvals',
+  join_request_declined: 'approvals',
+}
+
+type PrefsMatrix = Partial<Record<NotifTopic, { email?: boolean; whatsapp?: boolean }>>
 
 export function renderTemplate(tpl: string, vars: Record<string, string>) {
   return tpl.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? '')
 }
 
-// Queues a notification_outbox row (channel picked per the recipient's own
-// prefs: email if they opted in, else whatsapp - which just logs today since
-// no provider is connected). Call dispatchQueuedNotifications right after to
-// actually send it instead of leaving it queued indefinitely.
+// Queues a notification_outbox row. The channel comes from the recipient's
+// per-topic matrix (users.notif_prefs) when the template maps to a topic,
+// falling back to the global notif_email/notif_whatsapp toggles; a fully
+// opted-out topic queues nothing at all. WhatsApp rows just log today since
+// no provider is connected. Call dispatchQueuedNotifications right after to
+// actually send instead of leaving rows queued indefinitely.
 export async function queueNotification(
   supabase: SupabaseClient,
   { userId, template, vars }: { userId: string; template: TemplateKey; vars: Record<string, string> }
 ) {
-  const { data: user } = await supabase.from('users').select('notif_email, notif_whatsapp').eq('id', userId).maybeSingle()
-  const channel = user?.notif_email === false && user?.notif_whatsapp ? 'whatsapp' : 'email'
+  const { data: user } = await supabase
+    .from('users')
+    .select('notif_email, notif_whatsapp, notif_prefs')
+    .eq('id', userId)
+    .maybeSingle()
+
+  const topic = TOPIC_OF[template]
+  const pref = topic ? ((user?.notif_prefs ?? {}) as PrefsMatrix)[topic] : undefined
+  const emailOn = pref?.email ?? user?.notif_email ?? true
+  const whatsappOn = pref?.whatsapp ?? user?.notif_whatsapp ?? false
+
+  const channel = emailOn ? 'email' : whatsappOn ? 'whatsapp' : null
+  if (!channel) return
   await supabase.from('notification_outbox').insert({ user_id: userId, channel, template, payload: vars })
 }
 
@@ -65,13 +99,25 @@ export async function dispatchQueuedNotifications(supabase: SupabaseClient, limi
 
     const [{ data: tpl }, { data: user }] = await Promise.all([
       supabase.from('notification_templates').select('*').eq('channel', row.channel).eq('key', row.template).maybeSingle(),
-      supabase.from('users').select('email, display_name').eq('id', row.user_id).maybeSingle(),
+      supabase.from('users').select('email, display_name, notif_prefs').eq('id', row.user_id).maybeSingle(),
     ])
 
     if (!tpl || !user?.email) {
       await supabase
         .from('notification_outbox')
         .update({ status: 'logged', error: !tpl ? 'sin plantilla' : 'sin correo registrado' })
+        .eq('id', row.id)
+      continue
+    }
+
+    // rows queued outside queueNotification (the waitlist RPC) still honor
+    // the recipient's Account matrix at send time
+    const topic = TOPIC_OF[row.template as TemplateKey]
+    const pref = topic ? ((user.notif_prefs ?? {}) as PrefsMatrix)[topic] : undefined
+    if (pref?.email === false) {
+      await supabase
+        .from('notification_outbox')
+        .update({ status: 'logged', error: 'silenciado por preferencias' })
         .eq('id', row.id)
       continue
     }

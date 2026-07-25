@@ -1,11 +1,11 @@
 import Link from 'next/link'
 import { requireProfile } from '@/lib/gate'
 import { getPlateItems, plateCount } from '@/lib/plate'
-import { toggleContribution } from '@/app/actions'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { PlateItemRow } from '@/components/ui/PlateItemRow'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SettleUpFlow, ConfirmPaymentModal } from '@/components/settle-up'
+import { MarkDoneButton } from './mark-done-modal'
 
 export default async function PlatePage() {
   const { supabase, profile } = await requireProfile()
@@ -111,9 +111,13 @@ export default async function PlatePage() {
                     eventHref={`/e/${item.eventSlug}`}
                     note={item.clubName ?? undefined}
                     action={
-                      <form action={toggleContribution.bind(null, item.contributionId, item.eventSlug, true)}>
-                        <button className="font-bold text-honey-700">Hecho</button>
-                      </form>
+                      <MarkDoneButton
+                        contributionId={item.contributionId}
+                        slug={item.eventSlug}
+                        kind="task"
+                        title={item.title}
+                        eventTitle={item.eventTitle}
+                      />
                     }
                   />
                 ))}
@@ -135,9 +139,13 @@ export default async function PlatePage() {
                     eventHref={`/e/${item.eventSlug}`}
                     note={item.clubName ?? undefined}
                     action={
-                      <form action={toggleContribution.bind(null, item.contributionId, item.eventSlug, true)}>
-                        <button className="font-bold text-honey-700">Hecho</button>
-                      </form>
+                      <MarkDoneButton
+                        contributionId={item.contributionId}
+                        slug={item.eventSlug}
+                        kind="bring"
+                        title={item.title}
+                        eventTitle={item.eventTitle}
+                      />
                     }
                   />
                 ))}

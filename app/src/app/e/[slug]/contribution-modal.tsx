@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
+import { useToast } from '@/components/ui/Toast'
 import { addContribution, updateContribution } from '@/app/actions'
 
 type Member = { user_id: string; name: string }
@@ -27,6 +28,7 @@ export function AddContributionButton({
   const [assignedTo, setAssignedTo] = useState('')
   const [pending, startTransition] = useTransition()
   const router = useRouter()
+  const toast = useToast()
 
   function submit() {
     const fd = new FormData()
@@ -37,6 +39,7 @@ export function AddContributionButton({
     startTransition(async () => {
       await addContribution(eventId, slug, fd)
       setOpen(false)
+      toast('Añadido a aportaciones.')
       setTitle('')
       setQty('')
       setAssignedTo('')
@@ -66,7 +69,13 @@ export function AddContributionButton({
           }
         >
           <div className="flex flex-col gap-3.5">
-            <Input label="Qué" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={isOrganizer ? 'Hace falta…' : 'Yo traigo…'} autoFocus />
+            <Input
+              label={isOrganizer ? 'Qué hace falta' : 'Qué vas a traer'}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={isOrganizer ? 'Hace falta…' : 'Yo traigo…'}
+              autoFocus
+            />
             <Input label="Cantidad (opcional)" value={qty} onChange={(e) => setQty(e.target.value)} placeholder="cantidad" />
             <Select label="Tipo" value={kind} onChange={(e) => setKind(e.target.value)}>
               <option value="bring">traer algo</option>
@@ -107,6 +116,7 @@ export function EditContributionButton({
   const [q, setQ] = useState(qty ?? '')
   const [pending, startTransition] = useTransition()
   const router = useRouter()
+  const toast = useToast()
 
   function submit() {
     const fd = new FormData()
@@ -115,6 +125,7 @@ export function EditContributionButton({
     startTransition(async () => {
       await updateContribution(id, slug, fd)
       setOpen(false)
+      toast('Aportación actualizada.')
       router.refresh()
     })
   }

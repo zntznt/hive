@@ -131,6 +131,10 @@ export default async function EventsPage({
   const myRsvpOf = (eid: string) => rsvpRows.find((r) => r.event_id === eid && r.user_id === profile.id)
   const balancesOf = (eid: string) => balanceRows.filter((b) => b.event_id === eid)
   const totalOwedOf = (eid: string) => balancesOf(eid).reduce((sum, b) => sum + Math.max(0, b.net_cents), 0)
+  // with a person picked, "owed" re-scopes to what that person still owes
+  const personOwedOf = (eid: string) =>
+    Math.max(0, -(balancesOf(eid).find((b) => b.user_id === person)?.net_cents ?? 0))
+  const owedShownOf = (eid: string) => (person === 'all' ? totalOwedOf(eid) : personOwedOf(eid))
 
   // filter option lists, derived from the full (unfiltered) event set in scope
   const peopleMap = new Map<string, string>()
@@ -154,21 +158,22 @@ export default async function EventsPage({
       if (when === 'upcoming' && past) return false
     }
     if (place !== 'all' && e.location !== place) return false
-    if (owedOnly && !balancesOf(e.id).some((b) => b.net_cents !== 0)) return false
+    if (owedOnly && owedShownOf(e.id) <= 0) return false
     return true
   })
 
   const sortKey = (e: EventFull) => (eventDate(e) ?? new Date(e.created_at)).getTime()
   rows = [...rows].sort((a, b) => {
     if (sort === 'oldest') return sortKey(a) - sortKey(b)
-    if (sort === 'owed') return totalOwedOf(b.id) - totalOwedOf(a.id)
+    if (sort === 'owed') return owedShownOf(b.id) - owedShownOf(a.id)
     return sortKey(b) - sortKey(a)
   })
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PER_PAGE))
   const clampedPage = Math.min(page, totalPages)
   const shown = rows.slice((clampedPage - 1) * PER_PAGE, clampedPage * PER_PAGE)
-  const grandTotalOwed = rows.reduce((sum, e) => sum + totalOwedOf(e.id), 0)
+  const grandTotalOwed = rows.reduce((sum, e) => sum + owedShownOf(e.id), 0)
+  const personName = person !== 'all' ? (peopleMap.get(person) ?? '·') : null
 
   const baseParams = {
     club: club !== 'all' ? club : undefined,
@@ -259,7 +264,8 @@ export default async function EventsPage({
         </span>
         {grandTotalOwed > 0 && (
           <span>
-            pendiente en total <b className="font-extrabold text-danger">{fmtMoney(grandTotalOwed)}</b>
+            {person === 'all' ? 'pendiente en total' : person === profile.id ? 'todavía debes' : `${personName} todavía debe`}{' '}
+            <b className="font-extrabold text-danger">{fmtMoney(grandTotalOwed)}</b>
           </span>
         )}
       </div>
@@ -275,7 +281,7 @@ export default async function EventsPage({
           const attendees = attendeesOf(e.id)
           const myRsvp = myRsvpOf(e.id)
           const myNet = balancesOf(e.id).find((b) => b.user_id === profile.id)?.net_cents ?? 0
-          const totalOwed = totalOwedOf(e.id)
+          const owedShown = owedShownOf(e.id)
           const past = isPastEvent(e)
 
           let statusBadge = null
@@ -320,13 +326,23 @@ export default async function EventsPage({
                 </div>
                 <div className="flex-shrink-0 text-right">
                   <div className="text-[12.5px] font-bold text-ink-700">{dateLabel(e)}</div>
-                  {myNet < 0 ? (
+                  {person !== 'all' ? (
+                    owedShown > 0 && (
+                      <span
+                        className={`mt-1.5 inline-block rounded-pill px-2.5 py-[3px] text-[11px] font-extrabold ${
+                          person === profile.id ? 'bg-danger-bg text-danger' : 'bg-honey-100 text-honey-800'
+                        }`}
+                      >
+                        {person === profile.id ? 'debes' : 'debe'} {fmtMoney(owedShown)}
+                      </span>
+                    )
+                  ) : myNet < 0 ? (
                     <span className="mt-1.5 inline-block rounded-pill bg-danger-bg px-2.5 py-[3px] text-[11px] font-extrabold text-danger">
                       debes {fmtMoney(-myNet)}
                     </span>
-                  ) : totalOwed > 0 ? (
+                  ) : owedShown > 0 ? (
                     <span className="mt-1.5 inline-block rounded-pill bg-honey-100 px-2.5 py-[3px] text-[11px] font-extrabold text-honey-800">
-                      se debe {fmtMoney(totalOwed)}
+                      se debe {fmtMoney(owedShown)}
                     </span>
                   ) : null}
                 </div>

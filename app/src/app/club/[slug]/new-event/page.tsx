@@ -19,13 +19,13 @@ export default async function NewEventPage({ params }: { params: Promise<{ slug:
     supabase.from('events').select('location').eq('club_id', club.id).not('location', 'is', null),
     supabase.from('saved_places').select('name, addr, query').eq('user_id', profile.id).order('created_at'),
   ])
-  // "your places" (saved on Account, usable across every club) come first,
-  // then this club's own past locations fill out the rest.
+  // "your places" (saved on Account, usable across every club) show as a
+  // starred group; this club's own past locations fill the recents group.
   const yourPlaces: Place[] = (places ?? []).map((p) => ({ name: p.name, addr: p.addr ?? undefined, q: p.query }))
-  const pastPlaceNames = [...new Set((pastLocations ?? []).map((e) => e.location as string))].filter(
-    (name) => !yourPlaces.some((p) => p.name === name)
-  )
-  const recentPlaces: Place[] = [...yourPlaces, ...pastPlaceNames.map((name) => ({ name, q: name }))].slice(0, 8)
+  const recentPlaces: Place[] = [...new Set((pastLocations ?? []).map((e) => e.location as string))]
+    .filter((n) => !yourPlaces.some((p) => p.name === n))
+    .slice(0, 6)
+    .map((n) => ({ name: n, q: n }))
 
   return (
     <main className="mx-auto w-full max-w-md p-6">
@@ -35,7 +35,7 @@ export default async function NewEventPage({ params }: { params: Promise<{ slug:
           volver
         </Link>
       </header>
-      <EventForm clubId={club.id} slug={slug} categories={categories ?? []} recentPlaces={recentPlaces} />
+      <EventForm clubId={club.id} slug={slug} categories={categories ?? []} savedPlaces={yourPlaces} recentPlaces={recentPlaces} />
     </main>
   )
 }
