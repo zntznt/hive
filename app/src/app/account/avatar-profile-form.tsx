@@ -61,8 +61,8 @@ export default function AvatarProfileForm({
       const blob = await dataUrlToBlob(dataUrl)
       const url = await uploadAvatarPhoto(userId, blob)
       setPhotoUrl(url)
-    } catch {
-      setError('No se pudo subir la foto. Intenta de nuevo.')
+    } catch (e) {
+      setError(e instanceof Error ? `No se pudo subir la foto. ${e.message}` : 'No se pudo subir la foto. Intenta de nuevo.')
     } finally {
       setUploading(false)
     }

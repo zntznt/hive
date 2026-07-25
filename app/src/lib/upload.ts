@@ -1,36 +1,32 @@
 'use client'
 
-import { supabaseBrowser } from './supabase/client'
+import { uploadAvatarPhotoAction, uploadBannerAction, uploadPaymentProofAction } from '@/app/actions'
 
-// Client-side storage uploads. File blobs can't cross a server-action
-// boundary cleanly, so these run in the browser against the anon key and
-// rely entirely on the storage RLS policies from migration 0005.
+// Uploads travel through server actions as FormData (File blobs cross the
+// boundary fine). Server-side the cookie session is always attached, unlike
+// the browser Supabase client, whose document.cookie session read proved
+// unreliable in production and sent uploads out as anon (RLS then rejected
+// them). Signatures kept from the old client-side version.
 
-async function upload(bucket: string, path: string, blob: Blob) {
-  const { error } = await supabaseBrowser().storage.from(bucket).upload(path, blob, {
-    contentType: blob.type || 'image/jpeg',
-    upsert: true,
-  })
-  if (error) throw new Error(error.message)
-  return path
+function toFormData(blob: Blob) {
+  const fd = new FormData()
+  fd.set('file', new File([blob], 'photo.jpg', { type: blob.type || 'image/jpeg' }))
+  return fd
 }
 
-export async function uploadAvatarPhoto(userId: string, blob: Blob) {
-  const path = await upload('avatars', `${userId}/${Date.now()}.jpg`, blob)
-  const { data } = supabaseBrowser().storage.from('avatars').getPublicUrl(path)
-  return data.publicUrl
+export async function uploadAvatarPhoto(_userId: string, blob: Blob) {
+  return uploadAvatarPhotoAction(toFormData(blob))
 }
 
 export async function uploadBanner(clubId: string, blob: Blob) {
-  const path = await upload('banners', `${clubId}/${Date.now()}.jpg`, blob)
-  const { data } = supabaseBrowser().storage.from('banners').getPublicUrl(path)
-  return data.publicUrl
+  return uploadBannerAction(clubId, toFormData(blob))
 }
 
-// Private bucket: returns the storage path (not a public URL) - the server
-// action stores this on the settlement row and mints signed URLs to display it.
-export async function uploadPaymentProof(userId: string, blob: Blob) {
-  return upload('payment-proofs', `${userId}/${Date.now()}.jpg`, blob)
+// private bucket: resolves to the storage path (not a public URL); the
+// server action derives the folder from the session, so any stale userId
+// argument from callers is ignored.
+export async function uploadPaymentProof(_userId: string, blob: Blob) {
+  return uploadPaymentProofAction(toFormData(blob))
 }
 
 // Turns a data-URL (from ImageCropModal's canvas export) into a Blob for upload.

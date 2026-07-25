@@ -119,6 +119,15 @@ begin
   return jsonb_build_object('event_slug', ev_slug, 'club_slug', cl_slug);
 end $$;
 
+-- Public-bucket reads go through public URLs and never needed SELECT, but
+-- the storage API's delete/list/overwrite DO need row visibility; 0006's
+-- advisor cleanup dropped these entirely, which broke owner deletes.
+-- Restore them scoped to the owner/manager instead of world-readable.
+create policy avatars_select on storage.objects for select using (
+  bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy banners_select on storage.objects for select using (
+  bucket_id = 'banners' and is_club_manager(((storage.foldername(name))[1])::uuid));
+
 -- organizers can invite members to their club (admins keep the role picker);
 -- the role restriction is enforced here, not just in the UI.
 drop policy invitations_insert on invitations;
@@ -144,4 +153,14 @@ insert into notification_templates (channel, key, subject, body) values
    'Hola {{name}}, {{to}} confirmó tu pago de {{amount}} de "{{event}}". Quedó saldado.'),
   ('whatsapp', 'payment_confirmed', null,
    '{{to}} confirmó tu pago de {{amount}} de "{{event}}". Quedó saldado.')
+on conflict (channel, key) do nothing;
+
+-- handle_new_user (0001) queues an admin_pending_user notification, but no
+-- template was ever seeded for it; with 0005's outbox template FK in place
+-- the trigger aborted and every new pending signup failed at the door.
+insert into notification_templates (channel, key, subject, body) values
+  ('email', 'admin_pending_user', 'Alguien espera aprobación: {{pending_user}}',
+   'Hola {{name}}, {{pending_user}} acaba de registrarse en Hive y espera tu aprobación en el panel de administración.'),
+  ('whatsapp', 'admin_pending_user', null,
+   '{{pending_user}} acaba de registrarse en Hive y espera aprobación.')
 on conflict (channel, key) do nothing;

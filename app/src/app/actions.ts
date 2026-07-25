@@ -27,6 +27,59 @@ const CHANGE_REQUEST_SUMMARY: Record<string, string> = {
   member_removal: 'quitar a un miembro',
 }
 
+// Storage uploads run server-side: the browser Supabase client depends on
+// reading the auth cookie from document.cookie, which proved unreliable in
+// the wild (uploads went out as anon and RLS rejected them). Server actions
+// accept File blobs in FormData, and here the cookie session always works.
+async function uploadToBucket(bucket: string, path: string, file: File) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Tu sesión expiró. Vuelve a entrar.')
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  const { error } = await supabase.storage.from(bucket).upload(path, bytes, {
+    contentType: file.type || 'image/jpeg',
+    upsert: true,
+  })
+  if (error) throw new Error(error.message)
+  return { path, userId: user.id }
+}
+
+export async function uploadAvatarPhotoAction(formData: FormData): Promise<string> {
+  const file = formData.get('file')
+  if (!(file instanceof File)) throw new Error('Falta la imagen.')
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Tu sesión expiró. Vuelve a entrar.')
+  const { path } = await uploadToBucket('avatars', `${user.id}/${Date.now()}.jpg`, file)
+  return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl
+}
+
+export async function uploadBannerAction(clubId: string, formData: FormData): Promise<string> {
+  const file = formData.get('file')
+  if (!(file instanceof File)) throw new Error('Falta la imagen.')
+  const { path } = await uploadToBucket('banners', `${clubId}/${Date.now()}.jpg`, file)
+  const supabase = await supabaseServer()
+  return supabase.storage.from('banners').getPublicUrl(path).data.publicUrl
+}
+
+// private bucket: returns the storage path, not a URL; signed URLs are minted
+// where the proof is displayed
+export async function uploadPaymentProofAction(formData: FormData): Promise<string> {
+  const file = formData.get('file')
+  if (!(file instanceof File)) throw new Error('Falta la imagen.')
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Tu sesión expiró. Vuelve a entrar.')
+  const { path } = await uploadToBucket('payment-proofs', `${user.id}/${Date.now()}.jpg`, file)
+  return path
+}
+
 export async function signOut() {
   const supabase = await supabaseServer()
   await supabase.auth.signOut()

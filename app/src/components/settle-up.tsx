@@ -8,7 +8,6 @@ import { Select } from './ui/Input'
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_OPTIONS } from '@/lib/payment-method-labels'
 import { fmtMoney } from '@/lib/money'
 import { dataUrlToBlob, uploadPaymentProof } from '@/lib/upload'
-import { supabaseBrowser } from '@/lib/supabase/client'
 import { recordSettlement, confirmSettlement, deleteSettlement } from '@/app/actions'
 
 type PaymentMethodRow = { kind: string; value: string }
@@ -66,15 +65,11 @@ export function SettleUpFlow({
       try {
         let proofPath: string | null = null
         if (proofDataUrl) {
-          const {
-            data: { user: uploader },
-          } = await supabaseBrowser().auth.getUser()
-          if (!uploader) throw new Error('Tu sesión expiró. Vuelve a entrar.')
           const blob = await dataUrlToBlob(proofDataUrl)
-          // storage path must be under the *uploader's* own uid (RLS), which
-          // is usually fromUserId (the debtor) but not when an organizer is
-          // recording someone else's payment on their behalf.
-          proofPath = await uploadPaymentProof(uploader.id, blob)
+          // the storage path lands under the *uploader's* own uid (RLS);
+          // the server action derives it from the session, which covers an
+          // organizer recording someone else's payment on their behalf.
+          proofPath = await uploadPaymentProof('', blob)
         }
         await recordSettlement(eventId, slug, fromUserId, toUserId, amountCents, method, proofPath)
         setStep('done')
