@@ -11,8 +11,13 @@ export function siteUrl() {
   const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim()
   if (explicit) return normalize(explicit)
 
-  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim()
-  if (vercel) return normalize(vercel)
+  const production = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim()
+  if (production) return normalize(production)
+
+  // Only reached if a deployment is not exposing the production URL. Linking
+  // to this exact deployment is still far better than linking to localhost.
+  const deployment = process.env.VERCEL_URL?.trim()
+  if (deployment) return normalize(deployment)
 
   return 'http://localhost:3000'
 }
