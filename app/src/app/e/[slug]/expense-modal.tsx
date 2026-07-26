@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
 import { addExpense, updateExpense } from '@/app/actions'
+import { Icon } from '@/components/ui/Icon'
 
 type Member = { user_id: string; name: string; in: boolean }
 type Guest = { id: string; name: string; host_user_id: string; promoted_to_user_id: string | null }
@@ -169,7 +170,7 @@ export function EditExpenseButton({ id, slug, note, amount }: { id: string; slug
   return (
     <>
       <button onClick={() => setOpen(true)} aria-label="Editar gasto" className="border-none bg-transparent p-0 text-xs text-ink-300">
-        ✏️
+        <Icon name="pen" size={12} />
       </button>
       {open && (
         <Modal

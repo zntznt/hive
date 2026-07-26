@@ -10,7 +10,8 @@
 
 ## Visual identity
 
-- **Mark:** Font Awesome `bugs` (classic solid) — the founder's pick, it sparks joy. Verify free-tier availability on [the icon page](https://fontawesome.com/icons/bugs) when implementing; `fa-bug` (singular) is the confirmed-[free](https://fontawesome.com/license/free) fallback. (Low-fi wireframes use Tabler `ti-bug` as a stand-in.)
+- **Mark:** Font Awesome `bugs` (classic solid), the founder's pick, it sparks joy. Confirmed present in Font Awesome Free 6.7.2, so the `fa-bug` (singular) fallback is not needed. (Low-fi wireframes use Tabler `ti-bug` as a stand-in.)
+- **Icons:** Font Awesome Free, inlined as raw path data in `app/src/components/ui/Icon.tsx`. No npm dependency, no font file, no CDN request, and only the glyphs actually used cost bytes. Icons inherit `currentColor`, so they take the palette of whatever they sit in. Icons are [CC BY 4.0](https://fontawesome.com/license/free). Emoji are reserved for club-authored content (category glyphs), never for app chrome, because the OS draws them differently on each phone.
 - **Palette — honey & cream, used sparingly:** warm amber/honey for primary actions and active states (≈ `#EBA937` family), cream surfaces (≈ `#FBF7EF`), deep warm charcoal text (≈ `#2B2620`). Semantic colors (success/danger/info) stay conventional — money and errors are never themed.
 - **Type:** humanist sans with soft, slightly rounded forms (candidates: Nunito Sans, Figtree, Asap); generous line-height; sentence case everywhere. Cozy comes from warmth + air, not from display fonts.
 - **Motif:** the hexagon, subtly — avatar frames, empty-state illustrations, list bullets. Never wallpaper, never load-bearing for comprehension.

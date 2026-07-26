@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { toggleContribution } from '@/app/actions'
+import { Icon } from '@/components/ui/Icon'
 
 // Design's PlateModals task/bring flow: confirm first, then a honey "listo"
 // state. The event page can still undo a done mark, so the copy stays honest
@@ -54,7 +55,7 @@ export function MarkDoneButton({
       <Modal open onClose={close} title="¡Listo!" subtitle={eventTitle} footer={<Button onClick={close}>Cerrar</Button>}>
         <div className="py-2 text-center">
           <div className="mb-2 text-3xl" aria-hidden="true">
-            🍯
+            <Icon name="jar" size={15} />
           </div>
           <p className="text-sm text-ink-700">
             {isTask ? 'Tarea hecha. Una cosa menos en tu plato.' : 'Apuntado como llevado. No se te olvide en la puerta.'}
@@ -83,7 +84,7 @@ export function MarkDoneButton({
     >
       <div className="flex items-start gap-3 rounded-md bg-warning-bg px-3.5 py-3">
         <span aria-hidden="true" className="mt-0.5">
-          ⚠️
+          <Icon name="warning" size={13} />
         </span>
         <p className="text-[13.5px] leading-relaxed text-ink-700">
           {isTask

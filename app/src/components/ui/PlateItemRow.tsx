@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { type ReactNode } from 'react'
+import { Icon, type IconName } from './Icon'
 
 const TONES = {
   honey: 'bg-honey-100 text-honey-800',
@@ -12,7 +13,7 @@ const TONES = {
 // icon tile, a title + event link, and an action slot on the right (a form
 // button, a Link, or nothing for a purely informational row).
 export function PlateItemRow({
-  emoji,
+  icon,
   tone = 'honey',
   title,
   eventTitle,
@@ -20,7 +21,7 @@ export function PlateItemRow({
   note,
   action,
 }: {
-  emoji: string
+  icon: IconName
   tone?: keyof typeof TONES
   title: ReactNode
   eventTitle?: string
@@ -31,7 +32,7 @@ export function PlateItemRow({
   return (
     <div className="flex w-full items-center gap-3 rounded-md border border-line-card bg-paper px-[13px] py-[11px]">
       <span className={`grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-sm text-base ${TONES[tone]}`} aria-hidden="true">
-        {emoji}
+        <Icon name={icon} size={17} />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-bold text-ink-900">{title}</span>

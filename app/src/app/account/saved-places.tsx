@@ -6,6 +6,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Input } from '@/components/ui/Input'
 import { LocationPicker } from '@/components/ui/LocationPicker'
 import { addSavedPlace, removeSavedPlace } from '@/app/actions'
+import { Icon } from '@/components/ui/Icon'
 
 type Place = { id: string; name: string; addr: string | null; query: string }
 
@@ -38,7 +39,7 @@ export function SavedPlaces({ places }: { places: Place[] }) {
             <div key={p.id} className="flex items-start justify-between gap-2.5 rounded-md border border-line-card bg-paper px-3.5 py-2.5">
               <span className="flex min-w-0 items-start gap-2">
                 <span className="mt-0.5 text-[13px]" aria-hidden="true">
-                  ⭐
+                  <Icon name="star" size={12} />
                 </span>
                 <span className="min-w-0">
                   <span className="block text-sm font-bold text-ink-900">{p.name}</span>

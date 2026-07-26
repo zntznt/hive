@@ -1,6 +1,9 @@
+import { Icon } from './Icon'
+
 const HEX_CLIP = 'polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)'
 
-// The Hive lockup: bug glyph in a honey hexagon + "Hive" in Baloo 2.
+// The Hive lockup: the Font Awesome 'bugs' mark (docs/08-brand-and-tone.md, the
+// founder's pick) in a honey hexagon + "Hive" in Baloo 2.
 export function BrandMark({
   size = 'md',
   variant = 'lockup',
@@ -29,7 +32,7 @@ export function BrandMark({
           clipPath: hex ? HEX_CLIP : 'none',
         }}
       >
-        🐝
+        <Icon name="bugs" size={Math.round(S * 0.5)} />
       </span>
       {showWordmark && variant !== 'glyph' && (
         <span

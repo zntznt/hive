@@ -6,6 +6,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { claimContribution, promoteNextWaitlisted } from '@/app/actions'
+import { Icon } from '@/components/ui/Icon'
 
 // Claiming is a commitment: there's no un-claim in the app, so the design's
 // "the club is counting on you" confirmation guard is load-bearing here.
@@ -48,7 +49,7 @@ export function ClaimContributionButton({ id, slug, title, eventTitle }: { id: s
         >
           <div className="flex items-start gap-3 rounded-md bg-warning-bg px-3.5 py-3">
             <span aria-hidden="true" className="mt-0.5">
-              ⚠️
+              <Icon name="warning" size={13} />
             </span>
             <p className="text-[13.5px] leading-relaxed text-ink-700">
               En cuanto te lo apuntes, el club cuenta contigo. Solo quien organiza puede reasignarlo después.

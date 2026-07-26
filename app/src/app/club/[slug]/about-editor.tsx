@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Textarea, Input } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
 import { updateClubAbout } from '@/app/actions'
+import { Icon } from '@/components/ui/Icon'
 
 type LinkRow = { label: string; url: string }
 
@@ -59,7 +60,7 @@ export function AboutEditor({
   return (
     <>
       <button aria-label="Editar acerca de" onClick={() => setOpen(true)} className="flex-shrink-0 p-0.5 text-xs text-ink-300">
-        ✏️
+        <Icon name="pen" size={12} />
       </button>
       {open && (
         <Modal
@@ -93,7 +94,7 @@ export function AboutEditor({
                     />
                     <Input value={r.url} placeholder="link.com/…" onChange={(e) => updateLink(i, { url: e.target.value })} className="flex-1" />
                     <button aria-label="Quitar enlace" onClick={() => removeLink(i)} className="flex-shrink-0 text-ink-300">
-                      ✕
+                      <Icon name="xmark" size={12} />
                     </button>
                   </div>
                 ))}

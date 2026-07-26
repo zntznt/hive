@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, EmojiField } from '@/components/ui/Input'
 import { ChipButton } from '@/components/ui/Chip'
 import { proposeOrEditCategory, deleteCategory } from '@/app/actions'
+import { Icon } from '@/components/ui/Icon'
 
 type Category = { id: string; name: string; emoji: string | null }
 
@@ -15,7 +16,7 @@ export function AddCategoryButton({ clubId, slug, isAdmin }: { clubId: string; s
 }
 
 export function EditCategoryButton({ clubId, slug, isAdmin, category }: { clubId: string; slug: string; isAdmin: boolean; category: Category }) {
-  return <CategoryModal clubId={clubId} slug={slug} isAdmin={isAdmin} category={category} trigger={<span aria-hidden="true">✏️</span>} small />
+  return <CategoryModal clubId={clubId} slug={slug} isAdmin={isAdmin} category={category} trigger={<span aria-hidden="true"><Icon name="pen" size={12} /></span>} small />
 }
 
 function CategoryModal({

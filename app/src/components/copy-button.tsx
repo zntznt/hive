@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Icon } from '@/components/ui/Icon'
 
 // `path` is origin-relative ("/e/abc"); the full URL is built client-side
 export default function CopyButton({ path, label = 'Copiar enlace' }: { path: string; label?: string }) {
@@ -15,7 +16,13 @@ export default function CopyButton({ path, label = 'Copiar enlace' }: { path: st
       }}
       className="rounded-md border-[1.5px] border-honey-500 px-2 py-1 text-xs font-bold text-honey-700"
     >
-      {copied ? 'Copiado ✓' : label}
+      {copied ? (
+        <>
+          <Icon name="check" size={11} /> Copiado
+        </>
+      ) : (
+        label
+      )}
     </button>
   )
 }

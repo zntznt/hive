@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { leaveClub, deleteClub } from '@/app/actions'
+import { Icon } from '@/components/ui/Icon'
 
 export function DangerZone({ clubId, clubName, isAdmin, isLastAdmin, memberCount }: { clubId: string; clubName: string; isAdmin: boolean; isLastAdmin: boolean; memberCount: number }) {
   const [modal, setModal] = useState<'leave' | 'delete' | null>(null)
@@ -57,7 +58,7 @@ export function DangerZone({ clubId, clubName, isAdmin, isLastAdmin, memberCount
         >
           {isLastAdmin ? (
             <div className="flex items-start gap-3 rounded-md bg-warning-bg px-3.5 py-3.5">
-              <span aria-hidden="true">⚠️</span>
+              <span aria-hidden="true"><Icon name="warning" size={13} /></span>
               <p className="text-[13.5px] leading-relaxed text-ink-700">
                 Eres el único admin. Un club no se puede quedar sin admin, así que pasa el puesto a otro miembro
                 primero, o elimina el club.
@@ -95,7 +96,7 @@ export function DangerZone({ clubId, clubName, isAdmin, isLastAdmin, memberCount
           }
         >
           <div className="flex items-start gap-3 rounded-md bg-danger-bg px-3.5 py-3.5">
-            <span aria-hidden="true">⚠️</span>
+            <span aria-hidden="true"><Icon name="warning" size={13} /></span>
             <p className="text-[13.5px] leading-relaxed text-ink-700">
               Se elimina cada evento, categoría, aportación y balance de este club para los {memberCount} miembros. No hay
               manera de deshacerlo.

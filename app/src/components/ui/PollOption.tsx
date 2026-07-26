@@ -1,3 +1,5 @@
+import { Icon, type IconName } from './Icon'
+
 export function PollOption({
   label,
   votes = 0,
@@ -15,7 +17,14 @@ export function PollOption({
   showResults?: boolean
   multi?: boolean
 }) {
-  const mark = multi ? (selected ? '☑' : '☐') : selected ? '●' : '○'
+  // checkbox glyphs for multi-choice, radio glyphs for single (wireframe 8)
+  const mark: IconName = multi
+    ? selected
+      ? 'square-check'
+      : 'square'
+    : selected
+      ? 'circle-dot'
+      : 'circle'
   return (
     <div>
       <div
@@ -24,9 +33,7 @@ export function PollOption({
         }`}
       >
         <span>
-          <span aria-hidden="true" className="mr-1.5">
-            {mark}
-          </span>
+          <Icon name={mark} size={12} className="mr-1.5" />
           {label}
           {chosen && <span className="ml-2 rounded-[6px] bg-honey-100 px-[7px] py-0.5 text-[11px] font-bold text-honey-800">elegida</span>}
         </span>

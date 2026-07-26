@@ -10,7 +10,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { HexAvatar } from '@/components/ui/HexAvatar'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
-import { MapPinIcon } from '@/components/ui/Icon'
+import { Icon, MapPinIcon } from '@/components/ui/Icon'
 import CopyButton from '@/components/copy-button'
 import { BannerUpload } from './banner-upload'
 import { AvatarUpload } from './avatar-upload'
@@ -197,7 +197,7 @@ export default async function ClubPage({
                 rel="noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-pill bg-cream-sunk px-3 py-1 text-xs font-bold text-honey-700"
               >
-                🔗 {l.label}
+                <Icon name="link" size={12} /> {l.label}
               </a>
             ))}
           </div>
@@ -235,7 +235,7 @@ export default async function ClubPage({
       <section className="mb-6">
         <SectionHeader>Próximos</SectionHeader>
         {upcoming.length === 0 ? (
-          <EmptyState emoji="🗓️" title="Nada en esta categoría todavía." hint={isManager ? 'Empieza algo →' : 'Vuelve pronto.'} />
+          <EmptyState icon="calendar" title="Nada en esta categoría todavía." hint={isManager ? 'Empieza algo →' : 'Vuelve pronto.'} />
         ) : (
           <div className="flex flex-col gap-3.5">
             {upcoming.map((e) => (
@@ -502,10 +502,10 @@ function EvCard({ e, catName, counts }: { e: EventRow; catName: string | undefin
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1 px-3.5 pb-3.5 text-[12.5px] text-ink-700">
         <span>
-          📅 {e.status === 'scheduling' ? 'sin fecha aún' : e.status === 'scheduled' ? fmt(e.chosen_start) : e.status}
+          <Icon name="calendar" size={12} /> {e.status === 'scheduling' ? 'sin fecha aún' : e.status === 'scheduled' ? fmt(e.chosen_start) : e.status}
         </span>
         <span>
-          👥 van {counts?.going ?? 0} · quizás {counts?.maybe ?? 0}
+          <Icon name="users" size={12} /> van {counts?.going ?? 0} · quizás {counts?.maybe ?? 0}
         </span>
       </div>
     </Link>

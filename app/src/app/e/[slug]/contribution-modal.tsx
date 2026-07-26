@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
 import { addContribution, updateContribution } from '@/app/actions'
+import { Icon } from '@/components/ui/Icon'
 
 type Member = { user_id: string; name: string }
 
@@ -133,7 +134,7 @@ export function EditContributionButton({
   return (
     <>
       <button onClick={() => setOpen(true)} aria-label="Editar" className="border-none bg-transparent p-0 text-xs text-ink-300">
-        ✏️
+        <Icon name="pen" size={12} />
       </button>
       {open && (
         <Modal

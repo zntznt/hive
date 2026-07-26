@@ -6,6 +6,7 @@ import { ImageCropModal } from '@/components/ui/ImageCropModal'
 import { HexAvatar } from '@/components/ui/HexAvatar'
 import { dataUrlToBlob, uploadBanner } from '@/lib/upload'
 import { updateClubAvatar } from '@/app/actions'
+import { Icon } from '@/components/ui/Icon'
 
 // Reuses the club-manager-writable "banners" storage bucket/policy (folder =
 // club id) for the club picture too, just under a distinct filename prefix -
@@ -41,7 +42,7 @@ export function AvatarUpload({ clubId, slug, clubName, avatarUrl }: { clubId: st
         title="Cambiar foto del club"
         className="absolute -bottom-1 -right-2 grid h-5 w-5 cursor-pointer place-items-center rounded-full bg-paper text-[9px] text-ink-700 shadow-card"
       >
-        {pending ? '…' : '📷'}
+        {pending ? '…' : <Icon name="camera" size={13} />}
         <input type="file" accept="image/*" className="hidden" onChange={onFile} disabled={pending} />
       </label>
       {pickedSrc && (

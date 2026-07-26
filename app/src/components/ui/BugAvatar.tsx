@@ -1,16 +1,14 @@
+import { Icon, type IconName } from './Icon'
+
 const HEX_CLIP = 'polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)'
 
-// Playful bug avatars: a hex (or rounded/circle) tile with a bug emoji. The
-// glyph + tile color pair is how members tell each other apart at a glance.
+// Playful bug avatars: a hex (or rounded/circle) tile with a Font Awesome bug
+// glyph. The glyph + tile color pair is how members tell each other apart at a
+// glance, so the glyph has to look the same on every phone. Emoji did not:
+// they are drawn by the OS, so one member's spider was a different creature
+// on Android than on iPhone.
 export const BUG_OPTIONS = ['bug', 'spider', 'mosquito', 'locust', 'worm'] as const
 export type BugId = (typeof BUG_OPTIONS)[number]
-export const BUG_EMOJI: Record<BugId, string> = {
-  bug: '🐛',
-  spider: '🕷️',
-  mosquito: '🦟',
-  locust: '🦗',
-  worm: '🪱',
-}
 export const BUG_COLORS = ['#EBA937', '#F2B84A', '#FFD27A', '#9BAF7E', '#7FA3A0', '#E08A5B', '#C98BB0', '#8AA0D9']
 
 export function BugAvatar({
@@ -36,11 +34,10 @@ export function BugAvatar({
         height: size,
         background: color,
         clipPath: hex ? HEX_CLIP : 'none',
-        fontSize: Math.round(size * 0.5),
-        lineHeight: 1,
+        color: 'var(--charcoal)',
       }}
     >
-      {BUG_EMOJI[bug as BugId] ?? BUG_EMOJI.bug}
+      <Icon name={(BUG_OPTIONS as readonly string[]).includes(bug) ? (bug as IconName) : 'bug'} size={Math.round(size * 0.46)} />
     </span>
   )
 }

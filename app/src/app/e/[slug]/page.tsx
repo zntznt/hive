@@ -13,7 +13,7 @@ import { Chip } from '@/components/ui/Chip'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { MapPinIcon } from '@/components/ui/Icon'
+import { Icon, MapPinIcon } from '@/components/ui/Icon'
 import { rsvpButtonClass, RSVP_OPTIONS } from '@/components/ui/RsvpToggle'
 import { AddContributionButton, EditContributionButton } from './contribution-modal'
 import { CoOrganizerButton } from './co-organizer-modal'
@@ -183,7 +183,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
       {event.status === 'cancelled' && (
         <div className="mb-3.5 flex items-start gap-2.5 rounded-md border border-danger-bg bg-danger-bg px-3.5 py-2.5 text-[13.5px] leading-relaxed text-ink-700">
-          <span aria-hidden="true">🚫</span>
+          <span aria-hidden="true"><Icon name="ban" size={15} /></span>
           <span>
             Este evento se canceló. RSVPs y aportaciones están cerrados, todo lo demás se queda como historial. Se avisó a todos por
             correo y WhatsApp. Los balances abiertos siguen pendientes de liquidar.
@@ -219,9 +219,9 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           </Chip>
         </div>
         <div className="flex flex-wrap gap-x-4.5 gap-y-1.5 px-3.5 pb-3 text-[13px] text-ink-700">
-          <span>📅 {event.status === 'scheduling' ? 'fecha no definida' : dateChip}</span>
+          <span><Icon name="calendar" size={12} /> {event.status === 'scheduling' ? 'fecha no definida' : dateChip}</span>
           <span>
-            👥 van {confirmed.length} · quizás {byStatus('maybe').length}
+            <Icon name="users" size={12} /> van {confirmed.length} · quizás {byStatus('maybe').length}
           </span>
         </div>
         {event.location && (
@@ -240,7 +240,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         <div className="mb-4 rounded-lg border border-honey-200 bg-honey-50 px-4 py-3.5">
           <div className="flex items-start gap-2.5">
             <span aria-hidden="true" className="mt-0.5">
-              👋
+              <Icon name="hand" size={20} />
             </span>
             <div className="min-w-0 flex-1">
               <div className="text-sm font-extrabold text-ink-900">
@@ -447,7 +447,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                       <EditContributionButton id={c.id} slug={event.slug} title={c.title} qty={c.qty} />
                       <form action={removeContribution.bind(null, c.id, event.slug)}>
                         <button aria-label="Quitar" className="text-xs text-ink-300">
-                          ✕
+                          <Icon name="xmark" size={12} />
                         </button>
                       </form>
                       <form action={toggleContribution.bind(null, c.id, event.slug, true)}>
@@ -471,7 +471,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       {contributions.some((c) => !c.assigned_to) && (
         <div className="mb-8">
           <EmptyState
-            emoji="🍯"
+            icon="jar"
             title="Casi cubierto."
             hint={`${contributions.filter((c) => !c.assigned_to).length} cosa${contributions.filter((c) => !c.assigned_to).length === 1 ? '' : 's'} sin pedir todavía. Agarra una arriba.`}
           />

@@ -102,7 +102,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
         <SectionHeader>Invitaciones · {(invitations ?? []).length}</SectionHeader>
         {(invitations ?? []).length === 0 ? (
           <EmptyState
-            emoji="✉️"
+            icon="envelope"
             title="Todavía no invitas a nadie"
             hint="Comparte el enlace del evento o manda una invitación personal."
           />

@@ -9,6 +9,7 @@ import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_OPTIONS } from '@/lib/payment-met
 import { fmtMoney } from '@/lib/money'
 import { dataUrlToBlob, uploadPaymentProof } from '@/lib/upload'
 import { recordSettlement, confirmSettlement, deleteSettlement } from '@/app/actions'
+import { Icon } from '@/components/ui/Icon'
 
 type PaymentMethodRow = { kind: string; value: string }
 
@@ -114,7 +115,7 @@ export function SettleUpFlow({
         >
           {step === 'done' && (
             <div className="py-2 text-center">
-              <div className="mb-2 text-3xl">🍯</div>
+              <div className="mb-2 text-honey-500"><Icon name="jar" size={30} /></div>
               <div className="text-sm text-ink-700">
                 {isCash
                   ? `${toName} confirma cuando lo tenga en mano.`
@@ -158,11 +159,11 @@ export function SettleUpFlow({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={proofDataUrl} alt="comprobante" className="block max-h-[220px] w-full object-cover" />
                   ) : (
-                    <span className="block px-3.5 py-6 text-[13px] text-ink-500">📷 Toca para subir una captura de la transferencia</span>
+                    <span className="block px-3.5 py-6 text-[13px] text-ink-500"><Icon name="camera" size={13} /> Toca para subir una captura de la transferencia</span>
                   )}
                   <input type="file" accept="image/*" className="hidden" onChange={onFile} />
                 </label>
-                <div className="mt-2 text-xs text-ink-300">🔒 Solo {toName} puede ver esta foto, porque es quien la recibe.</div>
+                <div className="mt-2 text-xs text-ink-300"><Icon name="lock" size={11} /> Solo {toName} puede ver esta foto, porque es quien la recibe.</div>
               </div>
             ))}
 
@@ -250,7 +251,7 @@ export function ConfirmPaymentModal({
               Pago en efectivo, sin comprobante.
             </div>
           )}
-          <div className="mt-2.5 text-xs text-ink-300">🔒 Solo tú puedes ver esto, porque eres quien lo recibió.</div>
+          <div className="mt-2.5 text-xs text-ink-300"><Icon name="lock" size={11} /> Solo tú puedes ver esto, porque eres quien lo recibió.</div>
         </Modal>
       )}
     </>

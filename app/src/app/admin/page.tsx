@@ -84,7 +84,7 @@ export default async function AdminPage() {
       <section className="mb-8">
         <SectionHeader>Aprobaciones · {approvalsCount}</SectionHeader>
         {approvalsCount === 0 ? (
-          <EmptyState emoji="📋" title="Nada pendiente." hint="Las propuestas y solicitudes aparecen aquí." />
+          <EmptyState icon="clipboard" title="Nada pendiente." hint="Las propuestas y solicitudes aparecen aquí." />
         ) : (
           <div className="flex flex-col gap-2">
             {(changeReqs ?? []).map((r) => {

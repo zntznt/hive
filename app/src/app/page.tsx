@@ -12,6 +12,7 @@ import { UserAvatar } from '@/components/ui/Avatar'
 import { HexAvatar } from '@/components/ui/HexAvatar'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { PlateItemRow } from '@/components/ui/PlateItemRow'
+import { type IconName } from '@/components/ui/Icon'
 import { SettleUpFlow, ConfirmPaymentModal } from '@/components/settle-up'
 import { CreateClubButton } from './create-club-modal'
 import { MarkDoneButton } from './plate/mark-done-modal'
@@ -49,16 +50,16 @@ function plateKey(item: PlateItem) {
 // Icon tile + headline copy per plate item kind. Home only previews the plate
 // (link to the event), the interactive claim/confirm/done actions live on
 // /plate itself.
-function plateRowContent(item: PlateItem): { emoji: string; tone: 'honey' | 'sage' | 'danger' | 'neutral'; title: string } {
+function plateRowContent(item: PlateItem): { icon: IconName; tone: 'honey' | 'sage' | 'danger' | 'neutral'; title: string } {
   switch (item.kind) {
     case 'pay':
-      return { emoji: '💸', tone: 'danger', title: `Le debes ${peso(item.amountCents)} a ${item.toName}` }
+      return { icon: 'money-transfer', tone: 'danger', title: `Le debes ${peso(item.amountCents)} a ${item.toName}` }
     case 'confirm':
-      return { emoji: '✅', tone: 'honey', title: `${item.fromName} dice que te pagó ${peso(item.amountCents)}` }
+      return { icon: 'circle-check', tone: 'honey', title: `${item.fromName} dice que te pagó ${peso(item.amountCents)}` }
     case 'task':
-      return { emoji: '📋', tone: 'sage', title: item.qty ? `${item.title} · ${item.qty}` : item.title }
+      return { icon: 'clipboard', tone: 'sage', title: item.qty ? `${item.title} · ${item.qty}` : item.title }
     case 'bring':
-      return { emoji: '🧺', tone: 'sage', title: item.qty ? `${item.title} · ${item.qty}` : item.title }
+      return { icon: 'basket', tone: 'sage', title: item.qty ? `${item.title} · ${item.qty}` : item.title }
   }
 }
 
@@ -186,7 +187,7 @@ export default async function Home() {
         {total > 0 && (
           <div className="flex flex-col gap-2">
             {shownPlate.map((item) => {
-              const { emoji, tone, title } = plateRowContent(item)
+              const { icon, tone, title } = plateRowContent(item)
               const action =
                 item.kind === 'pay' ? (
                   <SettleUpFlow
@@ -223,7 +224,7 @@ export default async function Home() {
               return (
                 <PlateItemRow
                   key={plateKey(item)}
-                  emoji={emoji}
+                  icon={icon}
                   tone={tone}
                   title={title}
                   eventTitle={item.eventTitle}
@@ -254,7 +255,7 @@ export default async function Home() {
             Lo que viene
           </SectionHeader>
           {upcoming.length === 0 ? (
-            <EmptyState emoji="📅" hint="Nada en puerta todavía." />
+            <EmptyState icon="calendar" hint="Nada en puerta todavía." />
           ) : (
             <div className="flex flex-col gap-2">
               {upcoming.map((e) => (
@@ -282,7 +283,7 @@ export default async function Home() {
         <SectionHeader>Tus clubs</SectionHeader>
         {clubs.length === 0 ? (
           <EmptyState
-            emoji="🐝"
+            icon="bugs"
             title="Todavía no estás en ningún club"
             hint="Pide a quien organiza que te invite."
           />

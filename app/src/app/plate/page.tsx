@@ -31,7 +31,7 @@ export default async function PlatePage() {
       </p>
 
       {total === 0 ? (
-        <EmptyState emoji="🍯" title="Todo en orden." hint="No tienes nada pendiente por ahora. A disfrutar el zumbido." />
+        <EmptyState icon="jar" title="Todo en orden." hint="No tienes nada pendiente por ahora. A disfrutar el zumbido." />
       ) : (
         <>
           {board.toPay.length > 0 && (
@@ -41,7 +41,7 @@ export default async function PlatePage() {
                 {board.toPay.map((item, i) => (
                   <PlateItemRow
                     key={i}
-                    emoji="💸"
+                    icon="money-transfer"
                     tone="danger"
                     title={`Le debes ${item.toName}`}
                     eventTitle={item.eventTitle}
@@ -73,7 +73,7 @@ export default async function PlatePage() {
                 {board.toConfirm.map((item) => (
                   <PlateItemRow
                     key={item.settlementId}
-                    emoji="🧾"
+                    icon="receipt"
                     tone="honey"
                     title={`${item.fromName} te pagó`}
                     eventTitle={item.eventTitle}
@@ -104,7 +104,7 @@ export default async function PlatePage() {
                 {board.tasks.map((item) => (
                   <PlateItemRow
                     key={item.contributionId}
-                    emoji="✅"
+                    icon="circle-check"
                     tone="sage"
                     title={item.title}
                     eventTitle={item.eventTitle}
@@ -132,7 +132,7 @@ export default async function PlatePage() {
                 {board.bringing.map((item) => (
                   <PlateItemRow
                     key={item.contributionId}
-                    emoji="🧺"
+                    icon="basket"
                     tone="honey"
                     title={item.qty ? `${item.title} · ${item.qty}` : item.title}
                     eventTitle={item.eventTitle}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { MapPinIcon } from './Icon'
+import { Icon, MapPinIcon } from './Icon'
 
 export type Place = { name: string; addr?: string; q?: string }
 
@@ -119,7 +119,7 @@ export function LocationPicker({
               className={`flex w-full items-start gap-2 px-[13px] py-2.5 text-left text-[13.5px] ${i ? 'border-t border-line-divider' : ''}`}
             >
               <span className="mt-0.5 text-xs" aria-hidden="true">
-                ⭐
+                <Icon name="star" size={12} />
               </span>
               <span>
                 <span className="block font-semibold text-ink-900">{p.name}</span>

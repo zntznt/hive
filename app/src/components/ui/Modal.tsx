@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, type ReactNode } from 'react'
+import { Icon } from './Icon'
 
 // Centered dialog on a dimmed backdrop. Closes on backdrop click or Escape.
 // Titles & buttons stay literal; modals are workflow, not wink.
@@ -56,7 +57,7 @@ export function Modal({
               aria-label="Cerrar"
               className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-sm bg-cream-sunk text-base leading-none text-ink-500"
             >
-              ✕
+              <Icon name="xmark" size={12} />
             </button>
           )}
         </div>
