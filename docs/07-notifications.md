@@ -52,6 +52,7 @@ Everything is **utility class** (transactional, related to an interaction the us
 
 We went through **Zernio** rather than calling Meta Cloud API directly, so steps 2-5 of the checklist above are handled on their side against a connected WhatsApp Business number.
 
+- The pipeline runs on a service-role client (`app/src/lib/supabase/service.ts`), not the acting member's session. It has to: `notification_templates` is readable only by app admins, and the outbox SELECT policy is scoped to your own rows, so a member's dispatch could neither read the template (every row filed itself `sin plantilla`) nor see a notification addressed to anyone else. Sending is infrastructure, so it got its own credentials instead of widening those policies. Needs `SUPABASE_SERVICE_ROLE_KEY`.
 - Adapter lives in `app/src/lib/whatsapp.ts`, same shape as `email.ts`: no SDK, one config seam.
 - Config is `ZERNIO_API_KEY`, `ZERNIO_PROFILE_ID`, `ZERNIO_ACCOUNT_ID`. With any of them unset the adapter is a safe no-op that marks rows `logged`, so a half-configured install degrades quietly instead of failing loudly.
 - Zernio has no single transactional "send template to this number" call. Reaching a number that has never messaged us first goes through a broadcast: create with template, attach recipient, send. Three calls per notification, which is irrelevant at this volume.

@@ -1,6 +1,17 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendEmail } from './email'
 import { sendWhatsapp } from './whatsapp'
+import { supabaseService } from './supabase/service'
+
+// Every function here reads rows that belong to other people: the recipient's
+// preferences, their queued outbox rows, the shared template CMS. RLS scopes
+// all three to yourself or to app admins, so the pipeline has to run on its
+// own credentials rather than the acting user's. Falls back to the caller's
+// client when the service key is unset, which is the old (broken) behavior
+// but keeps the app running.
+function pipelineDb(supabase: SupabaseClient): SupabaseClient {
+  return supabaseService() ?? supabase
+}
 
 export type TemplateKey =
   | 'waitlist_promoted'
@@ -53,7 +64,8 @@ export async function queueNotification(
   supabase: SupabaseClient,
   { userId, template, vars }: { userId: string; template: TemplateKey; vars: Record<string, string> }
 ) {
-  const { data: user } = await supabase
+  const db = pipelineDb(supabase)
+  const { data: user } = await db
     .from('users')
     .select('email, phone_whatsapp, notif_email, notif_whatsapp, notif_prefs')
     .eq('id', userId)
@@ -74,7 +86,7 @@ export async function queueNotification(
     else return
   }
 
-  await supabase
+  await db
     .from('notification_outbox')
     .insert(channels.map((channel) => ({ user_id: userId, channel, template, payload: vars })))
 }
@@ -87,7 +99,7 @@ export async function sendTemplatedEmail(
   supabase: SupabaseClient,
   { to, template, vars }: { to: string; template: TemplateKey; vars: Record<string, string> }
 ) {
-  const { data: tpl } = await supabase.from('notification_templates').select('*').eq('channel', 'email').eq('key', template).maybeSingle()
+  const { data: tpl } = await pipelineDb(supabase).from('notification_templates').select('*').eq('channel', 'email').eq('key', template).maybeSingle()
   if (!tpl) return { ok: false as const, skipped: true as const, error: 'sin plantilla' }
   const subject = renderTemplate(tpl.subject ?? 'Hive', vars)
   const html = renderTemplate(tpl.body, vars).replace(/\n/g, '<br>')
@@ -100,7 +112,8 @@ export async function sendTemplatedEmail(
 // 'failed', so a half-configured install degrades quietly instead of
 // filling the admin panel with red.
 export async function dispatchQueuedNotifications(supabase: SupabaseClient, limit = 20) {
-  const { data: rows } = await supabase
+  const db = pipelineDb(supabase)
+  const { data: rows } = await db
     .from('notification_outbox')
     .select('*')
     .eq('status', 'queued')
@@ -111,14 +124,14 @@ export async function dispatchQueuedNotifications(supabase: SupabaseClient, limi
   for (const row of rows) {
     const channel = row.channel as 'email' | 'whatsapp'
     const [{ data: tpl }, { data: user }] = await Promise.all([
-      supabase.from('notification_templates').select('*').eq('channel', channel).eq('key', row.template).maybeSingle(),
-      supabase.from('users').select('email, phone_whatsapp, display_name, notif_prefs').eq('id', row.user_id).maybeSingle(),
+      db.from('notification_templates').select('*').eq('channel', channel).eq('key', row.template).maybeSingle(),
+      db.from('users').select('email, phone_whatsapp, display_name, notif_prefs').eq('id', row.user_id).maybeSingle(),
     ])
 
     const destination = channel === 'email' ? user?.email : user?.phone_whatsapp
     if (!tpl || !user || !destination) {
       const missing = channel === 'email' ? 'sin correo registrado' : 'sin número de WhatsApp'
-      await supabase
+      await db
         .from('notification_outbox')
         .update({ status: 'logged', error: !tpl ? 'sin plantilla' : missing })
         .eq('id', row.id)
@@ -130,7 +143,7 @@ export async function dispatchQueuedNotifications(supabase: SupabaseClient, limi
     const topic = TOPIC_OF[row.template as TemplateKey]
     const pref = topic ? ((user.notif_prefs ?? {}) as PrefsMatrix)[topic] : undefined
     if (pref?.[channel] === false) {
-      await supabase
+      await db
         .from('notification_outbox')
         .update({ status: 'logged', error: 'silenciado por preferencias' })
         .eq('id', row.id)
@@ -153,7 +166,7 @@ export async function dispatchQueuedNotifications(supabase: SupabaseClient, limi
             body,
           })
 
-    await supabase
+    await db
       .from('notification_outbox')
       .update(
         result.ok
