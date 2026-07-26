@@ -595,6 +595,72 @@ export async function updateNotificationTemplate(channel: 'email' | 'whatsapp', 
   revalidatePath('/admin')
 }
 
+// Submits a WhatsApp template for Meta review. Editing the body here only
+// changes Hive's copy; Meta keeps delivering whatever it last approved, so
+// resubmitting is an explicit act rather than a side effect of saving.
+export async function submitWhatsappTemplate(key: string) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
+  const { data: me } = await supabase.from('users').select('is_app_admin').eq('id', user.id).maybeSingle()
+  if (!me?.is_app_admin) throw new Error('solo los admins pueden hacer esto')
+
+  const { data: tpl } = await supabase
+    .from('notification_templates')
+    .select('body, wa_language')
+    .eq('channel', 'whatsapp')
+    .eq('key', key)
+    .maybeSingle()
+  if (!tpl) throw new Error('no existe esa plantilla')
+
+  const { createWhatsappTemplate } = await import('@/lib/whatsapp')
+  const result = await createWhatsappTemplate({
+    name: key,
+    language: tpl.wa_language ?? 'es_MX',
+    body: tpl.body,
+  })
+
+  await supabase
+    .from('notification_templates')
+    .update(
+      result.ok
+        ? { wa_status: result.status, wa_vars: result.vars, wa_error: null, wa_synced_at: new Date().toISOString() }
+        : { wa_error: result.error, wa_synced_at: new Date().toISOString() }
+    )
+    .eq('channel', 'whatsapp')
+    .eq('key', key)
+
+  revalidatePath('/admin')
+  if (!result.ok) throw new Error(result.error)
+}
+
+// Meta reviews asynchronously, so statuses only change when we ask.
+export async function refreshWhatsappTemplates() {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
+  const { data: me } = await supabase.from('users').select('is_app_admin').eq('id', user.id).maybeSingle()
+  if (!me?.is_app_admin) throw new Error('solo los admins pueden hacer esto')
+
+  const { listWhatsappTemplates } = await import('@/lib/whatsapp')
+  const result = await listWhatsappTemplates()
+  if (!result.ok) throw new Error(result.error)
+
+  for (const t of result.templates) {
+    if (!t.name) continue
+    await supabase
+      .from('notification_templates')
+      .update({ wa_status: t.status, wa_synced_at: new Date().toISOString() })
+      .eq('channel', 'whatsapp')
+      .eq('key', t.name)
+  }
+  revalidatePath('/admin')
+}
+
 // returns an error string for the form to show inline, or redirects on success.
 // (throwing would crash the page to a 500 and lose what the user typed.)
 export async function createEvent(

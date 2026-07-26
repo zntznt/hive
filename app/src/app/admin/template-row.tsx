@@ -2,12 +2,64 @@
 
 import { useState } from 'react'
 import { ChevronDownIcon } from '@/components/ui/Icon'
-import { updateNotificationTemplate } from '@/app/actions'
+import { Badge } from '@/components/ui/Badge'
+import { updateNotificationTemplate, submitWhatsappTemplate, refreshWhatsappTemplates } from '@/app/actions'
 
-type Tpl = { channel: string; key: string; subject: string | null; body: string }
+type Tpl = {
+  channel: string
+  key: string
+  subject: string | null
+  body: string
+  wa_status?: string | null
+  wa_vars?: string[] | null
+  wa_error?: string | null
+}
+
+const WA_LABEL: Record<string, { text: string; tone: 'active' | 'pending' | 'disabled' }> = {
+  pending: { text: 'en revisión', tone: 'pending' },
+  approved: { text: 'aprobada', tone: 'active' },
+  rejected: { text: 'rechazada', tone: 'disabled' },
+  paused: { text: 'pausada', tone: 'disabled' },
+  disabled: { text: 'desactivada', tone: 'disabled' },
+}
+
+// Meta reviews asynchronously, so nothing here changes status on its own.
+export function TemplateSyncBar() {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  return (
+    <div className="mb-2 flex items-center gap-3">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true)
+          setError(null)
+          try {
+            await refreshWhatsappTemplates()
+          } catch (e) {
+            setError(e instanceof Error ? e.message : 'No se pudo actualizar.')
+          } finally {
+            setBusy(false)
+          }
+        }}
+        className="text-xs font-bold text-honey-700 disabled:opacity-50"
+      >
+        {busy ? 'Actualizando…' : 'Actualizar estados de WhatsApp'}
+      </button>
+      {error && <span className="text-xs text-danger">{error}</span>}
+    </div>
+  )
+}
 
 export function TemplateRow({ tplKey, email, whatsapp }: { tplKey: string; email?: Tpl; whatsapp?: Tpl }) {
   const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const status = whatsapp?.wa_status ?? null
+  const badge = status ? WA_LABEL[status] : null
+
   return (
     <div>
       <button
@@ -17,6 +69,15 @@ export function TemplateRow({ tplKey, email, whatsapp }: { tplKey: string; email
       >
         <ChevronDownIcon className={`flex-shrink-0 text-ink-300 transition-transform ${open ? '' : '-rotate-90'}`} />
         <span className="truncate font-mono text-[13.5px] font-bold text-ink-900">{tplKey}</span>
+        {whatsapp && (
+          <span className="ml-auto flex-shrink-0">
+            {badge ? (
+              <Badge tone={badge.tone}>{badge.text}</Badge>
+            ) : (
+              <span className="text-[11px] font-bold text-ink-300">sin enviar a WhatsApp</span>
+            )}
+          </span>
+        )}
       </button>
       {open && (
         <div className="grid grid-cols-1 gap-3 px-3.5 pb-3.5 pl-[31px] sm:grid-cols-2">
@@ -34,11 +95,45 @@ export function TemplateRow({ tplKey, email, whatsapp }: { tplKey: string; email
             </form>
           )}
           {whatsapp && (
-            <form action={updateNotificationTemplate.bind(null, 'whatsapp', tplKey)} className="flex flex-col gap-1.5">
-              <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-ink-300">WhatsApp (no conectado aún)</span>
-              <textarea name="body" defaultValue={whatsapp.body} rows={4} className="rounded-sm border border-line-input bg-paper p-1.5 text-xs text-ink-900" />
-              <button className="self-start text-xs font-bold text-honey-700">Guardar</button>
-            </form>
+            <div className="flex flex-col gap-1.5">
+              <form action={updateNotificationTemplate.bind(null, 'whatsapp', tplKey)} className="flex flex-col gap-1.5">
+                <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-ink-300">WhatsApp</span>
+                <textarea name="body" defaultValue={whatsapp.body} rows={4} className="rounded-sm border border-line-input bg-paper p-1.5 text-xs text-ink-900" />
+                <button className="self-start text-xs font-bold text-honey-700">Guardar</button>
+              </form>
+
+              <p className="text-[11px] leading-snug text-ink-300">
+                Guardar solo cambia el texto en Hive. WhatsApp sigue enviando la última versión aprobada, así que
+                mándala a revisión cuando la cambies. Meta tarda de unas horas a un par de días.
+              </p>
+
+              {whatsapp.wa_vars && whatsapp.wa_vars.length > 0 && (
+                <p className="font-mono text-[11px] text-ink-500">orden: {whatsapp.wa_vars.join(' · ')}</p>
+              )}
+
+              <button
+                type="button"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true)
+                  setError(null)
+                  try {
+                    await submitWhatsappTemplate(tplKey)
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : 'No se pudo enviar.')
+                  } finally {
+                    setBusy(false)
+                  }
+                }}
+                className="self-start text-xs font-bold text-honey-700 disabled:opacity-50"
+              >
+                {busy ? 'Enviando…' : status ? 'Volver a enviar a revisión' : 'Enviar a revisión'}
+              </button>
+
+              {(error || whatsapp.wa_error) && (
+                <p className="rounded-sm bg-danger-bg p-2 text-[11px] text-danger">{error ?? whatsapp.wa_error}</p>
+              )}
+            </div>
           )}
         </div>
       )}

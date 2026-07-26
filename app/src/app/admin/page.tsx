@@ -10,7 +10,7 @@ import { Chip } from '@/components/ui/Chip'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
-import { TemplateRow } from './template-row'
+import { TemplateRow, TemplateSyncBar } from './template-row'
 
 const CHANGE_KIND_LABEL: Record<string, string> = {
   about: 'Acerca de',
@@ -47,7 +47,15 @@ export default async function AdminPage() {
 
   let users: Profile[] = []
   const counts: Record<string, number> = { queued: 0, sent: 0, failed: 0, logged: 0 }
-  let templates: { channel: string; key: string; subject: string | null; body: string }[] = []
+  let templates: {
+    channel: string
+    key: string
+    subject: string | null
+    body: string
+    wa_status?: string | null
+    wa_vars?: string[] | null
+    wa_error?: string | null
+  }[] = []
   if (profile.is_app_admin) {
     const [{ data: userRows }, { data: outbox }, { data: tplRows }] = await Promise.all([
       supabase.from('users').select('*').order('created_at', { ascending: false }),
@@ -215,6 +223,7 @@ export default async function AdminPage() {
 
           <section>
             <SectionHeader>Plantillas de notificación</SectionHeader>
+            <TemplateSyncBar />
             <div className="divide-y divide-line-divider overflow-hidden rounded-lg border border-line-card bg-paper">
               {templateKeys.map((key) => (
                 <TemplateRow

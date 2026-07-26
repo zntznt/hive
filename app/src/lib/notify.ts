@@ -150,6 +150,17 @@ export async function dispatchQueuedNotifications(supabase: SupabaseClient, limi
       continue
     }
 
+    // Meta only delivers templates it has reviewed, so an unsubmitted or
+    // still-pending one would fail on every send. Say so once, in the words
+    // the admin panel uses, instead of collecting provider errors.
+    if (channel === 'whatsapp' && tpl.wa_status !== 'approved') {
+      await db
+        .from('notification_outbox')
+        .update({ status: 'logged', error: 'plantilla de WhatsApp sin aprobar' })
+        .eq('id', row.id)
+      continue
+    }
+
     const vars = { name: user.display_name, ...(row.payload as Record<string, string>) }
     const body = renderTemplate(tpl.body, vars)
     const result =
@@ -162,6 +173,8 @@ export async function dispatchQueuedNotifications(supabase: SupabaseClient, limi
         : await sendWhatsapp({
             to: destination,
             templateName: row.template,
+            language: tpl.wa_language ?? 'es_MX',
+            vars: (tpl.wa_vars ?? []) as string[],
             variables: vars,
             body,
           })
