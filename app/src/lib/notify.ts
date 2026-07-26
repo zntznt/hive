@@ -15,6 +15,7 @@ function pipelineDb(supabase: SupabaseClient): SupabaseClient {
 
 export type TemplateKey =
   | 'waitlist_promoted'
+  | 'event_today'
   | 'invitation'
   | 'change_request_approved'
   | 'change_request_declined'
@@ -27,10 +28,11 @@ export type TemplateKey =
 // The Account page's notification matrix rows. Every topic maps 1:n to the
 // template keys above; a template without a topic follows the old global
 // notif_email/notif_whatsapp columns.
-export type NotifTopic = 'new_event' | 'rsvp_waitlist' | 'payments' | 'approvals'
+export type NotifTopic = 'new_event' | 'reminders' | 'rsvp_waitlist' | 'payments' | 'approvals'
 
 export const TOPIC_OF: Partial<Record<TemplateKey, NotifTopic>> = {
   new_event: 'new_event',
+  event_today: 'reminders',
   waitlist_promoted: 'rsvp_waitlist',
   payment_received: 'payments',
   payment_confirmed: 'payments',
