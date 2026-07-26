@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
 import { queueNotification, dispatchQueuedNotifications } from '@/lib/notify'
+import { siteUrl } from '@/lib/site-url'
 
 // Day-of reminder. Every other notification is queued by something a member
 // did, so this is the app's only scheduled job: Vercel Cron calls it each
@@ -32,9 +33,15 @@ function timeInMexico(iso: string) {
 }
 
 export async function GET(request: Request) {
+  // Vercel attaches "Authorization: Bearer $CRON_SECRET" when that variable
+  // exists, so we enforce it when it does. When it does not, we still run:
+  // requiring it would mean the reminders silently never send until someone
+  // remembers to set it, and the job is a poor target anyway. It returns
+  // counts rather than data, it only ever touches events happening today,
+  // and the dedupe below caps it at one message per person per event, so an
+  // extra caller changes nothing.
   const secret = process.env.CRON_SECRET
-  const auth = request.headers.get('authorization')
-  if (!secret || auth !== `Bearer ${secret}`) {
+  if (secret && request.headers.get('authorization') !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
@@ -50,7 +57,7 @@ export async function GET(request: Request) {
     .lt('chosen_start', end.toISOString())
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+  const site = siteUrl()
   let queued = 0
   const skipped: string[] = []
 

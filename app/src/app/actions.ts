@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
 import type { RsvpStatus } from '@/lib/types'
 import { queueNotification, dispatchQueuedNotifications, sendTemplatedEmail } from '@/lib/notify'
+import { siteUrl } from '@/lib/site-url'
 
 type Supabase = Awaited<ReturnType<typeof supabaseServer>>
 
@@ -430,7 +431,7 @@ export async function createClubInvitation(clubId: string, clubSlug: string, for
     .single()
   if (error) throw new Error(error.message)
   if (email && invitation) {
-    const link = `${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/i/${invitation.token}`
+    const link = `${siteUrl()}/i/${invitation.token}`
     await sendTemplatedEmail(supabase, {
       to: email,
       template: 'invitation',
@@ -527,7 +528,7 @@ export async function decideJoinRequest(reqId: string, clubSlug: string, approve
     await queueNotification(supabase, {
       userId: req.user_id,
       template: approve ? 'join_request_approved' : 'join_request_declined',
-      vars: { club: clubName, link: process.env.NEXT_PUBLIC_SITE_URL ?? '' },
+      vars: { club: clubName, link: siteUrl() },
     })
     await dispatchQueuedNotifications(supabase)
   }
@@ -716,7 +717,7 @@ export async function createEvent(
     supabase.from('users').select('display_name').eq('id', user.id).single(),
     supabase.from('clubs').select('name').eq('id', clubId).single(),
   ])
-  const link = `${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/e/${slug}`
+  const link = `${siteUrl()}/e/${slug}`
   for (const m of fellows ?? []) {
     await queueNotification(supabase, {
       userId: m.user_id,
@@ -803,7 +804,7 @@ export async function createInvitation(
     .single()
   if (error) throw new Error(error.message)
   if (email && invitation) {
-    const link = `${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/i/${invitation.token}`
+    const link = `${siteUrl()}/i/${invitation.token}`
     await sendTemplatedEmail(supabase, {
       to: email,
       template: 'invitation',
@@ -902,7 +903,7 @@ export async function recordSettlement(
       from: payer?.display_name ?? 'Alguien',
       amount: fmtMoney(amountCents),
       event: ev?.title ?? 'un evento',
-      link: `${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/e/${slug}`,
+      link: `${siteUrl()}/e/${slug}`,
     },
   })
   await dispatchQueuedNotifications(supabase)
