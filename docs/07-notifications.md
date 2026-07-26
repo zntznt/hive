@@ -12,7 +12,7 @@ Routing rule per user: send on preferred channel (default WhatsApp if a number i
 domain event (slot picked, contribution assigned, …)
    └─▶ row in notification_outbox (user, channel, template, payload)   [same tx as the change]
          └─▶ delivery worker (Supabase Edge Function on schedule / queue)
-               ├─ WhatsAppAdapter  → Meta Cloud API template send
+               ├─ WhatsAppAdapter  → Zernio (BSP in front of Meta Cloud API)
                ├─ EmailAdapter     → Resend (app notifications); Supabase SMTP keeps auth emails
                └─ LogAdapter       → dev/no-creds fallback: marks status='logged'
 ```
@@ -47,6 +47,18 @@ Everything is **utility class** (transactional, related to an interaction the us
 5. Webhook endpoint (Edge Function) for delivery receipts + inbound replies (replies open the free 24h window; v0 just logs them, v0.5 may parse "CONFIRMO").
 
 **Dev path before approval:** Twilio WhatsApp **sandbox** — works immediately; each tester joins by sending a code once (fine for the founder's club). The adapter interface hides whether sends go via Meta Cloud API or Twilio, so swapping is config, not code.
+
+## Status (as built)
+
+We went through **Zernio** rather than calling Meta Cloud API directly, so steps 2-5 of the checklist above are handled on their side against a connected WhatsApp Business number.
+
+- Adapter lives in `app/src/lib/whatsapp.ts`, same shape as `email.ts`: no SDK, one config seam.
+- Config is `ZERNIO_API_KEY`, `ZERNIO_PROFILE_ID`, `ZERNIO_ACCOUNT_ID`. With any of them unset the adapter is a safe no-op that marks rows `logged`, so a half-configured install degrades quietly instead of failing loudly.
+- Zernio has no single transactional "send template to this number" call. Reaching a number that has never messaged us first goes through a broadcast: create with template, attach recipient, send. Three calls per notification, which is irrelevant at this volume.
+- Delivery address is `users.phone_whatsapp`, linked by the member on the Account page and normalized to E.164. Sign-in stays email-only; the number is purely a delivery address.
+- Per the matrix in `users.notif_prefs`, both channels can fire for one notification: each enabled channel queues its own outbox row. A channel with no address is skipped and falls back to the one that exists.
+
+**Open:** the broadcast template payload has not been verified against a live account. Send failures record Zernio's verbatim response in `notification_outbox.error`, visible in the admin panel. The template names Hive uses (`waitlist_promoted`, `new_event`, `payment_received`, …) must exist as approved WhatsApp templates on the Zernio side before sends outside a 24h window will succeed.
 
 ## Template examples (submit ES + EN variants)
 
