@@ -20,6 +20,10 @@ export type TemplateKey =
   // sign-in link over WhatsApp. Deliberately absent from TOPIC_OF: logging in
   // is not a notification anyone should be able to mute.
   | 'magic_link'
+  // AUTHENTICATION template: Meta writes the body, so it has no row in
+  // notification_templates and is never rendered here. It appears only so
+  // the outbox can record that a code went out.
+  | 'signin_code'
   | 'invitation'
   | 'change_request_approved'
   | 'change_request_declined'

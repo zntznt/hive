@@ -175,6 +175,7 @@ export async function sendWhatsapp({
   vars,
   variables,
   body,
+  otpCode,
 }: {
   to: string
   templateName: string
@@ -183,6 +184,10 @@ export async function sendWhatsapp({
   vars: string[]
   variables: Record<string, string>
   body: string
+  // AUTHENTICATION templates carry the code twice: once in the body Meta
+  // wrote, and once in the copy-code button so it can be tapped rather than
+  // retyped. Both have to be sent or the button copies nothing.
+  otpCode?: string
 }): Promise<Result> {
   const cfg = config()
   if (!cfg) {
@@ -209,8 +214,20 @@ export async function sendWhatsapp({
             {
               type: 'body',
               // positional, in the order the template was submitted
-              parameters: vars.map((v) => ({ type: 'text', text: variables[v] ?? '' })),
+              parameters: otpCode
+                ? [{ type: 'text', text: otpCode }]
+                : vars.map((v) => ({ type: 'text', text: variables[v] ?? '' })),
             },
+            ...(otpCode
+              ? [
+                  {
+                    type: 'button',
+                    sub_type: 'copy_code',
+                    index: '0',
+                    parameters: [{ type: 'coupon_code', coupon_code: otpCode }],
+                  },
+                ]
+              : []),
           ],
         },
         message: { text: body },

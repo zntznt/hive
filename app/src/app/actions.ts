@@ -8,6 +8,7 @@ import { queueNotification, dispatchAfterResponse, sendTemplatedEmail, sendTempl
 import { siteUrl } from '@/lib/site-url'
 import { normalizePhone } from '@/lib/phone'
 import { sendWhatsappMagicLink } from '@/lib/magic-link'
+import { requestSigninCode, verifySigninCode } from '@/lib/signin-code'
 import { nudgeNonResponders } from '@/lib/nudge'
 
 type Supabase = Awaited<ReturnType<typeof supabaseServer>>
@@ -1388,4 +1389,22 @@ export async function resendInvitation(invitationId: string, path: string) {
   revalidatePath(path)
   if (!result.ok) return { ok: false as const, error: result.error ?? 'No se pudo reenviar.' }
   return { ok: true as const }
+}
+
+// Step one of signing in over WhatsApp: send the code. Unauthenticated by
+// definition, so it normalizes the number here rather than trusting the
+// client, and never reports whether that number has an account.
+export async function requestWhatsappCode(rawPhone: string) {
+  const phone = normalizePhone(rawPhone)
+  if (!phone) return { ok: false as const, error: 'Ese número no se ve completo. Incluye la clave, por ejemplo +52 55 1234 5678.' }
+  return requestSigninCode(phone)
+}
+
+// Step two: check the code and open the session. Returns where to go next
+// rather than redirecting, so the form can show an error in place when the
+// code is wrong instead of navigating away from what the member typed.
+export async function verifyWhatsappCode(rawPhone: string, code: string, next?: string | null) {
+  const phone = normalizePhone(rawPhone)
+  if (!phone) return { ok: false as const, error: 'Ese número no se ve completo.' }
+  return verifySigninCode(phone, code, next)
 }

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { BeeLoader } from '@/components/ui/BeeLoader'
 import { authOrigin } from '@/lib/site-url'
-import { requestWhatsappLink } from './actions'
+import { requestWhatsappCode, verifyWhatsappCode } from './actions'
 
 // One field takes either a correo or a WhatsApp number (wireframe 1). '@' is
 // the only reliable tell: Mexican numbers are written with spaces, dashes,
@@ -30,6 +30,7 @@ export default function SignIn() {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [viaWhatsapp, setViaWhatsapp] = useState(false)
+  const [code, setCode] = useState('')
 
   // surface auth errors from the callback redirect (?auth_error=) and from
   // GoTrue fragment-style errors (#error_code=otp_expired…). window.location
@@ -64,7 +65,7 @@ export default function SignIn() {
           email: value,
           options: { emailRedirectTo: `${authOrigin()}/auth/callback` },
         })
-      : await requestWhatsappLink(value)
+      : await requestWhatsappCode(value)
 
     setSending(false)
     if ('error' in result && result.error) {
@@ -73,6 +74,22 @@ export default function SignIn() {
     }
     setViaWhatsapp(!byEmail)
     setSent(true)
+  }
+
+  async function confirm(e: React.FormEvent) {
+    e.preventDefault()
+    if (sending) return
+    setSending(true)
+    setError(null)
+    const res = await verifyWhatsappCode(contact.trim(), code)
+    setSending(false)
+    if (!res.ok) {
+      setError(res.error)
+      setCode('')
+      return
+    }
+    // the session cookie is already written; a full load picks it up
+    window.location.assign(res.next)
   }
 
   return (
@@ -90,19 +107,46 @@ export default function SignIn() {
             <h1 className="font-display text-2xl font-bold text-on-dark">
               {viaWhatsapp ? 'Revisa tu WhatsApp' : 'Revisa tu correo'}
             </h1>
-            <p className="text-sm text-on-dark-mute">
-              Te mandamos un enlace para entrar{contact ? <> a <b className="text-honey-400">{contact}</b></> : null}.
-              Ábrelo en este mismo navegador.
-            </p>
-            {viaWhatsapp && (
-              <p className="text-xs text-on-dark-mute">
-                Si ese número no tiene cuenta en Hive, no llegará nada. Prueba con tu correo.
+            {viaWhatsapp ? (
+              <>
+                <p className="text-sm text-on-dark-mute">
+                  Te mandamos un código de 6 dígitos{contact ? <> a <b className="text-honey-400">{contact}</b></> : null}.
+                  Escríbelo aquí para entrar.
+                </p>
+                <form onSubmit={confirm} className="space-y-3">
+                  <input
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="000000"
+                    aria-label="Código de 6 dígitos"
+                    className="w-full rounded-md border border-charcoal-3 bg-charcoal-2 px-[14px] py-[13px] text-center font-display text-2xl tracking-[0.4em] text-on-dark outline-none placeholder:text-on-dark-mute focus:border-honey-500"
+                  />
+                  <Button display block size="lg" disabled={sending || code.length < 6}>
+                    {sending ? 'Entrando…' : 'Entrar'}
+                  </Button>
+                  {error && <p className="rounded-md bg-danger-bg p-3 text-xs text-danger">{error}</p>}
+                </form>
+                <p className="text-xs text-on-dark-mute">
+                  Si ese número no tiene cuenta en Hive, no llegará nada. Prueba con tu correo.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-on-dark-mute">
+                Te mandamos un enlace para entrar{contact ? <> a <b className="text-honey-400">{contact}</b></> : null}.
+                Ábrelo en este mismo navegador.
               </p>
             )}
-            <BeeLoader />
+            {!viaWhatsapp && <BeeLoader />}
             <button
               type="button"
-              onClick={() => setSent(false)}
+              onClick={() => {
+                setSent(false)
+                setCode('')
+                setError(null)
+              }}
               className="text-xs text-on-dark-mute underline"
             >
               ¿No te llegó? Pídelo de nuevo
