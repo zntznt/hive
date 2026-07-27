@@ -71,7 +71,7 @@ export default async function AccountPage() {
           <WhatsappForm phone={profile.phone_whatsapp} />
         </div>
         <p className="mt-2.5 text-xs text-ink-300">
-          Hive solo usa enlaces mágicos por correo para entrar, no hay contraseñas.
+          Entras con un enlace de un solo uso, no hay contraseñas.
         </p>
       </section>
 

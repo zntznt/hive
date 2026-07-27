@@ -45,7 +45,7 @@ export default function WhatsappForm({ phone }: { phone: string | null }) {
           <button
             type="button"
             onClick={() => setOpen((o) => !o)}
-            className="text-xs font-bold text-honey-700 underline-offset-2 hover:underline"
+            className="rounded-md border-[1.5px] border-honey-500 px-2.5 py-1 text-xs font-bold text-honey-700"
           >
             {open ? 'cancelar' : phone ? 'cambiar' : 'agregar'}
           </button>
@@ -62,7 +62,7 @@ export default function WhatsappForm({ phone }: { phone: string | null }) {
             onChange={(e) => setValue(e.target.value)}
           />
           <p className="text-xs text-ink-300">
-            Solo para recibir avisos. Para entrar a Hive sigues usando tu correo.
+            Lo usamos para mandarte avisos por WhatsApp.
           </p>
           {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
           <div className="flex items-center gap-2">
