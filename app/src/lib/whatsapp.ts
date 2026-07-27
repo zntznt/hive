@@ -169,7 +169,11 @@ export async function sendWhatsapp({
       }
     }
 
-    await call(cfg.apiKey, `/broadcasts/${id}/recipients`, { method: 'POST', body: { recipients: [{ phone: to }] } })
+    // Zernio wants a bare `phones` array here. A `recipients` array of
+    // {phone} objects is rejected with "Either contactIds array, phones
+    // array, or useSegment: true is required", which is what every WhatsApp
+    // notification failed on until now.
+    await call(cfg.apiKey, `/broadcasts/${id}/recipients`, { method: 'POST', body: { phones: [to] } })
     await call(cfg.apiKey, `/broadcasts/${id}/send`, { method: 'POST', body: {} })
     return { ok: true }
   } catch (e) {
