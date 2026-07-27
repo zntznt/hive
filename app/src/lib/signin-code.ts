@@ -70,12 +70,31 @@ export async function requestSigninCode(phone: string): Promise<CodeRequest> {
   })
   if (saveErr) return { ok: false, error: 'No pudimos generar el código. Intenta de nuevo.' }
 
+  // Record the attempt before trying to deliver it. Twice now a send has
+  // vanished leaving nothing behind, because the row was only written after
+  // the part that failed. A row that exists first can be stuck, and a stuck
+  // row is a fact you can read; silence is not.
+  const { data: logged } = await db
+    .from('notification_outbox')
+    .insert({
+      user_id: user.id,
+      destination: phone,
+      channel: 'whatsapp',
+      template: 'signin_code',
+      // never the code, for the same reason it is hashed in signin_codes
+      payload: { requested_at: new Date().toISOString() },
+      status: 'queued',
+    })
+    .select('id')
+    .single()
+
   // Delivery is three sequential calls to Zernio, seconds each, and putting
   // that in front of the member means they watch a spinner for the length of
   // someone else's outage. The code is already saved, so the form can move to
   // the entry step now and the message can catch up. Whether it arrived is
   // answered by the outbox, not by how long we made them wait.
   after(async () => {
+    try {
     const sent = await sendWhatsapp({
       to: phone,
       templateName: TEMPLATE,
@@ -88,23 +107,29 @@ export async function requestSigninCode(phone: string): Promise<CodeRequest> {
       otpCode: code,
     })
 
-    // The code never goes in the payload, for the same reason it never goes
-    // in the table in plaintext.
-    await db.from('notification_outbox').insert({
-      user_id: user.id,
-      destination: phone,
-      channel: 'whatsapp',
-      template: 'signin_code',
-      payload: { requested_at: new Date().toISOString() },
-      status: sent.ok ? 'pending' : sent.skipped ? 'logged' : 'failed',
-      provider_ref: sent.ok ? sent.providerRef : null,
-      sent_at: null,
-      error: sent.ok ? null : sent.error,
-    })
+      if (logged) {
+        await db
+          .from('notification_outbox')
+          .update({
+            status: sent.ok ? 'pending' : sent.skipped ? 'logged' : 'failed',
+            provider_ref: sent.ok ? sent.providerRef : null,
+            error: sent.ok ? null : sent.error,
+          })
+          .eq('id', logged.id)
+      }
 
-    // The code row doubles as the throttle, so a send that never happened
-    // must not lock the member out of asking again.
-    if (!sent.ok && !sent.skipped) {
+      // The code row doubles as the throttle, so a send that never happened
+      // must not lock the member out of asking again.
+      if (!sent.ok && !sent.skipped) {
+        await db.from('signin_codes').delete().eq('user_id', user.id)
+      }
+    } catch (e) {
+      // Nothing is listening by now, so an uncaught throw here is how the
+      // last two attempts disappeared. Leave the reason on the row instead.
+      const reason = e instanceof Error ? e.message : 'error desconocido al enviar'
+      if (logged) {
+        await db.from('notification_outbox').update({ status: 'failed', error: reason }).eq('id', logged.id)
+      }
       await db.from('signin_codes').delete().eq('user_id', user.id)
     }
   })
