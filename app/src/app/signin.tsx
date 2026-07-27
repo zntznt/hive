@@ -5,6 +5,7 @@ import { supabaseBrowser } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { BeeLoader } from '@/components/ui/BeeLoader'
+import { authOrigin } from '@/lib/site-url'
 
 function humanize(raw: string) {
   const s = raw.toLowerCase()
@@ -45,7 +46,7 @@ export default function SignIn() {
     setError(null)
     const { error } = await supabaseBrowser().auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${location.origin}/auth/callback` },
+      options: { emailRedirectTo: `${authOrigin()}/auth/callback` },
     })
     setSending(false)
     if (error) setError(humanize(error.message))

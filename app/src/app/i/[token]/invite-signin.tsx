@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { BeeLoader } from '@/components/ui/BeeLoader'
+import { authOrigin } from '@/lib/site-url'
 
 type Props = {
   token: string
@@ -30,7 +31,7 @@ export default function InviteSignIn({ token, clubName, eventTitle, inviter, pre
     const { error } = await supabaseBrowser().auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(`/i/${token}`)}`,
+        emailRedirectTo: `${authOrigin()}/auth/callback?next=${encodeURIComponent(`/i/${token}`)}`,
         data: { invite_token: token },
       },
     })

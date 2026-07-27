@@ -5,6 +5,7 @@ import { supabaseBrowser } from '@/lib/supabase/client'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { BrandMark } from '@/components/ui/BrandMark'
+import { authOrigin } from '@/lib/site-url'
 
 type Props = {
   token: string
@@ -25,7 +26,7 @@ export default function ClubJoinSignIn({ token, clubName }: Props) {
     const { error } = await supabaseBrowser().auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(`/c/${token}`)}`,
+        emailRedirectTo: `${authOrigin()}/auth/callback?next=${encodeURIComponent(`/c/${token}`)}`,
         data: { club_join_token: token },
       },
     })
