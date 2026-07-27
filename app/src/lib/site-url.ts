@@ -11,7 +11,7 @@
 //
 // NEXT_PUBLIC_SITE_URL overrides it, for a custom domain later.
 export const CANONICAL_ORIGIN = normalize(
-  process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://hive-cofre.vercel.app'
+  process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://hive.zntznt.com'
 )
 
 function isLocal(host: string) {
