@@ -9,6 +9,7 @@ import { siteUrl } from '@/lib/site-url'
 import { normalizePhone } from '@/lib/phone'
 import { sendWhatsappMagicLink } from '@/lib/magic-link'
 import { requestSigninCode, verifySigninCode } from '@/lib/signin-code'
+import { startPhoneChange, confirmPhoneChange } from '@/lib/phone-verify'
 import { nudgeNonResponders } from '@/lib/nudge'
 
 type Supabase = Awaited<ReturnType<typeof supabaseServer>>
@@ -1117,43 +1118,47 @@ export async function updateNotifPrefs(formData: FormData) {
 // Links (or clears) the WhatsApp number notifications are delivered to.
 // Sign-in stays email-only, so this is purely a delivery address; it is
 // stored normalized to E.164 because that is what the provider expects.
-export async function updateWhatsappPhone(formData: FormData) {
+export async function startWhatsappVerification(formData: FormData) {
   const supabase = await supabaseServer()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) throw new Error('not signed in')
 
-  const raw = String(formData.get('phone') ?? '').trim()
-  let phone: string | null = null
-  if (raw) {
-    const { normalizePhone } = await import('@/lib/phone')
-    phone = normalizePhone(raw)
-    if (!phone) throw new Error('Ese número no parece válido. Usa 10 dígitos, por ejemplo 55 1234 5678.')
-  }
+  const phone = normalizePhone(String(formData.get('phone') ?? '').trim())
+  if (!phone) return { ok: false as const, error: 'Ese número no parece válido. Usa 10 dígitos, por ejemplo 55 1234 5678.' }
+  return startPhoneChange(user.id, phone)
+}
 
-  // Adding a number is a clear enough request to be messaged there, and
-  // notif_whatsapp defaults to false, so without this a member saves their
-  // number, sees "activo", and still hears nothing. Only on the transition
-  // from no number to a number: someone editing a number they already had
-  // may have turned WhatsApp off deliberately, and that choice stands.
-  const { data: before } = await supabase
-    .from('users')
-    .select('phone_whatsapp')
-    .eq('id', user.id)
-    .maybeSingle()
-  const firstNumber = !!phone && !before?.phone_whatsapp
+// The number only reaches the account here, once a code sent to it comes
+// back. Saving on sight was fine while this was a delivery address and is not
+// now that it is a way to sign in.
+export async function confirmWhatsappVerification(code: string) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
+
+  const res = await confirmPhoneChange(user.id, code)
+  if (res.ok) revalidatePath('/account')
+  return res
+}
+
+// Removing the number gives up a way in, which the confirm copy has to say.
+export async function removeWhatsappPhone() {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
 
   const { error } = await supabase
     .from('users')
-    .update(firstNumber ? { phone_whatsapp: phone, notif_whatsapp: true } : { phone_whatsapp: phone })
+    .update({ phone_whatsapp: null, phone_verified_at: null })
     .eq('id', user.id)
-  if (error) {
-    if (error.code === '23505') throw new Error('Ese número ya está registrado en otra cuenta.')
-    throw new Error(error.message)
-  }
+  if (error) throw new Error(error.message)
   revalidatePath('/account')
-  return { enabledWhatsapp: firstNumber }
 }
 
 export async function savePaymentMethods(formData: FormData) {

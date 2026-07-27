@@ -1,43 +1,56 @@
 'use client'
 
-import { useState } from 'react'
-import { updateWhatsappPhone } from '@/app/actions'
+import { useState, useTransition } from 'react'
+import { startWhatsappVerification, confirmWhatsappVerification, removeWhatsappPhone } from '@/app/actions'
 import { useToast } from '@/components/ui/Toast'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
+import { Modal } from '@/components/ui/Modal'
 import { formatPhone } from '@/lib/phone'
 
-// The WhatsApp delivery address. Collapsed to a summary row until you tap
-// "agregar"/"cambiar", so the section keeps the same calm two-row shape as
-// before for the common case where nothing needs touching.
-export default function WhatsappForm({ phone }: { phone: string | null }) {
+// The WhatsApp number is both where notices go and a way to sign in. Because
+// it is the second thing, it is not saved on sight: a code goes to the number
+// first, and the account only changes when that code comes back.
+export default function WhatsappForm({ phone, verifiedAt }: { phone: string | null; verifiedAt: string | null }) {
   const toast = useToast()
-  const [open, setOpen] = useState(false)
-  const [value, setValue] = useState(phone ?? '')
-  const [saving, setSaving] = useState(false)
+  const [step, setStep] = useState<'closed' | 'number' | 'code'>('closed')
+  const [value, setValue] = useState('')
+  const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [confirmRemove, setConfirmRemove] = useState(false)
+  const [pending, startTransition] = useTransition()
 
-  async function save(next: string) {
-    setSaving(true)
+  function close() {
+    setStep('closed')
+    setValue('')
+    setCode('')
     setError(null)
-    try {
+  }
+
+  function sendCode() {
+    setError(null)
+    startTransition(async () => {
       const fd = new FormData()
-      fd.set('phone', next)
-      const res = await updateWhatsappPhone(fd)
-      toast(
-        !next
-          ? 'WhatsApp quitado'
-          : res?.enabledWhatsapp
-            ? 'Listo, ya te avisamos por WhatsApp'
-            : 'WhatsApp actualizado'
-      )
-      setOpen(false)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo guardar.')
-    } finally {
-      setSaving(false)
-    }
+      fd.set('phone', value.trim())
+      const res = await startWhatsappVerification(fd)
+      if (!res.ok) return setError(res.error)
+      setStep('code')
+    })
+  }
+
+  function confirm() {
+    setError(null)
+    startTransition(async () => {
+      const res = await confirmWhatsappVerification(code.trim())
+      if (!res.ok) {
+        setError(res.error)
+        setCode('')
+        return
+      }
+      toast(res.enabledWhatsapp ? 'Listo, ya te avisamos por WhatsApp' : 'WhatsApp actualizado')
+      close()
+    })
   }
 
   return (
@@ -47,18 +60,22 @@ export default function WhatsappForm({ phone }: { phone: string | null }) {
           WhatsApp <span className="text-ink-500">· {phone ? formatPhone(phone) : 'no agregado'}</span>
         </span>
         <div className="flex shrink-0 items-center gap-2">
-          {phone && <Badge tone="active">activo</Badge>}
+          {/* a number saved before verification existed keeps working, but
+              nobody proved it, and the badge should not say otherwise */}
+          {phone && (
+            <Badge tone={verifiedAt ? 'active' : 'neutral'}>{verifiedAt ? 'verificado' : 'sin verificar'}</Badge>
+          )}
           <button
             type="button"
-            onClick={() => setOpen((o) => !o)}
+            onClick={() => (step === 'closed' ? setStep('number') : close())}
             className="rounded-md border-[1.5px] border-honey-500 px-2.5 py-1 text-xs font-bold text-honey-700"
           >
-            {open ? 'cancelar' : phone ? 'cambiar' : 'agregar'}
+            {step !== 'closed' ? 'cancelar' : phone ? 'cambiar' : 'agregar'}
           </button>
         </div>
       </div>
 
-      {open && (
+      {step === 'number' && (
         <div className="mt-2.5 flex flex-col gap-2 border-t border-line-card pt-2.5">
           <Input
             label="Número de WhatsApp"
@@ -68,28 +85,76 @@ export default function WhatsappForm({ phone }: { phone: string | null }) {
             onChange={(e) => setValue(e.target.value)}
           />
           <p className="text-xs text-ink-300">
-            Al agregarlo activamos los avisos por WhatsApp. Puedes ajustarlos abajo.
+            Te mandamos un código para confirmar que el número es tuyo. Con él también puedes entrar a Hive.
           </p>
           {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
           <div className="flex items-center gap-2">
-            <Button size="sm" disabled={saving || !value.trim()} onClick={() => save(value.trim())}>
-              {saving ? 'Guardando…' : 'Guardar'}
+            <Button size="sm" disabled={pending || !value.trim()} onClick={sendCode}>
+              {pending ? 'Enviando…' : 'Mandar código'}
             </Button>
             {phone && (
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={saving}
-                onClick={() => {
-                  setValue('')
-                  save('')
-                }}
-              >
+              <Button size="sm" variant="ghost" disabled={pending} onClick={() => setConfirmRemove(true)}>
                 Quitar
               </Button>
             )}
           </div>
         </div>
+      )}
+
+      {step === 'code' && (
+        <div className="mt-2.5 flex flex-col gap-2 border-t border-line-card pt-2.5">
+          <Input
+            label="Código de 6 dígitos"
+            placeholder="000000"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+          />
+          <p className="text-xs text-ink-300">Lo mandamos a {value.trim()}. Vence en 10 minutos.</p>
+          {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
+          <div className="flex items-center gap-2">
+            <Button size="sm" disabled={pending || code.length < 6} onClick={confirm}>
+              {pending ? 'Confirmando…' : 'Confirmar'}
+            </Button>
+            <Button size="sm" variant="ghost" disabled={pending} onClick={() => setStep('number')}>
+              Cambiar número
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {confirmRemove && (
+        <Modal
+          open
+          onClose={() => setConfirmRemove(false)}
+          title="¿Quitar tu WhatsApp?"
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setConfirmRemove(false)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() =>
+                  startTransition(async () => {
+                    await removeWhatsappPhone()
+                    setConfirmRemove(false)
+                    close()
+                    toast('WhatsApp quitado')
+                  })
+                }
+              >
+                Quitar
+              </Button>
+            </>
+          }
+        >
+          <p className="text-sm leading-relaxed text-ink-700">
+            Dejas de recibir avisos por WhatsApp y ya no podrás entrar con tu número. Seguirás entrando con tu correo.
+          </p>
+        </Modal>
       )}
     </div>
   )

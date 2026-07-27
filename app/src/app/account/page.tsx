@@ -19,6 +19,7 @@ type AccountExtra = {
   notif_email: boolean
   notif_whatsapp: boolean
   notif_prefs: Partial<Record<string, { email?: boolean; whatsapp?: boolean }>>
+  phone_verified_at: string | null
 }
 
 export default async function AccountPage() {
@@ -27,7 +28,7 @@ export default async function AccountPage() {
   const [{ data: extra }, { data: methods }, { data: places }] = await Promise.all([
     supabase
       .from('users')
-      .select('avatar_kind, avatar_bug, avatar_photo_url, notif_email, notif_whatsapp, notif_prefs')
+      .select('avatar_kind, avatar_bug, avatar_photo_url, notif_email, notif_whatsapp, notif_prefs, phone_verified_at')
       .eq('id', profile.id)
       .single(),
     supabase
@@ -68,10 +69,10 @@ export default async function AccountPage() {
             </span>
             <Badge tone="active">verificado</Badge>
           </div>
-          <WhatsappForm phone={profile.phone_whatsapp} />
+          <WhatsappForm phone={profile.phone_whatsapp} verifiedAt={account?.phone_verified_at ?? null} />
         </div>
         <p className="mt-2.5 text-xs text-ink-300">
-          Entras con un enlace de un solo uso, no hay contraseñas.
+          Entras con un enlace a tu correo o con un código por WhatsApp. No hay contraseñas.
         </p>
       </section>
 
