@@ -1321,7 +1321,7 @@ export async function duplicateEvent(eventId: string) {
     .select('title, qty, kind')
     .eq('event_id', eventId)
   if (items?.length) {
-    await supabase.from('contributions').insert(
+    const { error: itemsError } = await supabase.from('contributions').insert(
       items.map((i) => ({
         event_id: created.id,
         title: i.title,
@@ -1331,6 +1331,14 @@ export async function duplicateEvent(eventId: string) {
         assigned_to: null,
       }))
     )
+    // This was unchecked, which made the worst outcome the quiet one: an
+    // event created without the bring list that was the whole reason to
+    // duplicate, and nobody told. Undo the event instead of leaving half a
+    // copy, so the result is either the whole thing or nothing at all.
+    if (itemsError) {
+      await supabase.from('events').delete().eq('id', created.id)
+      throw new Error('No se pudo copiar la lista de aportaciones. No se creó el evento.')
+    }
   }
 
   // a duplicate is a new event to everyone else, so the club hears about it
@@ -1341,12 +1349,19 @@ export async function duplicateEvent(eventId: string) {
     supabase.from('clubs').select('name').eq('id', src.club_id).single(),
   ])
   const link = `${siteUrl()}/e/${slug}`
-  for (const m of fellows ?? []) {
-    await queueNotification(supabase, {
-      userId: m.user_id,
-      template: 'new_event',
-      vars: { creator: creator?.display_name ?? 'Alguien', title: src.title, club: clubRow?.name ?? 'tu club', link },
-    })
+  // The event exists by now. A notification that fails to queue is a problem
+  // for the outbox to show, not a reason to tell the organizer their event
+  // was not created, which is what an uncaught throw here used to do.
+  try {
+    for (const m of fellows ?? []) {
+      await queueNotification(supabase, {
+        userId: m.user_id,
+        template: 'new_event',
+        vars: { creator: creator?.display_name ?? 'Alguien', title: src.title, club: clubRow?.name ?? 'tu club', link },
+      })
+    }
+  } catch (e) {
+    console.error('[duplicateEvent] no se pudieron encolar los avisos', e)
   }
   dispatchAfterResponse(supabase)
   redirect(`/e/${slug}`)
