@@ -1,3 +1,9 @@
+// Sign-in server actions live on this page, and one of them hands a WhatsApp
+// code to Zernio in an after() callback. after() runs inside this route's
+// budget, and a broadcast create alone has measured over seven seconds, so
+// the platform default is not enough room to finish and record the result.
+export const maxDuration = 60
+
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'

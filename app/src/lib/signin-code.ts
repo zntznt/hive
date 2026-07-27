@@ -1,4 +1,5 @@
 import { createHash, randomInt } from 'crypto'
+import { after } from 'next/server'
 import { supabaseService } from './supabase/service'
 import { supabaseServer } from './supabase/server'
 import { sendWhatsapp } from './whatsapp'
@@ -69,39 +70,45 @@ export async function requestSigninCode(phone: string): Promise<CodeRequest> {
   })
   if (saveErr) return { ok: false, error: 'No pudimos generar el código. Intenta de nuevo.' }
 
-  const sent = await sendWhatsapp({
-    to: phone,
-    templateName: TEMPLATE,
-    language: 'es_MX',
-    // Meta owns the body of an authentication template, so there is nothing
-    // to render and no wa_vars to honor. The code is the only parameter.
-    vars: [],
-    variables: {},
-    body: '',
-    otpCode: code,
+  // Delivery is three sequential calls to Zernio, seconds each, and putting
+  // that in front of the member means they watch a spinner for the length of
+  // someone else's outage. The code is already saved, so the form can move to
+  // the entry step now and the message can catch up. Whether it arrived is
+  // answered by the outbox, not by how long we made them wait.
+  after(async () => {
+    const sent = await sendWhatsapp({
+      to: phone,
+      templateName: TEMPLATE,
+      language: 'es_MX',
+      // Meta owns the body of an authentication template, so there is nothing
+      // to render and no wa_vars to honor. The code is the only parameter.
+      vars: [],
+      variables: {},
+      body: '',
+      otpCode: code,
+    })
+
+    // The code never goes in the payload, for the same reason it never goes
+    // in the table in plaintext.
+    await db.from('notification_outbox').insert({
+      user_id: user.id,
+      destination: phone,
+      channel: 'whatsapp',
+      template: 'signin_code',
+      payload: { requested_at: new Date().toISOString() },
+      status: sent.ok ? 'pending' : sent.skipped ? 'logged' : 'failed',
+      provider_ref: sent.ok ? sent.providerRef : null,
+      sent_at: null,
+      error: sent.ok ? null : sent.error,
+    })
+
+    // The code row doubles as the throttle, so a send that never happened
+    // must not lock the member out of asking again.
+    if (!sent.ok && !sent.skipped) {
+      await db.from('signin_codes').delete().eq('user_id', user.id)
+    }
   })
 
-  // The code never goes in the payload, for the same reason it never goes in
-  // the table in plaintext.
-  await db.from('notification_outbox').insert({
-    user_id: user.id,
-    destination: phone,
-    channel: 'whatsapp',
-    template: 'signin_code',
-    payload: { requested_at: new Date().toISOString() },
-    status: sent.ok ? 'pending' : sent.skipped ? 'logged' : 'failed',
-    provider_ref: sent.ok ? sent.providerRef : null,
-    sent_at: null,
-    error: sent.ok ? null : sent.error,
-  })
-
-  if (!sent.ok && !sent.skipped) {
-    // The code row is also the throttle. Leaving it behind after a failed
-    // send would lock the member out for a minute over a message that never
-    // existed, so a failure clears it and they can try again at once.
-    await db.from('signin_codes').delete().eq('user_id', user.id)
-    return { ok: false, error: 'No pudimos mandar el código. Intenta con tu correo.' }
-  }
   return { ok: true }
 }
 

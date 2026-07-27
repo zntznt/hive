@@ -34,10 +34,14 @@ export function whatsappConfigured() {
 }
 
 // fetch has no default timeout, so a provider that never answers holds the
-// request open until the platform kills the whole invocation. That is how a
-// sign-in got stuck on "Enviando…" with no error: the action never returned.
-// Better to fail in seconds and say so.
-const CALL_TIMEOUT_MS = 6000
+// request until the platform kills the whole invocation, which is how a
+// sign-in once sat on "Enviando…" with nothing to read.
+//
+// The bound has to clear the real cost of the call, not the cost we wish it
+// had: creating a broadcast measured 7.3 seconds against a healthy Zernio, so
+// a six second limit was cancelling work that was about to succeed. This is a
+// guard against a provider that has stopped answering, not a latency budget.
+const CALL_TIMEOUT_MS = 20000
 
 async function call(apiKey: string, path: string, init?: { method?: string; body?: unknown }) {
   const res = await fetch(`${BASE}${path}`, {
