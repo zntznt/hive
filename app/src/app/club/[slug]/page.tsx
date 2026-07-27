@@ -379,6 +379,8 @@ export default async function ClubPage({
             isAdmin={isAdmin}
             isOrganizer={isOrganizer}
             isSelf={m.user_id === profile.id}
+            lastAttendedAt={attFor(m.user_id)?.last_attended_at ?? null}
+            eventsAttended={attFor(m.user_id)?.events_attended ?? 0}
           />
         ))}
         {isAdmin &&
@@ -395,17 +397,7 @@ export default async function ClubPage({
             </div>
           ))}
       </div>
-      {cat && (
-        <p className="mb-6 text-xs text-ink-300">
-          {(roster ?? []).map((m) => {
-            const a = attFor(m.user_id)
-            const u = m.users as unknown as { display_name: string } | null
-            return a ? `${u?.display_name} · última vez ${fmt(a.last_attended_at)} (${a.events_attended} ev.)` : null
-          })
-            .filter(Boolean)
-            .join(' · ')}
-        </p>
-      )}
+
 
       {isAdmin && (
         <section className="mb-6">

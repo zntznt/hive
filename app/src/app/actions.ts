@@ -1345,3 +1345,47 @@ export async function duplicateEvent(eventId: string) {
   dispatchAfterResponse(supabase)
   redirect(`/e/${slug}`)
 }
+
+// Resend an invitation that has not been claimed. Same token, same link, so
+// an invite that is sitting in someone's inbox twice still leads to one
+// account. Only the email channel resends: a WhatsApp-only invitation has
+// nothing to send to until Meta approves an invitation template.
+export async function resendInvitation(invitationId: string, path: string) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
+
+  const { data: inv } = await supabase
+    .from('invitations')
+    .select('token, email, club_id, event_id, claimed_by_user_id')
+    .eq('id', invitationId)
+    .maybeSingle()
+  if (!inv) throw new Error('No encontramos esa invitación.')
+  if (inv.claimed_by_user_id) return { ok: false as const, error: 'Esa invitación ya se usó.' }
+  if (!inv.email) return { ok: false as const, error: 'Esa invitación es por WhatsApp. Copia el enlace y mándalo.' }
+
+  const [{ data: inviter }, { data: club }, { data: event }] = await Promise.all([
+    supabase.from('users').select('display_name').eq('id', user.id).single(),
+    inv.club_id
+      ? supabase.from('clubs').select('name').eq('id', inv.club_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    inv.event_id
+      ? supabase.from('events').select('title').eq('id', inv.event_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ])
+
+  const result = await sendTemplatedEmail(supabase, {
+    to: inv.email,
+    template: 'invitation',
+    vars: {
+      inviter: inviter?.display_name ?? 'Alguien',
+      title: event?.title ?? club?.name ?? 'un club en Hive',
+      link: `${siteUrl()}/i/${inv.token}`,
+    },
+  })
+  revalidatePath(path)
+  if (!result.ok) return { ok: false as const, error: result.error ?? 'No se pudo reenviar.' }
+  return { ok: true as const }
+}

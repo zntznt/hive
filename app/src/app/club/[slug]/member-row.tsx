@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { updateMemberRole, removeMember, requestMemberRemoval } from '@/app/actions'
+import { timeAgo } from '@/lib/relative-time'
 
 type Role = 'member' | 'organizer' | 'admin'
 
@@ -19,6 +20,8 @@ export function MemberRow({
   isAdmin,
   isOrganizer,
   isSelf,
+  lastAttendedAt,
+  eventsAttended,
 }: {
   clubId: string
   slug: string
@@ -28,6 +31,11 @@ export function MemberRow({
   isAdmin: boolean
   isOrganizer: boolean
   isSelf: boolean
+  // roster stat: when this member last came, and how often. Sits under the
+  // name rather than to the right of it, because the right side already holds
+  // the role select and a phone has no room for both.
+  lastAttendedAt?: string | null
+  eventsAttended?: number
 }) {
   const name = user.display_name
   const [pending, startTransition] = useTransition()
@@ -46,8 +54,19 @@ export function MemberRow({
     <div className="flex items-center justify-between gap-2 border-t border-line-divider px-[13px] py-[11px] first:border-t-0">
       <span className="flex min-w-0 items-center gap-2.5">
         <UserAvatar user={user} size={28} />
-        <span className="text-sm text-ink-900">{name}</span>
-        {(!isAdmin || isSelf) && role !== 'member' && <Badge tone={role === 'admin' ? 'admin' : 'neutral'}>{role}</Badge>}
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-sm text-ink-900">{name}</span>
+            {(!isAdmin || isSelf) && role !== 'member' && (
+              <Badge tone={role === 'admin' ? 'admin' : 'neutral'}>{role}</Badge>
+            )}
+          </span>
+          <span className="text-[11.5px] text-ink-300">
+            {eventsAttended
+              ? `${timeAgo(lastAttendedAt ?? null)} · ${eventsAttended} ev.`
+              : 'sin asistencias todavía'}
+          </span>
+        </span>
       </span>
       {!isSelf && (
         <span className="flex flex-shrink-0 items-center gap-2.5">

@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { requireProfile } from '@/lib/gate'
 import { createInvitation, updateJoinPolicy } from '@/app/actions'
 import CopyButton from '@/components/copy-button'
+import ResendButton from './resend-button'
+import { timeAgo } from '@/lib/relative-time'
 import { Card } from '@/components/ui/Card'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -111,16 +113,22 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
             {(invitations ?? []).map((inv) => (
               <li key={inv.id}>
                 <Card pad="sm" className="flex items-center justify-between gap-2">
-                  <span className="flex min-w-0 flex-1 items-center gap-2 truncate text-sm text-ink-700">
-                    <span className="truncate">{inv.email ?? inv.phone}</span>
-                    {inv.claimed_by_user_id ? (
-                      <Badge tone="active">aceptada</Badge>
-                    ) : (
-                      <Badge tone="pending">pendiente</Badge>
-                    )}
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5 text-sm text-ink-700">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate">{inv.email ?? inv.phone}</span>
+                      {inv.claimed_by_user_id ? (
+                        <Badge tone="active">aceptada</Badge>
+                      ) : (
+                        <Badge tone="pending">pendiente</Badge>
+                      )}
+                    </span>
+                    <span className="text-[11.5px] text-ink-300">{timeAgo(inv.created_at)}</span>
                   </span>
                   {!inv.claimed_by_user_id && (
-                    <CopyButton path={`/i/${inv.token}`} label="Copiar invitación" />
+                    <span className="flex flex-shrink-0 items-center gap-1.5">
+                      <CopyButton path={`/i/${inv.token}`} label="Copiar" />
+                      {inv.email && <ResendButton invitationId={inv.id} path={`/e/${slug}/invites`} />}
+                    </span>
                   )}
                 </Card>
               </li>
