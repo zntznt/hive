@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
 import { queueNotification, dispatchQueuedNotifications, reconcileHandoffs } from '@/lib/notify'
 import { siteUrl } from '@/lib/site-url'
+import { nudgeNonResponders } from '@/lib/nudge'
 
 // Day-of reminder. Every other notification is queued by something a member
 // did, so this is the app's only scheduled job: Vercel Cron calls it each
@@ -13,12 +14,13 @@ export const dynamic = 'force-dynamic'
 // Mexico has not observed DST since 2022, so the offset is a constant.
 const MX_OFFSET_HOURS = -6
 
-// Bounds of "today" in Mexico City, expressed as UTC instants.
-function todayInMexico(now: Date) {
+// Bounds of a day in Mexico City, expressed as UTC instants. offsetDays 0 is
+// today, 2 is the day the nudge goes out for.
+function dayInMexico(now: Date, offsetDays = 0) {
   const shifted = new Date(now.getTime() + MX_OFFSET_HOURS * 3600_000)
   const y = shifted.getUTCFullYear()
   const m = shifted.getUTCMonth()
-  const d = shifted.getUTCDate()
+  const d = shifted.getUTCDate() + offsetDays
   const start = new Date(Date.UTC(y, m, d) - MX_OFFSET_HOURS * 3600_000)
   return { start, end: new Date(start.getTime() + 86_400_000) }
 }
@@ -48,7 +50,8 @@ export async function GET(request: Request) {
   const db = supabaseService()
   if (!db) return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY no está configurado' }, { status: 500 })
 
-  const { start, end } = todayInMexico(new Date())
+  const now = new Date()
+  const { start, end } = dayInMexico(now)
   const { data: events, error } = await db
     .from('events')
     .select('id, slug, title, chosen_start')
@@ -97,9 +100,29 @@ export async function GET(request: Request) {
     }
   }
 
+  // Two days out, chase whoever never answered. Far enough ahead that the
+  // organizer can still act on the replies, close enough that the date feels
+  // real. nudgeNonResponders is idempotent per member per event, so re-running
+  // the job cannot double-nudge anyone.
+  const soon = dayInMexico(now, 2)
+  const { data: upcoming } = await db
+    .from('events')
+    .select('id')
+    .eq('status', 'scheduled')
+    .gte('chosen_start', soon.start.toISOString())
+    .lt('chosen_start', soon.end.toISOString())
+
+  let nudged = 0
+  for (const ev of upcoming ?? []) nudged += await nudgeNonResponders(db, ev.id)
+
   // the daily backstop: resolve anything still waiting on a verdict, then
-  // send today's reminders
+  // send today's reminders and the nudges queued above
   await reconcileHandoffs(db, 100)
   await dispatchQueuedNotifications(db, 100)
-  return NextResponse.json({ events: (events ?? []).length, queued, skipped: skipped.length })
+  return NextResponse.json({
+    events: (events ?? []).length,
+    queued,
+    skipped: skipped.length,
+    nudged,
+  })
 }

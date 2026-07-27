@@ -8,6 +8,7 @@ import { queueNotification, dispatchAfterResponse, sendTemplatedEmail } from '@/
 import { siteUrl } from '@/lib/site-url'
 import { normalizePhone } from '@/lib/phone'
 import { sendWhatsappMagicLink } from '@/lib/magic-link'
+import { nudgeNonResponders } from '@/lib/nudge'
 
 type Supabase = Awaited<ReturnType<typeof supabaseServer>>
 
@@ -1214,4 +1215,28 @@ export async function requestWhatsappLink(rawPhone: string, next?: string | null
   const phone = normalizePhone(rawPhone)
   if (!phone) return { ok: false as const, error: 'Ese número no se ve completo. Incluye la clave, por ejemplo +52 55 1234 5678.' }
   return sendWhatsappMagicLink(phone, next)
+}
+
+// Post-event roll call. Writes through mark_attendance (SECURITY DEFINER)
+// rather than a widened RLS policy, so an organizer can record who came
+// without gaining the ability to rewrite what people answered.
+export async function markAttendance(eventId: string, slug: string, presentUserIds: string[]) {
+  const supabase = await supabaseServer()
+  const { error } = await supabase.rpc('mark_attendance', { eid: eventId, present: presentUserIds })
+  if (error) throw new Error(error.message)
+  revalidatePath(`/e/${slug}`)
+}
+
+// The organizer's own "faltan 4 por confirmar" button. The cron sends this
+// automatically two days out; this is for when they want it now.
+export async function remindNonResponders(eventId: string, slug: string) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
+  const queued = await nudgeNonResponders(supabase, eventId)
+  dispatchAfterResponse(supabase)
+  revalidatePath(`/e/${slug}`)
+  return { queued }
 }

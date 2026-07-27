@@ -26,6 +26,7 @@ export type TemplateKey =
   | 'join_request_approved'
   | 'join_request_declined'
   | 'new_event'
+  | 'rsvp_pending'
   | 'payment_received'
   | 'payment_confirmed'
 
@@ -38,6 +39,7 @@ export const TOPIC_OF: Partial<Record<TemplateKey, NotifTopic>> = {
   new_event: 'new_event',
   event_today: 'reminders',
   waitlist_promoted: 'rsvp_waitlist',
+  rsvp_pending: 'rsvp_waitlist',
   payment_received: 'payments',
   payment_confirmed: 'payments',
   change_request_approved: 'approvals',
