@@ -119,6 +119,28 @@ export async function listWhatsappTemplates(): Promise<
   }
 }
 
+// Polls a broadcast until it stops moving. Returns 'failed' only when Meta
+// actually rejected it; an inconclusive poll returns 'pending' and the caller
+// treats it as sent, so a slow broadcast is never reported as a failure.
+async function settled(apiKey: string, id: string): Promise<'failed' | 'done' | 'pending'> {
+  for (const wait of [600, 900, 1400, 2000]) {
+    await new Promise((r) => setTimeout(r, wait))
+    try {
+      const res = await call(apiKey, `/broadcasts/${id}`)
+      const b = (res.broadcast ?? res) as unknown as { status?: string; failedCount?: number; sentCount?: number }
+      const status = String(b.status ?? '')
+      if (status === 'failed') return 'failed'
+      if (status === 'completed' || status === 'sent') {
+        return (b.failedCount ?? 0) > 0 && (b.sentCount ?? 0) === 0 ? 'failed' : 'done'
+      }
+    } catch {
+      // a failed status read is not a failed send
+      return 'pending'
+    }
+  }
+  return 'pending'
+}
+
 export async function sendWhatsapp({
   to,
   templateName,
@@ -175,6 +197,23 @@ export async function sendWhatsapp({
     // notification failed on until now.
     await call(cfg.apiKey, `/broadcasts/${id}/recipients`, { method: 'POST', body: { phones: [to] } })
     await call(cfg.apiKey, `/broadcasts/${id}/send`, { method: 'POST', body: {} })
+
+    // /send only means Zernio accepted the job. Meta can still refuse, and
+    // does: it blocks business-initiated conversations while the business is
+    // unverified or its payment method is failing, which is invisible here
+    // unless we look. The broadcast resolves in about a second, so wait for a
+    // verdict rather than reporting a send that never happened. Dispatch runs
+    // after the response now, so these seconds cost the member nothing.
+    const verdict = await settled(cfg.apiKey, id)
+    if (verdict === 'failed') {
+      return {
+        ok: false,
+        skipped: false,
+        error:
+          `Meta rechazó el envío (broadcast ${id}). Suele ser verificación del ` +
+          `negocio o método de pago en WhatsApp Business.`,
+      }
+    }
     return { ok: true }
   } catch (e) {
     return { ok: false, skipped: false, error: e instanceof Error ? e.message : 'Error desconocido de Zernio' }
