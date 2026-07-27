@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
 import type { RsvpStatus } from '@/lib/types'
-import { queueNotification, dispatchAfterResponse, sendTemplatedEmail } from '@/lib/notify'
+import { queueNotification, dispatchAfterResponse, sendTemplatedEmail, sendTemplatedWhatsapp } from '@/lib/notify'
 import { siteUrl } from '@/lib/site-url'
 import { normalizePhone } from '@/lib/phone'
 import { sendWhatsappMagicLink } from '@/lib/magic-link'
@@ -433,13 +433,13 @@ export async function createClubInvitation(clubId: string, clubSlug: string, for
     .select('token')
     .single()
   if (error) throw new Error(error.message)
-  if (email && invitation) {
+  if (invitation) {
     const link = `${siteUrl()}/i/${invitation.token}`
-    await sendTemplatedEmail(supabase, {
-      to: email,
-      template: 'invitation',
-      vars: { inviter: inviter?.display_name ?? 'Alguien', title: club?.name ?? 'un club en Hive', link },
-    })
+    const vars = { inviter: inviter?.display_name ?? 'Alguien', title: club?.name ?? 'un club en Hive', link }
+    // Members arrive from a WhatsApp group, so an invitation sent to a number
+    // should land there rather than asking them to go find an email.
+    if (email) await sendTemplatedEmail(supabase, { to: email, template: 'invitation', vars })
+    if (phone) await sendTemplatedWhatsapp(supabase, { to: phone, template: 'invitation', vars })
   }
   revalidatePath(`/club/${clubSlug}`)
 }
@@ -1359,12 +1359,12 @@ export async function resendInvitation(invitationId: string, path: string) {
 
   const { data: inv } = await supabase
     .from('invitations')
-    .select('token, email, club_id, event_id, claimed_by_user_id')
+    .select('token, email, phone, club_id, event_id, claimed_by_user_id')
     .eq('id', invitationId)
     .maybeSingle()
   if (!inv) throw new Error('No encontramos esa invitación.')
   if (inv.claimed_by_user_id) return { ok: false as const, error: 'Esa invitación ya se usó.' }
-  if (!inv.email) return { ok: false as const, error: 'Esa invitación es por WhatsApp. Copia el enlace y mándalo.' }
+  if (!inv.email && !inv.phone) return { ok: false as const, error: 'Esa invitación no tiene a dónde llegar.' }
 
   const [{ data: inviter }, { data: club }, { data: event }] = await Promise.all([
     supabase.from('users').select('display_name').eq('id', user.id).single(),
@@ -1376,15 +1376,15 @@ export async function resendInvitation(invitationId: string, path: string) {
       : Promise.resolve({ data: null }),
   ])
 
-  const result = await sendTemplatedEmail(supabase, {
-    to: inv.email,
-    template: 'invitation',
-    vars: {
-      inviter: inviter?.display_name ?? 'Alguien',
-      title: event?.title ?? club?.name ?? 'un club en Hive',
-      link: `${siteUrl()}/i/${inv.token}`,
-    },
-  })
+  const vars = {
+    inviter: inviter?.display_name ?? 'Alguien',
+    title: event?.title ?? club?.name ?? 'un club en Hive',
+    link: `${siteUrl()}/i/${inv.token}`,
+  }
+  const result = inv.email
+    ? await sendTemplatedEmail(supabase, { to: inv.email, template: 'invitation', vars })
+    : await sendTemplatedWhatsapp(supabase, { to: inv.phone as string, template: 'invitation', vars })
+
   revalidatePath(path)
   if (!result.ok) return { ok: false as const, error: result.error ?? 'No se pudo reenviar.' }
   return { ok: true as const }

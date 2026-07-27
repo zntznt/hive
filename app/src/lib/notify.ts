@@ -114,6 +114,37 @@ export async function sendTemplatedEmail(
   return sendEmail({ to, subject, html })
 }
 
+// The WhatsApp twin of sendTemplatedEmail, for the same reason: an invitee
+// has no `users` row yet and notification_outbox.user_id is a hard FK, so
+// this cannot go through the outbox. The cost is that invitations are the one
+// thing the admin log cannot show, on either channel.
+//
+// Meta only delivers templates it has reviewed, and the dispatcher checks
+// that before sending. This path has no dispatcher, so it checks here.
+export async function sendTemplatedWhatsapp(
+  supabase: SupabaseClient,
+  { to, template, vars }: { to: string; template: TemplateKey; vars: Record<string, string> }
+) {
+  const { data: tpl } = await pipelineDb(supabase)
+    .from('notification_templates')
+    .select('*')
+    .eq('channel', 'whatsapp')
+    .eq('key', template)
+    .maybeSingle()
+  if (!tpl) return { ok: false as const, skipped: true as const, error: 'sin plantilla' }
+  if (tpl.wa_status !== 'approved') {
+    return { ok: false as const, skipped: true as const, error: 'plantilla de WhatsApp sin aprobar' }
+  }
+  return sendWhatsapp({
+    to,
+    templateName: template,
+    language: tpl.wa_language ?? 'es_MX',
+    vars: (tpl.wa_vars ?? []) as string[],
+    variables: vars,
+    body: renderTemplate(tpl.body, vars),
+  })
+}
+
 // Pulls queued rows (small table at this app's scale, no worker needed) and
 // sends each one on its own channel: Resend for email, Zernio for WhatsApp.
 // Either provider being unconfigured marks the row 'logged' rather than

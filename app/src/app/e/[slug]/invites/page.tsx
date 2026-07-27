@@ -127,7 +127,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
                   {!inv.claimed_by_user_id && (
                     <span className="flex flex-shrink-0 items-center gap-1.5">
                       <CopyButton path={`/i/${inv.token}`} label="Copiar" />
-                      {inv.email && <ResendButton invitationId={inv.id} path={`/e/${slug}/invites`} />}
+                      <ResendButton invitationId={inv.id} path={`/e/${slug}/invites`} />
                     </span>
                   )}
                 </Card>
