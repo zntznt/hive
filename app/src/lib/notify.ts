@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendEmail } from './email'
 import { sendWhatsapp } from './whatsapp'
 import { supabaseService } from './supabase/service'
+import { after } from 'next/server'
 
 // Every function here reads rows that belong to other people: the recipient's
 // preferences, their queued outbox rows, the shared template CMS. RLS scopes
@@ -193,4 +194,21 @@ export async function dispatchQueuedNotifications(supabase: SupabaseClient, limi
       )
       .eq('id', row.id)
   }
+}
+
+// Sending is not part of the member's request, so it should not be in front of
+// their next screen. Each WhatsApp recipient costs three sequential calls to
+// Zernio, so a twenty-person club had the organizer waiting on sixty round
+// trips before the page moved. after() hands the response back first and runs
+// the dispatch once it is out the door, including when the action finished by
+// calling redirect(). Errors are swallowed on purpose: nothing is listening
+// any more, and every row already carries its own status and error.
+export function dispatchAfterResponse(supabase: SupabaseClient, limit = 20) {
+  after(async () => {
+    try {
+      await dispatchQueuedNotifications(supabase, limit)
+    } catch (e) {
+      console.error('[notify] dispatch tras la respuesta falló', e)
+    }
+  })
 }

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
 import type { RsvpStatus } from '@/lib/types'
-import { queueNotification, dispatchQueuedNotifications, sendTemplatedEmail } from '@/lib/notify'
+import { queueNotification, dispatchAfterResponse, sendTemplatedEmail } from '@/lib/notify'
 import { siteUrl } from '@/lib/site-url'
 import { normalizePhone } from '@/lib/phone'
 import { sendWhatsappMagicLink } from '@/lib/magic-link'
@@ -96,7 +96,7 @@ export async function setRsvp(eventId: string, slug: string, status: RsvpStatus)
   // rsvp_set may promote someone off the waitlist, which queues a
   // waitlist_promoted notification (0003) - send it now instead of leaving
   // it queued forever.
-  await dispatchQueuedNotifications(supabase)
+  dispatchAfterResponse(supabase)
   revalidatePath(`/e/${slug}`)
 }
 
@@ -181,7 +181,7 @@ export async function promoteNextWaitlisted(eventId: string, slug: string) {
   if (error) throw new Error(error.message)
   const { error: promoteErr } = await supabase.rpc('promote_waitlist', { eid: eventId })
   if (promoteErr) throw new Error(promoteErr.message)
-  await dispatchQueuedNotifications(supabase)
+  dispatchAfterResponse(supabase)
   revalidatePath(`/e/${slug}`)
 }
 
@@ -532,7 +532,7 @@ export async function decideJoinRequest(reqId: string, clubSlug: string, approve
       template: approve ? 'join_request_approved' : 'join_request_declined',
       vars: { club: clubName, link: siteUrl() },
     })
-    await dispatchQueuedNotifications(supabase)
+    dispatchAfterResponse(supabase)
   }
   revalidatePath('/admin')
   revalidatePath(`/club/${clubSlug}`)
@@ -568,7 +568,7 @@ export async function decideChangeRequest(reqId: string, clubSlug: string, appro
       template: approve ? 'change_request_approved' : 'change_request_declined',
       vars: { club: clubName, summary: CHANGE_REQUEST_SUMMARY[req.kind] ?? req.kind },
     })
-    await dispatchQueuedNotifications(supabase)
+    dispatchAfterResponse(supabase)
   }
   revalidatePath('/admin')
   revalidatePath(`/club/${clubSlug}`)
@@ -727,7 +727,7 @@ export async function createEvent(
       vars: { creator: creator?.display_name ?? 'Alguien', title, club: clubRow?.name ?? 'tu club', link },
     })
   }
-  await dispatchQueuedNotifications(supabase)
+  dispatchAfterResponse(supabase)
   redirect(`/e/${slug}`)
 }
 
@@ -908,7 +908,7 @@ export async function recordSettlement(
       link: `${siteUrl()}/e/${slug}`,
     },
   })
-  await dispatchQueuedNotifications(supabase)
+  dispatchAfterResponse(supabase)
   revalidatePath(`/e/${slug}`)
   revalidatePath('/plate')
   revalidatePath('/')
@@ -937,7 +937,7 @@ export async function confirmSettlement(id: string, slug: string) {
         event: (row.events as unknown as { title: string } | null)?.title ?? 'un evento',
       },
     })
-    await dispatchQueuedNotifications(supabase)
+    dispatchAfterResponse(supabase)
   }
   revalidatePath(`/e/${slug}`)
   revalidatePath('/plate')
