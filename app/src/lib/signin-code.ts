@@ -74,7 +74,7 @@ export async function requestSigninCode(phone: string): Promise<CodeRequest> {
   // vanished leaving nothing behind, because the row was only written after
   // the part that failed. A row that exists first can be stuck, and a stuck
   // row is a fact you can read; silence is not.
-  const { data: logged } = await db
+  const { data: logged, error: logErr } = await db
     .from('notification_outbox')
     .insert({
       user_id: user.id,
@@ -87,6 +87,14 @@ export async function requestSigninCode(phone: string): Promise<CodeRequest> {
     })
     .select('id')
     .single()
+  // This insert failing is how four sign-ins vanished without a trace: the
+  // outbox has a foreign key on (channel, template) and signin_code had no
+  // row to point at. An unchecked error on the thing whose job is to record
+  // errors is worth failing loudly for.
+  if (logErr) {
+    await db.from('signin_codes').delete().eq('user_id', user.id)
+    return { ok: false, error: 'No pudimos registrar el envío. Intenta con tu correo.' }
+  }
 
   // Delivery is three sequential calls to Zernio, seconds each, and putting
   // that in front of the member means they watch a spinner for the length of
