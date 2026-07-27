@@ -72,7 +72,16 @@ export function Icon({
   className?: string
   label?: string
 }) {
-  const [w, h, d] = PATHS[name]
+  // An unratified name used to destructure undefined and throw, which takes
+  // the whole screen down over a missing glyph. A design handover will always
+  // arrive naming icons this set does not have yet, so it degrades to the
+  // brand mark and says which name was missing instead of crashing.
+  const glyph = PATHS[name]
+  if (!glyph) {
+    if (process.env.NODE_ENV !== 'production') console.warn(`[Icon] glifo desconocido: "${name}"`)
+    return <Icon name="bugs" size={size} className={className} label={label} />
+  }
+  const [w, h, d] = glyph
   return (
     <svg
       width={size}
