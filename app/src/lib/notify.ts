@@ -99,10 +99,36 @@ export async function queueNotification(
     .insert(channels.map((channel) => ({ user_id: userId, channel, template, payload: vars })))
 }
 
+// Records a send that never passed through the queue. Direct sends go to
+// people with no account, so the row identifies them by address instead of by
+// user_id. The payload stays empty on purpose: the only interesting variable
+// on an invitation is the link, and that link is a bearer credential for
+// claiming the invitation, exactly like the magic link.
+type SendResult = { ok: true; providerRef?: string } | { ok: false; skipped: boolean; error: string }
+
+async function recordDirectSend(
+  supabase: SupabaseClient,
+  { channel, template, destination, result }: { channel: 'email' | 'whatsapp'; template: TemplateKey; destination: string; result: SendResult }
+) {
+  const handedOff = result.ok && !!result.providerRef
+  await pipelineDb(supabase)
+    .from('notification_outbox')
+    .insert({
+      user_id: null,
+      destination,
+      channel,
+      template,
+      payload: {},
+      status: result.ok ? (handedOff ? 'pending' : 'sent') : result.skipped ? 'logged' : 'failed',
+      provider_ref: handedOff ? result.providerRef : null,
+      sent_at: result.ok && !handedOff ? new Date().toISOString() : null,
+      error: result.ok ? null : result.error,
+    })
+}
+
 // Direct send against a CMS template, for recipients who don't have a
-// `users` row yet (invitations) - so it can't go through the outbox, whose
-// user_id is a hard FK. Same template source as the queued path, so editing
-// the "invitation" template in the admin CMS covers both.
+// `users` row yet (invitations). Same template source as the queued path, so
+// editing the "invitation" template in the admin CMS covers both.
 export async function sendTemplatedEmail(
   supabase: SupabaseClient,
   { to, template, vars }: { to: string; template: TemplateKey; vars: Record<string, string> }
@@ -111,16 +137,19 @@ export async function sendTemplatedEmail(
   if (!tpl) return { ok: false as const, skipped: true as const, error: 'sin plantilla' }
   const subject = renderTemplate(tpl.subject ?? 'Hive', vars)
   const html = renderTemplate(tpl.body, vars).replace(/\n/g, '<br>')
-  return sendEmail({ to, subject, html })
+  const result = await sendEmail({ to, subject, html })
+  await recordDirectSend(supabase, { channel: 'email', template, destination: to, result })
+  return result
 }
 
 // The WhatsApp twin of sendTemplatedEmail, for the same reason: an invitee
-// has no `users` row yet and notification_outbox.user_id is a hard FK, so
-// this cannot go through the outbox. The cost is that invitations are the one
-// thing the admin log cannot show, on either channel.
+// has no `users` row yet, so this cannot be queued and preference-checked
+// like a notification to a member. It still lands in the outbox afterwards,
+// identified by destination rather than by user.
 //
 // Meta only delivers templates it has reviewed, and the dispatcher checks
-// that before sending. This path has no dispatcher, so it checks here.
+// that before sending. This path has no dispatcher, so it checks here, and
+// records the skip so an unapproved template is visible rather than silent.
 export async function sendTemplatedWhatsapp(
   supabase: SupabaseClient,
   { to, template, vars }: { to: string; template: TemplateKey; vars: Record<string, string> }
@@ -133,9 +162,11 @@ export async function sendTemplatedWhatsapp(
     .maybeSingle()
   if (!tpl) return { ok: false as const, skipped: true as const, error: 'sin plantilla' }
   if (tpl.wa_status !== 'approved') {
-    return { ok: false as const, skipped: true as const, error: 'plantilla de WhatsApp sin aprobar' }
+    const skipped = { ok: false as const, skipped: true as const, error: 'plantilla de WhatsApp sin aprobar' }
+    await recordDirectSend(supabase, { channel: 'whatsapp', template, destination: to, result: skipped })
+    return skipped
   }
-  return sendWhatsapp({
+  const result = await sendWhatsapp({
     to,
     templateName: template,
     language: tpl.wa_language ?? 'es_MX',
@@ -143,6 +174,8 @@ export async function sendTemplatedWhatsapp(
     variables: vars,
     body: renderTemplate(tpl.body, vars),
   })
+  await recordDirectSend(supabase, { channel: 'whatsapp', template, destination: to, result })
+  return result
 }
 
 // Pulls queued rows (small table at this app's scale, no worker needed) and

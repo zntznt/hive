@@ -63,7 +63,7 @@ export default async function AdminPage() {
       supabase.from('users').select('*').order('created_at', { ascending: false }),
       supabase
         .from('notification_outbox')
-        .select('id, created_at, channel, template, status, sent_at, error, provider_ref, users(display_name, email, phone_whatsapp)')
+        .select('id, created_at, channel, template, status, sent_at, error, provider_ref, destination, users(display_name, email, phone_whatsapp)')
         .order('created_at', { ascending: false })
         .limit(40),
       supabase.from('notification_templates').select('*').order('key'),
@@ -82,8 +82,14 @@ export default async function AdminPage() {
         error: row.error,
         provider_ref: row.provider_ref,
         // whichever address this row was actually aimed at
+        // destination is where it actually went, which survives a member
+        // later changing their number; the user lookup is the fallback for
+        // rows written before that column existed
         recipient:
-          (row.channel === 'whatsapp' ? u?.phone_whatsapp : u?.email) ?? u?.display_name ?? 'sin destinatario',
+          row.destination ??
+          (row.channel === 'whatsapp' ? u?.phone_whatsapp : u?.email) ??
+          u?.display_name ??
+          'sin destinatario',
       }
     }) as OutboxRow[]
     templates = tplRows ?? []
