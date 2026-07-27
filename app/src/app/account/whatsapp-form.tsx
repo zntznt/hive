@@ -24,8 +24,14 @@ export default function WhatsappForm({ phone }: { phone: string | null }) {
     try {
       const fd = new FormData()
       fd.set('phone', next)
-      await updateWhatsappPhone(fd)
-      toast(next ? 'WhatsApp actualizado' : 'WhatsApp quitado')
+      const res = await updateWhatsappPhone(fd)
+      toast(
+        !next
+          ? 'WhatsApp quitado'
+          : res?.enabledWhatsapp
+            ? 'Listo, ya te avisamos por WhatsApp'
+            : 'WhatsApp actualizado'
+      )
       setOpen(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar.')
@@ -62,7 +68,7 @@ export default function WhatsappForm({ phone }: { phone: string | null }) {
             onChange={(e) => setValue(e.target.value)}
           />
           <p className="text-xs text-ink-300">
-            Lo usamos para mandarte avisos por WhatsApp.
+            Al agregarlo activamos los avisos por WhatsApp. Puedes ajustarlos abajo.
           </p>
           {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
           <div className="flex items-center gap-2">

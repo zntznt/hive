@@ -1130,12 +1130,28 @@ export async function updateWhatsappPhone(formData: FormData) {
     if (!phone) throw new Error('Ese número no parece válido. Usa 10 dígitos, por ejemplo 55 1234 5678.')
   }
 
-  const { error } = await supabase.from('users').update({ phone_whatsapp: phone }).eq('id', user.id)
+  // Adding a number is a clear enough request to be messaged there, and
+  // notif_whatsapp defaults to false, so without this a member saves their
+  // number, sees "activo", and still hears nothing. Only on the transition
+  // from no number to a number: someone editing a number they already had
+  // may have turned WhatsApp off deliberately, and that choice stands.
+  const { data: before } = await supabase
+    .from('users')
+    .select('phone_whatsapp')
+    .eq('id', user.id)
+    .maybeSingle()
+  const firstNumber = !!phone && !before?.phone_whatsapp
+
+  const { error } = await supabase
+    .from('users')
+    .update(firstNumber ? { phone_whatsapp: phone, notif_whatsapp: true } : { phone_whatsapp: phone })
+    .eq('id', user.id)
   if (error) {
     if (error.code === '23505') throw new Error('Ese número ya está registrado en otra cuenta.')
     throw new Error(error.message)
   }
   revalidatePath('/account')
+  return { enabledWhatsapp: firstNumber }
 }
 
 export async function savePaymentMethods(formData: FormData) {
