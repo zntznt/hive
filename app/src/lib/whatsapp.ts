@@ -10,9 +10,16 @@
 const BASE = process.env.ZERNIO_API_BASE || 'https://zernio.com/api/v1'
 
 type Result =
-  | { ok: true }
+  // the broadcast was handed over; whether Meta accepts it is not known yet
+  | { ok: true; providerRef: string }
   | { ok: false; skipped: true; error: string }
   | { ok: false; skipped: false; error: string }
+
+// What Zernio says about a broadcast we already handed over.
+export type BroadcastVerdict =
+  | { state: 'sent' }
+  | { state: 'failed'; reason: string }
+  | { state: 'pending' }
 
 function config() {
   const apiKey = process.env.ZERNIO_API_KEY
@@ -136,26 +143,29 @@ async function failureReason(apiKey: string, id: string): Promise<string | null>
   }
 }
 
-// Polls a broadcast until it stops moving. Returns 'failed' only when Meta
-// actually rejected it; an inconclusive poll returns 'pending' and the caller
-// treats it as sent, so a slow broadcast is never reported as a failure.
-async function settled(apiKey: string, id: string): Promise<'failed' | 'done' | 'pending'> {
-  for (const wait of [600, 900, 1400, 2000]) {
-    await new Promise((r) => setTimeout(r, wait))
-    try {
-      const res = await call(apiKey, `/broadcasts/${id}`)
-      const b = (res.broadcast ?? res) as unknown as { status?: string; failedCount?: number; sentCount?: number }
-      const status = String(b.status ?? '')
-      if (status === 'failed') return 'failed'
-      if (status === 'completed' || status === 'sent') {
-        return (b.failedCount ?? 0) > 0 && (b.sentCount ?? 0) === 0 ? 'failed' : 'done'
-      }
-    } catch {
-      // a failed status read is not a failed send
-      return 'pending'
+// One look at a broadcast we already handed over. Anything short of a clear
+// verdict stays 'pending' and gets asked again later, so a slow broadcast is
+// never recorded as a failure and a status read that itself errors is not
+// treated as one either.
+export async function checkBroadcast(id: string): Promise<BroadcastVerdict> {
+  const cfg = config()
+  if (!cfg) return { state: 'pending' }
+  try {
+    const res = await call(cfg.apiKey, `/broadcasts/${id}`)
+    const b = (res.broadcast ?? res) as unknown as { status?: string; failedCount?: number; sentCount?: number }
+    const status = String(b.status ?? '')
+    const failed = b.failedCount ?? 0
+    const sent = b.sentCount ?? 0
+
+    if (status === 'failed' || (failed > 0 && sent === 0)) {
+      const reason = await failureReason(cfg.apiKey, id)
+      return { state: 'failed', reason: reason ?? 'WhatsApp no dio un motivo' }
     }
+    if (status === 'completed' || status === 'sent') return { state: 'sent' }
+    return { state: 'pending' }
+  } catch {
+    return { state: 'pending' }
   }
-  return 'pending'
 }
 
 export async function sendWhatsapp({
@@ -225,24 +235,12 @@ export async function sendWhatsapp({
     await call(cfg.apiKey, `/broadcasts/${id}/recipients`, { method: 'POST', body: { phones: [to] } })
     await call(cfg.apiKey, `/broadcasts/${id}/send`, { method: 'POST', body: {} })
 
-    // /send only means Zernio accepted the job. Meta can still refuse, and
-    // does: it blocks business-initiated conversations while the business is
-    // unverified or its payment method is failing, which is invisible here
-    // unless we look. The broadcast resolves in about a second, so wait for a
-    // verdict rather than reporting a send that never happened. Dispatch runs
-    // after the response now, so these seconds cost the member nothing.
-    const verdict = await settled(cfg.apiKey, id)
-    if (verdict === 'failed') {
-      const reason = await failureReason(cfg.apiKey, id)
-      return {
-        ok: false,
-        skipped: false,
-        error: reason
-          ? `WhatsApp rechazó el envío: ${reason} (broadcast ${id})`
-          : `WhatsApp rechazó el envío sin dar motivo (broadcast ${id})`,
-      }
-    }
-    return { ok: true }
+    // Deliberately not waiting for the outcome. A broadcast takes about ten
+    // seconds to resolve, which is longer than the function is allowed to
+    // live, and blocking on it got an invocation killed after the message had
+    // gone out but before the row was updated. Hand back the id instead and
+    // let checkBroadcast decide later.
+    return { ok: true, providerRef: id }
   } catch (e) {
     return { ok: false, skipped: false, error: e instanceof Error ? e.message : 'Error desconocido de Zernio' }
   }

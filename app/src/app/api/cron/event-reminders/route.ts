@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
-import { queueNotification, dispatchQueuedNotifications } from '@/lib/notify'
+import { queueNotification, dispatchQueuedNotifications, reconcileHandoffs } from '@/lib/notify'
 import { siteUrl } from '@/lib/site-url'
 
 // Day-of reminder. Every other notification is queued by something a member
@@ -97,6 +97,9 @@ export async function GET(request: Request) {
     }
   }
 
+  // the daily backstop: resolve anything still waiting on a verdict, then
+  // send today's reminders
+  await reconcileHandoffs(db, 100)
   await dispatchQueuedNotifications(db, 100)
   return NextResponse.json({ events: (events ?? []).length, queued, skipped: skipped.length })
 }

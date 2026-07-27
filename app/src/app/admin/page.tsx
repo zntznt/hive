@@ -46,7 +46,7 @@ export default async function AdminPage() {
   ])
 
   let users: Profile[] = []
-  const counts: Record<string, number> = { queued: 0, sent: 0, failed: 0, logged: 0 }
+  const counts: Record<string, number> = { queued: 0, pending: 0, sent: 0, failed: 0, logged: 0 }
   let templates: {
     channel: string
     key: string
@@ -216,7 +216,8 @@ export default async function AdminPage() {
           <section className="mb-8">
             <SectionHeader>Mensajes salientes</SectionHeader>
             <p className="text-sm text-ink-700">
-              en cola {counts.queued} · enviados {counts.sent} · registrados {counts.logged} ·{' '}
+              en cola {counts.queued} · esperando confirmación {counts.pending} · enviados {counts.sent} ·{' '}
+              registrados {counts.logged} ·{' '}
               <span className={counts.failed ? 'font-bold text-danger' : ''}>fallos {counts.failed}</span>
             </p>
           </section>

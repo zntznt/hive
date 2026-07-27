@@ -91,8 +91,10 @@ export async function sendWhatsappMagicLink(phone: string, next?: string | null)
     channel: 'whatsapp',
     template: 'magic_link',
     payload: { requested_at: new Date().toISOString(), next: path },
-    status: sent.ok ? 'sent' : sent.skipped ? 'logged' : 'failed',
-    sent_at: sent.ok ? new Date().toISOString() : null,
+    // handed to Zernio, verdict unknown until reconcileHandoffs asks
+    status: sent.ok ? 'pending' : sent.skipped ? 'logged' : 'failed',
+    provider_ref: sent.ok ? sent.providerRef : null,
+    sent_at: null,
     error: sent.ok ? null : sent.error,
   })
 

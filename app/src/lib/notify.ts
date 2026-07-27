@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendEmail } from './email'
-import { sendWhatsapp } from './whatsapp'
+import { sendWhatsapp, checkBroadcast } from './whatsapp'
 import { supabaseService } from './supabase/service'
 import { after } from 'next/server'
 
@@ -185,12 +185,49 @@ export async function dispatchQueuedNotifications(supabase: SupabaseClient, limi
             body,
           })
 
+    // A WhatsApp send is a handoff, not a delivery: Zernio takes about ten
+    // seconds to learn what Meta decided. The row records the broadcast id and
+    // parks in 'pending' so reconcileHandoffs can ask later. Crucially
+    // 'pending' is not 'queued', so a row whose verdict never arrives is never
+    // sent a second time. Email is synchronous and still settles here.
+    const handedOff = result.ok && 'providerRef' in result
     await db
       .from('notification_outbox')
       .update(
         result.ok
-          ? { status: 'sent', sent_at: new Date().toISOString(), error: null }
+          ? handedOff
+            ? { status: 'pending', provider_ref: result.providerRef, error: null }
+            : { status: 'sent', sent_at: new Date().toISOString(), error: null }
           : { status: result.skipped ? 'logged' : 'failed', error: result.error }
+      )
+      .eq('id', row.id)
+  }
+}
+
+// Asks the provider what became of sends we handed over earlier. Runs before
+// each dispatch and from the daily cron, so a verdict lands within seconds in
+// normal use and within a day at worst. Rows with no verdict yet are simply
+// left alone and asked again next time.
+export async function reconcileHandoffs(supabase: SupabaseClient, limit = 15) {
+  const db = pipelineDb(supabase)
+  const { data: rows } = await db
+    .from('notification_outbox')
+    .select('id, provider_ref')
+    .eq('status', 'pending')
+    .not('provider_ref', 'is', null)
+    .order('created_at', { ascending: true })
+    .limit(limit)
+  if (!rows?.length) return
+
+  for (const row of rows) {
+    const verdict = await checkBroadcast(row.provider_ref as string)
+    if (verdict.state === 'pending') continue
+    await db
+      .from('notification_outbox')
+      .update(
+        verdict.state === 'sent'
+          ? { status: 'sent', sent_at: new Date().toISOString(), error: null }
+          : { status: 'failed', error: verdict.reason }
       )
       .eq('id', row.id)
   }
@@ -206,6 +243,8 @@ export async function dispatchQueuedNotifications(supabase: SupabaseClient, limi
 export function dispatchAfterResponse(supabase: SupabaseClient, limit = 20) {
   after(async () => {
     try {
+      // resolve the previous batch's handoffs before adding to the pile
+      await reconcileHandoffs(supabase)
       await dispatchQueuedNotifications(supabase, limit)
     } catch (e) {
       console.error('[notify] dispatch tras la respuesta falló', e)
