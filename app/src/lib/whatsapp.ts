@@ -119,6 +119,23 @@ export async function listWhatsappTemplates(): Promise<
   }
 }
 
+// Why the send failed, in Meta's own words. The broadcast record itself only
+// carries a count, but each recipient row carries the real reason, and that
+// distinction cost hours: a parameter-shape bug of ours sat behind an error
+// message that blamed business verification, so we went looking at Meta
+// instead of at our own payload. Never guess a cause the provider will tell
+// you if asked.
+async function failureReason(apiKey: string, id: string): Promise<string | null> {
+  try {
+    const res = await call(apiKey, `/broadcasts/${id}/recipients`)
+    const list = (res.recipients ?? []) as unknown as { status?: string; error?: string }[]
+    const failed = list.find((r) => r.status === 'failed' && r.error)
+    return failed?.error ?? null
+  } catch {
+    return null
+  }
+}
+
 // Polls a broadcast until it stops moving. Returns 'failed' only when Meta
 // actually rejected it; an inconclusive poll returns 'pending' and the caller
 // treats it as sent, so a slow broadcast is never reported as a failure.
@@ -173,8 +190,18 @@ export async function sendWhatsapp({
         template: {
           name: templateName,
           language,
-          // positional, in the order the template was submitted
-          parameters: vars.map((v) => variables[v] ?? ''),
+          // Meta's own component shape, which is the only one Zernio keeps.
+          // A flat `parameters` array (or a `variables` array) is accepted
+          // with a 200 and then silently stored as components: [], so the
+          // send reaches Meta carrying no variables at all and is rejected
+          // with "Template parameter count mismatch".
+          components: [
+            {
+              type: 'body',
+              // positional, in the order the template was submitted
+              parameters: vars.map((v) => ({ type: 'text', text: variables[v] ?? '' })),
+            },
+          ],
         },
         message: { text: body },
       },
@@ -206,12 +233,13 @@ export async function sendWhatsapp({
     // after the response now, so these seconds cost the member nothing.
     const verdict = await settled(cfg.apiKey, id)
     if (verdict === 'failed') {
+      const reason = await failureReason(cfg.apiKey, id)
       return {
         ok: false,
         skipped: false,
-        error:
-          `Meta rechazó el envío (broadcast ${id}). Suele ser verificación del ` +
-          `negocio o método de pago en WhatsApp Business.`,
+        error: reason
+          ? `WhatsApp rechazó el envío: ${reason} (broadcast ${id})`
+          : `WhatsApp rechazó el envío sin dar motivo (broadcast ${id})`,
       }
     }
     return { ok: true }
