@@ -11,6 +11,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { TemplateRow, TemplateSyncBar } from './template-row'
+import OutboxLog, { type OutboxRow } from './outbox-log'
 
 const CHANGE_KIND_LABEL: Record<string, string> = {
   about: 'Acerca de',
@@ -47,6 +48,7 @@ export default async function AdminPage() {
 
   let users: Profile[] = []
   const counts: Record<string, number> = { queued: 0, pending: 0, sent: 0, failed: 0, logged: 0 }
+  let outboxRows: OutboxRow[] = []
   let templates: {
     channel: string
     key: string
@@ -59,11 +61,31 @@ export default async function AdminPage() {
   if (profile.is_app_admin) {
     const [{ data: userRows }, { data: outbox }, { data: tplRows }] = await Promise.all([
       supabase.from('users').select('*').order('created_at', { ascending: false }),
-      supabase.from('notification_outbox').select('status'),
+      supabase
+        .from('notification_outbox')
+        .select('id, created_at, channel, template, status, sent_at, error, provider_ref, users(display_name, email, phone_whatsapp)')
+        .order('created_at', { ascending: false })
+        .limit(40),
       supabase.from('notification_templates').select('*').order('key'),
     ])
     users = (userRows ?? []) as Profile[]
     for (const row of outbox ?? []) counts[row.status] = (counts[row.status] ?? 0) + 1
+    outboxRows = (outbox ?? []).map((row) => {
+      const u = row.users as unknown as { display_name?: string; email?: string; phone_whatsapp?: string } | null
+      return {
+        id: row.id,
+        created_at: row.created_at,
+        channel: row.channel,
+        template: row.template,
+        status: row.status,
+        sent_at: row.sent_at,
+        error: row.error,
+        provider_ref: row.provider_ref,
+        // whichever address this row was actually aimed at
+        recipient:
+          (row.channel === 'whatsapp' ? u?.phone_whatsapp : u?.email) ?? u?.display_name ?? 'sin destinatario',
+      }
+    }) as OutboxRow[]
     templates = tplRows ?? []
   }
   const pendingUsers = users.filter((u) => u.status === 'pending')
@@ -220,6 +242,7 @@ export default async function AdminPage() {
               registrados {counts.logged} ·{' '}
               <span className={counts.failed ? 'font-bold text-danger' : ''}>fallos {counts.failed}</span>
             </p>
+            <OutboxLog rows={outboxRows} />
           </section>
 
           <section>

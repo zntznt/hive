@@ -1240,3 +1240,108 @@ export async function remindNonResponders(eventId: string, slug: string) {
   revalidatePath(`/e/${slug}`)
   return { queued }
 }
+
+// "Igual que la última vez": the recurring-club workhorse. Copies an event's
+// setup into a fresh one so a weekly club never re-enters the same details.
+//
+// What carries over is the setup: title, place, category, capacity rules, the
+// scheduling window and the list of things people bring. What does not is
+// anything that belonged to that particular night: RSVPs, availability,
+// expenses, polls, guests.
+//
+// Contribution assignments are deliberately cleared. Copying "Marta trae la
+// mesa" onto a date Marta has not agreed to yet would commit her to something
+// she never said yes to. The list is the useful part; the claims are cheap to
+// redo and belong to the people making them.
+export async function duplicateEvent(eventId: string) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
+
+  const { data: src } = await supabase.from('events').select('*').eq('id', eventId).maybeSingle()
+  if (!src) throw new Error('No encontramos ese evento.')
+
+  const { randomSlug } = await import('@/lib/slug')
+  const slug = randomSlug()
+
+  // Push the old scheduling window forward in whole weeks until it starts in
+  // the future. Clubs meet on a weekday ("Los Jueves"), so keeping the weekday
+  // is what makes the copy feel right; the organizer can still change it.
+  const { sched_start_date, sched_end_date } = src as { sched_start_date: string | null; sched_end_date: string | null }
+  let startDate = sched_start_date
+  let endDate = sched_end_date
+  if (startDate) {
+    const today = new Date()
+    today.setUTCHours(0, 0, 0, 0)
+    const start = new Date(`${startDate}T00:00:00Z`)
+    const span = endDate ? (new Date(`${endDate}T00:00:00Z`).getTime() - start.getTime()) / 86_400_000 : 0
+    while (start <= today) start.setUTCDate(start.getUTCDate() + 7)
+    startDate = start.toISOString().slice(0, 10)
+    const end = new Date(start.getTime() + span * 86_400_000)
+    endDate = end.toISOString().slice(0, 10)
+  }
+
+  const { data: created, error } = await supabase
+    .from('events')
+    .insert({
+      club_id: src.club_id,
+      category_id: src.category_id,
+      slug,
+      title: src.title,
+      location: src.location,
+      description: src.description,
+      status: 'scheduling',
+      organizer_user_id: user.id,
+      join_policy: src.join_policy,
+      allow_guests: src.allow_guests,
+      capacity: src.capacity,
+      waitlist_enabled: src.waitlist_enabled,
+      // deadlines belong to a specific date, so the copy starts without one
+      confirm_deadline: null,
+      sched_start_date: startDate,
+      sched_end_date: endDate,
+      sched_time_min: src.sched_time_min,
+      sched_time_max: src.sched_time_max,
+      sched_slot_minutes: src.sched_slot_minutes,
+    })
+    .select('id')
+    .single()
+  if (error || !created) throw new Error('No se pudo duplicar el evento.')
+
+  const { data: items } = await supabase
+    .from('contributions')
+    .select('title, qty, kind')
+    .eq('event_id', eventId)
+  if (items?.length) {
+    await supabase.from('contributions').insert(
+      items.map((i) => ({
+        event_id: created.id,
+        title: i.title,
+        qty: i.qty,
+        kind: i.kind,
+        created_by: user.id,
+        assigned_to: null,
+      }))
+    )
+  }
+
+  // a duplicate is a new event to everyone else, so the club hears about it
+  // on the same terms as one created from scratch
+  const [{ data: fellows }, { data: creator }, { data: clubRow }] = await Promise.all([
+    supabase.from('club_members').select('user_id').eq('club_id', src.club_id).neq('user_id', user.id),
+    supabase.from('users').select('display_name').eq('id', user.id).single(),
+    supabase.from('clubs').select('name').eq('id', src.club_id).single(),
+  ])
+  const link = `${siteUrl()}/e/${slug}`
+  for (const m of fellows ?? []) {
+    await queueNotification(supabase, {
+      userId: m.user_id,
+      template: 'new_event',
+      vars: { creator: creator?.display_name ?? 'Alguien', title: src.title, club: clubRow?.name ?? 'tu club', link },
+    })
+  }
+  dispatchAfterResponse(supabase)
+  redirect(`/e/${slug}`)
+}

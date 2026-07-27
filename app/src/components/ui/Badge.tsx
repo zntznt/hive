@@ -5,6 +5,9 @@ const SKIN = {
   admin: 'bg-honey-100 text-honey-800',
   active: 'bg-success-bg text-success',
   pending: 'bg-warning-bg text-warning',
+  // same skin as disabled, kept separate because a failed message is not a
+  // deactivated thing and the call site should be able to say which it means
+  danger: 'bg-danger-bg text-danger',
   disabled: 'bg-danger-bg text-danger',
 }
 
