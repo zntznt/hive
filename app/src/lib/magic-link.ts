@@ -74,6 +74,15 @@ export async function sendWhatsappMagicLink(phone: string, next?: string | null)
     .maybeSingle()
   if (!tpl) return { ok: false, error: 'Falta la plantilla de WhatsApp.' }
 
+  // Meta only serves templates it has reviewed, and answers "Template not
+  // found" for the rest. Every other send path checks this; without it here a
+  // member was told to check WhatsApp for a link that was never going to
+  // arrive, which locks out exactly the person trying to get in. Say so
+  // instead, and point at the channel that works.
+  if (tpl.wa_status !== 'approved') {
+    return { ok: false, error: 'Por ahora no podemos mandarte el enlace por WhatsApp. Entra con tu correo.' }
+  }
+
   const vars = { name: user.display_name ?? '', link: actionLink }
   const sent = await sendWhatsapp({
     to: phone,
