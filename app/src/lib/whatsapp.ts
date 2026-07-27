@@ -33,9 +33,16 @@ export function whatsappConfigured() {
   return config() !== null
 }
 
+// fetch has no default timeout, so a provider that never answers holds the
+// request open until the platform kills the whole invocation. That is how a
+// sign-in got stuck on "Enviando…" with no error: the action never returned.
+// Better to fail in seconds and say so.
+const CALL_TIMEOUT_MS = 6000
+
 async function call(apiKey: string, path: string, init?: { method?: string; body?: unknown }) {
   const res = await fetch(`${BASE}${path}`, {
     method: init?.method ?? 'GET',
+    signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
     headers: {
       Authorization: `Bearer ${apiKey}`,
       ...(init?.body === undefined ? {} : { 'Content-Type': 'application/json' }),

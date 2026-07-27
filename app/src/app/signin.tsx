@@ -58,22 +58,27 @@ export default function SignIn() {
     setError(null)
 
     const byEmail = looksLikeEmail(value)
-    // The WhatsApp link is minted server-side and delivered through Zernio,
-    // so it never touches the browser Supabase client.
-    const result = byEmail
-      ? await supabaseBrowser().auth.signInWithOtp({
-          email: value,
-          options: { emailRedirectTo: `${authOrigin()}/auth/callback` },
-        })
-      : await requestWhatsappCode(value)
+    try {
+      // The WhatsApp code is generated and sent server-side, so it never
+      // touches the browser Supabase client.
+      const result = byEmail
+        ? await supabaseBrowser().auth.signInWithOtp({
+            email: value,
+            options: { emailRedirectTo: `${authOrigin()}/auth/callback` },
+          })
+        : await requestWhatsappCode(value)
 
-    setSending(false)
-    if ('error' in result && result.error) {
-      setError(humanize(typeof result.error === 'string' ? result.error : result.error.message))
-      return
+      if ('error' in result && result.error) {
+        setError(humanize(typeof result.error === 'string' ? result.error : result.error.message))
+        return
+      }
+      setViaWhatsapp(!byEmail)
+      setSent(true)
+    } catch {
+      setError('No pudimos completar el envío. Revisa tu conexión e intenta de nuevo.')
+    } finally {
+      setSending(false)
     }
-    setViaWhatsapp(!byEmail)
-    setSent(true)
   }
 
   async function confirm(e: React.FormEvent) {
@@ -81,15 +86,20 @@ export default function SignIn() {
     if (sending) return
     setSending(true)
     setError(null)
-    const res = await verifyWhatsappCode(contact.trim(), code)
-    setSending(false)
-    if (!res.ok) {
-      setError(res.error)
-      setCode('')
-      return
+    try {
+      const res = await verifyWhatsappCode(contact.trim(), code)
+      if (!res.ok) {
+        setError(res.error)
+        setCode('')
+        return
+      }
+      // the session cookie is already written; a full load picks it up
+      window.location.assign(res.next)
+    } catch {
+      setError('No pudimos completar el envío. Revisa tu conexión e intenta de nuevo.')
+    } finally {
+      setSending(false)
     }
-    // the session cookie is already written; a full load picks it up
-    window.location.assign(res.next)
   }
 
   return (

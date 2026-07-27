@@ -96,6 +96,10 @@ export async function requestSigninCode(phone: string): Promise<CodeRequest> {
   })
 
   if (!sent.ok && !sent.skipped) {
+    // The code row is also the throttle. Leaving it behind after a failed
+    // send would lock the member out for a minute over a message that never
+    // existed, so a failure clears it and they can try again at once.
+    await db.from('signin_codes').delete().eq('user_id', user.id)
     return { ok: false, error: 'No pudimos mandar el código. Intenta con tu correo.' }
   }
   return { ok: true }
