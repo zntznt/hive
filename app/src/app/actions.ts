@@ -6,6 +6,8 @@ import { supabaseServer } from '@/lib/supabase/server'
 import type { RsvpStatus } from '@/lib/types'
 import { queueNotification, dispatchQueuedNotifications, sendTemplatedEmail } from '@/lib/notify'
 import { siteUrl } from '@/lib/site-url'
+import { normalizePhone } from '@/lib/phone'
+import { sendWhatsappMagicLink } from '@/lib/magic-link'
 
 type Supabase = Awaited<ReturnType<typeof supabaseServer>>
 
@@ -1187,4 +1189,13 @@ export async function removeSavedPlace(id: string) {
   const { error } = await supabase.from('saved_places').delete().eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath('/account')
+}
+
+// Sign-in link over WhatsApp. Unauthenticated by design (nobody has a session
+// yet), so it takes a phone number and nothing else, normalizes it here rather
+// than trusting the client, and never reports whether the number is known.
+export async function requestWhatsappLink(rawPhone: string, next?: string | null) {
+  const phone = normalizePhone(rawPhone)
+  if (!phone) return { ok: false as const, error: 'Ese número no se ve completo. Incluye la clave, por ejemplo +52 55 1234 5678.' }
+  return sendWhatsappMagicLink(phone, next)
 }

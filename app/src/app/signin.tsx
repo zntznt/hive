@@ -6,6 +6,14 @@ import { Button } from '@/components/ui/Button'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { BeeLoader } from '@/components/ui/BeeLoader'
 import { authOrigin } from '@/lib/site-url'
+import { requestWhatsappLink } from './actions'
+
+// One field takes either a correo or a WhatsApp number (wireframe 1). '@' is
+// the only reliable tell: Mexican numbers are written with spaces, dashes,
+// parentheses and an optional +52, none of which appear in an address.
+function looksLikeEmail(v: string) {
+  return v.includes('@')
+}
 
 function humanize(raw: string) {
   const s = raw.toLowerCase()
@@ -17,10 +25,11 @@ function humanize(raw: string) {
 }
 
 export default function SignIn() {
-  const [email, setEmail] = useState('')
+  const [contact, setContact] = useState('')
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [viaWhatsapp, setViaWhatsapp] = useState(false)
 
   // surface auth errors from the callback redirect (?auth_error=) and from
   // GoTrue fragment-style errors (#error_code=otp_expired…). window.location
@@ -42,15 +51,28 @@ export default function SignIn() {
   async function send(e: React.FormEvent) {
     e.preventDefault()
     if (sending) return
+    const value = contact.trim()
+    if (!value) return
     setSending(true)
     setError(null)
-    const { error } = await supabaseBrowser().auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${authOrigin()}/auth/callback` },
-    })
+
+    const byEmail = looksLikeEmail(value)
+    // The WhatsApp link is minted server-side and delivered through Zernio,
+    // so it never touches the browser Supabase client.
+    const result = byEmail
+      ? await supabaseBrowser().auth.signInWithOtp({
+          email: value,
+          options: { emailRedirectTo: `${authOrigin()}/auth/callback` },
+        })
+      : await requestWhatsappLink(value)
+
     setSending(false)
-    if (error) setError(humanize(error.message))
-    else setSent(true)
+    if ('error' in result && result.error) {
+      setError(humanize(typeof result.error === 'string' ? result.error : result.error.message))
+      return
+    }
+    setViaWhatsapp(!byEmail)
+    setSent(true)
   }
 
   return (
@@ -65,11 +87,18 @@ export default function SignIn() {
 
         {sent ? (
           <div className="space-y-4">
-            <h1 className="font-display text-2xl font-bold text-on-dark">Revisa tu correo</h1>
+            <h1 className="font-display text-2xl font-bold text-on-dark">
+              {viaWhatsapp ? 'Revisa tu WhatsApp' : 'Revisa tu correo'}
+            </h1>
             <p className="text-sm text-on-dark-mute">
-              Te mandamos un enlace para entrar{email ? <> a <b className="text-honey-400">{email}</b></> : null}.
+              Te mandamos un enlace para entrar{contact ? <> a <b className="text-honey-400">{contact}</b></> : null}.
               Ábrelo en este mismo navegador.
             </p>
+            {viaWhatsapp && (
+              <p className="text-xs text-on-dark-mute">
+                Si ese número no tiene cuenta en Hive, no llegará nada. Prueba con tu correo.
+              </p>
+            )}
             <BeeLoader />
             <button
               type="button"
@@ -88,16 +117,18 @@ export default function SignIn() {
             </h1>
             <p className="mt-2 mb-5 text-sm text-on-dark-mute">Bienvenido al enjambre. Busquemos fecha.</p>
             <div className="mb-3 flex flex-col gap-1.5">
-              <label className="text-[12.5px] font-semibold text-on-dark-mute" htmlFor="email">
-                Tu correo
+              <label className="text-[12.5px] font-semibold text-on-dark-mute" htmlFor="contact">
+                Tu correo o WhatsApp
               </label>
               <input
-                id="email"
-                type="email"
+                id="contact"
+                type="text"
+                inputMode="email"
+                autoComplete="email"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@correo.com"
+                value={contact}
+                onChange={(e) => setContact(e.target.value)}
+                placeholder="tu@correo.com  ·  +52 55 1234 5678"
                 className="rounded-md border border-charcoal-3 bg-charcoal-2 px-[14px] py-[13px] text-sm text-on-dark outline-none placeholder:text-on-dark-mute focus:border-honey-500"
               />
             </div>
@@ -105,7 +136,9 @@ export default function SignIn() {
               {sending ? 'Enviando…' : 'Mándame el enlace para entrar'}
             </Button>
             {error && <p className="mt-3 rounded-md bg-danger-bg p-3 text-xs text-danger">{error}</p>}
-            <p className="mt-4 text-center text-xs text-on-dark-mute">Sin contraseñas.</p>
+            <p className="mt-4 text-center text-xs text-on-dark-mute">
+              Sin contraseñas. Te llega un enlace por WhatsApp o correo y entras.
+            </p>
           </form>
         )}
       </div>

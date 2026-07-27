@@ -16,6 +16,9 @@ function pipelineDb(supabase: SupabaseClient): SupabaseClient {
 export type TemplateKey =
   | 'waitlist_promoted'
   | 'event_today'
+  // sign-in link over WhatsApp. Deliberately absent from TOPIC_OF: logging in
+  // is not a notification anyone should be able to mute.
+  | 'magic_link'
   | 'invitation'
   | 'change_request_approved'
   | 'change_request_declined'
