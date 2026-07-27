@@ -232,10 +232,16 @@ export async function sendWhatsapp({
             ...(otpCode
               ? [
                   {
+                    // Authentication templates take the code as a plain text
+                    // parameter on a url-subtype button, even when the button
+                    // copies rather than links. The coupon_code form belongs
+                    // to marketing coupon buttons, and using it here earns
+                    // "(#132018) There's an issue with the parameters in your
+                    // template" from Meta, with the send otherwise correct.
                     type: 'button',
-                    sub_type: 'copy_code',
+                    sub_type: 'url',
                     index: '0',
-                    parameters: [{ type: 'coupon_code', coupon_code: otpCode }],
+                    parameters: [{ type: 'text', text: otpCode }],
                   },
                 ]
               : []),
