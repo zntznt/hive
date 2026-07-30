@@ -30,7 +30,7 @@ export default async function SearchPage() {
     clubIds.length
       ? supabase.from('club_members').select('club_id, user_id, users(id, display_name, avatar_kind, avatar_bug, avatar_color, avatar_photo_url)').in('club_id', clubIds)
       : Promise.resolve({ data: [] }),
-    supabase.from('events').select('slug, title, location, chosen_start, status, club_id').order('chosen_start', { ascending: false, nullsFirst: true }),
+    supabase.from('events').select('slug, title, location, chosen_start, status, club_id').is('deleted_at', null).order('chosen_start', { ascending: false, nullsFirst: true }),
   ])
 
   const clubName = new Map(rows.filter((r) => r.clubs).map((r) => [r.club_id, r.clubs!.name]))

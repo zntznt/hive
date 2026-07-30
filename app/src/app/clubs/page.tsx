@@ -54,6 +54,7 @@ export default async function ClubsPage() {
           .select('id, slug, title, chosen_start, club_id, status')
           .in('club_id', clubIds)
           .in('status', ['scheduling', 'scheduled'])
+          .is('deleted_at', null)
           .order('chosen_start', { ascending: true, nullsFirst: false })
       : Promise.resolve({ data: [] }),
   ])

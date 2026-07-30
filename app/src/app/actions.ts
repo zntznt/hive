@@ -1475,3 +1475,56 @@ export async function removeComment(commentId: string, slug: string) {
   if (error) throw new Error(error.message)
   revalidatePath(`/e/${slug}`)
 }
+
+// Deleting an event is reversible for 30 days. Cancelling already exists and
+// means something different: the event happened as a plan and did not happen
+// in fact. Deleting means it should never have been here, and it takes
+// attendance, expenses and a settled history with it, which is why it waits.
+//
+// A club admin does it. An organizer proposes it and an admin decides, the
+// same dance as categories and member removal.
+export async function setEventDeleted(eventId: string, slug: string, deleted: boolean) {
+  const supabase = await supabaseServer()
+  const { error } = await supabase.rpc('set_event_deleted', { eid: eventId, deleted })
+  if (error) throw new Error(error.message)
+  revalidatePath(`/e/${slug}`)
+  revalidatePath('/events')
+}
+
+export async function requestEventDeletion(eventId: string, slug: string, restore: boolean) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
+  const { data: ev } = await supabase.from('events').select('club_id, title').eq('id', eventId).maybeSingle()
+  if (!ev?.club_id) throw new Error('Ese evento no pertenece a un club.')
+  const { error } = await supabase.from('change_requests').insert({
+    club_id: ev.club_id,
+    kind: restore ? 'event_restore' : 'event_delete',
+    requested_by: user.id,
+    payload: { event_id: eventId, title: ev.title },
+  })
+  if (error) throw new Error(error.message)
+  revalidatePath(`/e/${slug}`)
+  return { ok: true as const }
+}
+
+// "Later" on a plate row: gone until tomorrow morning, then back, because the
+// thing it points at is still owed. A dismissal would let a debt disappear
+// because somebody was busy on a Tuesday.
+export async function snoozePlateItem(itemKey: string) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
+  const tomorrow = new Date()
+  tomorrow.setHours(24, 0, 0, 0)
+  const { error } = await supabase
+    .from('plate_snoozes')
+    .upsert({ user_id: user.id, item_key: itemKey, until: tomorrow.toISOString() })
+  if (error) throw new Error(error.message)
+  revalidatePath('/plate')
+  revalidatePath('/')
+}

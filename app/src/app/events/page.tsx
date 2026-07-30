@@ -105,6 +105,7 @@ export default async function EventsPage({
       .from('events')
       .select('*')
       .in('club_id', clubIds.length ? clubIds : [NIL])
+      .is('deleted_at', null)
       .order('created_at', { ascending: false }),
   ])
 

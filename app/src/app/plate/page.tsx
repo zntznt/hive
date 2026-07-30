@@ -1,17 +1,20 @@
 import Link from 'next/link'
 import { requireProfile } from '@/lib/gate'
-import { getPlateItems, plateCount } from '@/lib/plate'
+import { getPlateItems, plateCount, plateItemKey, getStandings } from '@/lib/plate'
+import { fmtMoney } from '@/lib/money'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { PlateItemRow } from '@/components/ui/PlateItemRow'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SettleUpFlow, ConfirmPaymentModal } from '@/components/settle-up'
 import { MarkDoneButton } from './mark-done-modal'
+import SnoozeButton from './snooze-button'
 
 export default async function PlatePage() {
   const { supabase, profile } = await requireProfile()
   const board = await getPlateItems(supabase, profile.id)
   const total = plateCount(board)
 
+  const standings = await getStandings(supabase, profile.id)
   const toUserIds = [...new Set(board.toPay.map((i) => i.toUserId))]
   const { data: methodRows } = toUserIds.length
     ? await supabase.from('payment_methods').select('user_id, kind, value').in('user_id', toUserIds).order('sort')
@@ -63,6 +66,7 @@ export default async function PlatePage() {
                     eventTitle={item.eventTitle}
                     eventHref={`/e/${item.eventSlug}`}
                     note={item.clubName ?? undefined}
+                    action={<SnoozeButton itemKey={plateItemKey(item)} />}
                   />
                 ))}
               </div>
@@ -188,6 +192,38 @@ export default async function PlatePage() {
             </section>
           )}
         </>
+      )}
+
+      {/* Where you stand with each person, netted across every event. Read
+          only on purpose: paying, proof and confirmation stay on the event,
+          because one netted transfer cannot be accepted or rejected per
+          event. */}
+      {standings.length > 0 && (
+        <section className="mt-2">
+          <SectionHeader>Cómo van las cuentas · por persona</SectionHeader>
+          <div className="overflow-hidden rounded-lg border border-line-card bg-paper">
+            {standings.map((s) => (
+              <div
+                key={s.userId}
+                className="flex items-center justify-between gap-2 border-t border-line-divider px-3.5 py-2.5 first:border-t-0"
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-bold text-ink-900">{s.name}</span>
+                  <Link href={`/events?person=${s.userId}`} className="text-[12px] font-semibold text-honey-700">
+                    {s.events} {s.events === 1 ? 'evento' : 'eventos'}
+                  </Link>
+                </span>
+                <span
+                  className={`flex-shrink-0 text-sm font-extrabold ${
+                    s.netCents < 0 ? 'text-danger' : 'text-success'
+                  }`}
+                >
+                  {s.netCents < 0 ? `le debes ${fmtMoney(-s.netCents)}` : `te debe ${fmtMoney(s.netCents)}`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
     </main>
   )

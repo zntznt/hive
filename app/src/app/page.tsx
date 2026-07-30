@@ -125,6 +125,7 @@ export default async function Home() {
           .select('id, slug, title, club_id, status, chosen_start, location')
           .in('club_id', clubIds)
           .in('status', ['scheduling', 'scheduled'])
+          .is('deleted_at', null)
           .order('chosen_start', { ascending: true, nullsFirst: false })
           .order('created_at', { ascending: false })
       : Promise.resolve({ data: [] as UpcomingEvent[] }),

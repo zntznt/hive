@@ -62,7 +62,7 @@ export default async function ClubPage({
 
   const [{ data: cats }, { data: evs }, { data: att }, { data: roster }] = await Promise.all([
     supabase.from('event_categories').select('*').eq('club_id', club.id).order('name'),
-    supabase.from('events').select('*').eq('club_id', club.id).order('created_at', { ascending: false }),
+    supabase.from('events').select('*').eq('club_id', club.id).is('deleted_at', null).order('created_at', { ascending: false }),
     supabase.from('attendance_stats').select('*').eq('club_id', club.id),
     supabase
       .from('club_members')

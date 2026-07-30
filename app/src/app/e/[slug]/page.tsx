@@ -113,9 +113,9 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     club
       ? supabase
           .from('club_members')
-          .select('user_id, users(display_name, avatar_kind, avatar_bug, avatar_color, avatar_photo_url)')
+          .select('user_id, role, users(display_name, avatar_kind, avatar_bug, avatar_color, avatar_photo_url)')
           .eq('club_id', club.id)
-      : Promise.resolve({ data: [] as { user_id: string; users: AvatarUser | null }[] }),
+      : Promise.resolve({ data: [] as { user_id: string; role: string; users: AvatarUser | null }[] }),
     club
       ? supabase.from('club_join_requests').select('id').eq('club_id', club.id).eq('user_id', profile.id).eq('status', 'pending').maybeSingle()
       : Promise.resolve({ data: null as { id: string } | null }),
@@ -129,6 +129,10 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const myRsvp = (rsvps ?? []).find((r) => r.user_id === profile.id)
 
   const isClubMember = !club || (clubMembers ?? []).some((m) => m.user_id === profile.id)
+  // binning an event is an admin's call; an organizer can only ask for it
+  const isClubAdmin =
+    profile.is_app_admin ||
+    (clubMembers ?? []).some((m) => m.user_id === profile.id && m.role === 'admin')
   const isClubGuest = !!club && !isClubMember
 
   const counts: Record<number, number> = {}
@@ -188,8 +192,22 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         clubName={club?.name}
         clubSlug={club?.slug}
         isOrganizer={isOrganizer}
+        isClubAdmin={isClubAdmin}
+        isDeleted={!!event.deleted_at}
       />
       <main className="mx-auto w-full max-w-md px-6 pb-6">
+
+      {/* A binned event stays reachable by direct link so it can be brought
+          back, and says plainly that it is on its way out. */}
+      {event.deleted_at && (
+        <div className="mb-3.5 flex items-start gap-2.5 rounded-md border border-danger-bg bg-danger-bg px-3.5 py-2.5 text-[13.5px] leading-relaxed text-ink-700">
+          <Icon name="trash" size={15} />
+          <span>
+            Está en la papelera desde {timeAgo(event.deleted_at)}. Se borra solo a los 30 días. Ya no aparece en
+            listas, pero se puede recuperar hasta entonces.
+          </span>
+        </div>
+      )}
 
       {event.status === 'cancelled' && (
         <div className="mb-3.5 flex items-start gap-2.5 rounded-md border border-danger-bg bg-danger-bg px-3.5 py-2.5 text-[13.5px] leading-relaxed text-ink-700">

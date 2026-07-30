@@ -4,7 +4,7 @@ import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppBar, type MenuItem } from '@/components/ui/AppBar'
 import { useToast } from '@/components/ui/Toast'
-import { setEventStatus } from '@/app/actions'
+import { setEventStatus, setEventDeleted, requestEventDeletion } from '@/app/actions'
 
 // The event's whole lifecycle, collected into one menu.
 //
@@ -22,6 +22,8 @@ export default function EventAppBar({
   clubName,
   clubSlug,
   isOrganizer,
+  isClubAdmin,
+  isDeleted,
 }: {
   eventId: string
   slug: string
@@ -30,6 +32,10 @@ export default function EventAppBar({
   clubName?: string | null
   clubSlug?: string | null
   isOrganizer: boolean
+  // deleting takes attendance, expenses and a settled history with it, so an
+  // admin does it and an organizer can only ask
+  isClubAdmin: boolean
+  isDeleted: boolean
 }) {
   const [pending, startTransition] = useTransition()
   const toast = useToast()
@@ -50,6 +56,20 @@ export default function EventAppBar({
       toast('No se pudo copiar. Mantén presionado el enlace.')
     }
   }
+
+  const bin = (deleted: boolean) =>
+    startTransition(async () => {
+      await setEventDeleted(eventId, slug, deleted)
+      toast(deleted ? 'Va a la papelera. 30 días para recuperarlo.' : 'Recuperado')
+      router.refresh()
+    })
+
+  const askBin = (restore: boolean) =>
+    startTransition(async () => {
+      await requestEventDeletion(eventId, slug, restore)
+      toast('Se lo pedimos a la administración del club')
+      router.refresh()
+    })
 
   const menu: (MenuItem | false)[] = [
     { label: 'Copiar enlace', icon: 'link', onClick: copyLink },
@@ -75,6 +95,24 @@ export default function EventAppBar({
         danger: true,
         disabled: pending,
         onClick: () => setStatus('cancelled', 'Evento cancelado. Se avisó a quienes iban.'),
+      },
+    isClubAdmin &&
+      !isDeleted && {
+        label: 'Eliminar evento',
+        icon: 'trash',
+        danger: true,
+        disabled: pending,
+        onClick: () => bin(true),
+      },
+    isClubAdmin &&
+      isDeleted && { label: 'Recuperar evento', icon: 'rotate-left', disabled: pending, onClick: () => bin(false) },
+    !isClubAdmin &&
+      isOrganizer && {
+        label: isDeleted ? 'Pedir recuperarlo' : 'Pedir eliminarlo',
+        icon: isDeleted ? 'rotate-left' : 'trash',
+        danger: !isDeleted,
+        disabled: pending,
+        onClick: () => askBin(isDeleted),
       },
   ]
 

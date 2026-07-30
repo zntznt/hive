@@ -81,6 +81,27 @@ export type PlateItem =
       pollLabel?: string
     }
 
+// One identity per row, agreed by every surface that draws it, so a snooze
+// set on /plate is the same row Home hides and the badge stops counting.
+export function plateItemKey(item: PlateItem): string {
+  switch (item.kind) {
+    case 'pay':
+      return `pay-${item.eventId}-${item.toUserId}`
+    case 'confirm':
+      return `confirm-${item.settlementId}`
+    case 'answer':
+      return `answer-${item.asks}-${item.eventId}-${item.pollLabel ?? ''}`
+    default:
+      return `${item.kind}-${item.contributionId}`
+  }
+}
+
+// Net position with each person across every event, for the read-only
+// roll-up under the plate. Deliberately read-only: paying, proof and
+// confirmation stay on the event, because one netted transfer cannot be
+// accepted or rejected per event.
+export type StandingRow = { userId: string; name: string; netCents: number; events: number }
+
 export type PlateBoard = {
   toAnswer: Extract<PlateItem, { kind: 'answer' }>[]
   toPay: Extract<PlateItem, { kind: 'pay' }>[]
@@ -297,7 +318,70 @@ export async function getPlateItems(supabase: SupabaseClient, userId: string): P
     }
   }
 
+  // Snoozed rows are hidden until tomorrow morning, then come back, because
+  // the thing they point at is still owed.
+  const { data: snoozes } = await supabase
+    .from('plate_snoozes')
+    .select('item_key, until')
+    .eq('user_id', userId)
+    .gt('until', new Date().toISOString())
+  const asleep = new Set((snoozes ?? []).map((s) => s.item_key as string))
+  if (asleep.size) {
+    const awake = <T extends PlateItem>(rows: T[]) => rows.filter((r) => !asleep.has(plateItemKey(r)))
+    board.toAnswer = awake(board.toAnswer)
+    board.toPay = awake(board.toPay)
+    board.toConfirm = awake(board.toConfirm)
+    board.tasks = awake(board.tasks)
+    board.bringing = awake(board.bringing)
+  }
+
   return board
+}
+
+// Where you stand with each person, netted across every event you share.
+// Built from the same per-event transfer suggestions the event page shows, so
+// the roll-up can never disagree with the screens it summarises.
+export async function getStandings(supabase: SupabaseClient, userId: string): Promise<StandingRow[]> {
+  const { data: balances } = await supabase.from('event_balances').select('event_id, user_id, net_cents')
+  const rows = (balances ?? []) as EventBalanceRow[]
+  if (!rows.length) return []
+
+  const byEvent = new Map<string, NetPosition[]>()
+  for (const r of rows) {
+    byEvent.set(r.event_id, [
+      ...(byEvent.get(r.event_id) ?? []),
+      { user_id: r.user_id, name: '', net_cents: r.net_cents },
+    ])
+  }
+
+  const net = new Map<string, { cents: number; events: Set<string> }>()
+  for (const [eventId, positions] of byEvent) {
+    for (const tr of suggestTransfers(positions)) {
+      // negative means you owe them, positive means they owe you
+      const other =
+        tr.from.user_id === userId ? tr.to.user_id : tr.to.user_id === userId ? tr.from.user_id : null
+      if (!other) continue
+      const signed = tr.from.user_id === userId ? -tr.amount_cents : tr.amount_cents
+      const cur = net.get(other) ?? { cents: 0, events: new Set<string>() }
+      cur.cents += signed
+      cur.events.add(eventId)
+      net.set(other, cur)
+    }
+  }
+  if (!net.size) return []
+
+  const { data: people } = await supabase.from('users').select('id, display_name').in('id', [...net.keys()])
+  const nameOf = new Map(((people ?? []) as { id: string; display_name: string }[]).map((u) => [u.id, u.display_name]))
+
+  return [...net.entries()]
+    .filter(([, v]) => v.cents !== 0)
+    .map(([userId2, v]) => ({
+      userId: userId2,
+      name: nameOf.get(userId2) ?? '·',
+      netCents: v.cents,
+      events: v.events.size,
+    }))
+    .sort((a, b) => Math.abs(b.netCents) - Math.abs(a.netCents))
 }
 
 // Home, /plate and the tab badge all count the same way, so no two surfaces

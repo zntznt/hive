@@ -33,6 +33,10 @@ export type EventRow = {
   // can carry its own receipt instead of the app keeping a notification log.
   scheduled_at: string | null
   cancelled_at: string | null
+  // the 30 day bin. A binned event leaves every list but stays reachable by
+  // direct link, which is the only way to restore it.
+  deleted_at: string | null
+  deleted_by: string | null
 }
 
 export type Contribution = {
