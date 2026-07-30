@@ -11,7 +11,7 @@
 -- Returns no row unless you are actually waiting, so it cannot be used to
 -- enumerate the admin roster from an active session.
 create or replace function public.pending_queue_status()
-returns table (reviewers text[], ahead int, nudged_at timestamptz)
+returns table (reviewers text[], ahead int, nudged_recently boolean)
 language sql
 stable
 security definer
@@ -27,10 +27,13 @@ as $$
     (select count(*)::int
        from users u
       where u.status = 'pending' and u.created_at < me.created_at),
-    (select max(o.created_at)
-       from notification_outbox o
-      where o.template = 'admin_pending_user'
-        and o.payload->>'pending_user_id' = me.id::text)
+    -- a boolean rather than the timestamp, so the screen never has to read a
+    -- clock to decide what to render
+    exists (select 1
+              from notification_outbox o
+             where o.template = 'admin_pending_user'
+               and o.payload->>'pending_user_id' = me.id::text
+               and o.created_at > now() - interval '24 hours')
   from users me
   where me.id = auth.uid() and me.status = 'pending'
 $$;

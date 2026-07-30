@@ -302,6 +302,46 @@ export async function proposeOrEditCategory(
   revalidatePath(`/club/${clubSlug}`)
 }
 
+// Making a category from inside the event form, without leaving it.
+//
+// Categories were only creatable from the club page, so an organizer who
+// realized halfway through that "Cata de vinos" doesn't exist yet had to
+// abandon a half-filled form, go make it, and come back. Returns the new row
+// so the picker can select it on the spot; an organizer who is not an admin
+// still goes through the proposal queue and gets told so, rather than seeing
+// their category silently not appear.
+export async function createCategoryInline(clubId: string, clubSlug: string, name: string) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
+  const clean = name.trim()
+  if (!clean) return { ok: false as const, error: 'Ponle nombre.' }
+  const perm = await clubPermission(supabase, user.id, clubId)
+
+  if (perm.isAdmin) {
+    const { data, error } = await supabase
+      .from('event_categories')
+      .insert({ club_id: clubId, name: clean, emoji: null })
+      .select('id, name, emoji')
+      .single()
+    if (error) return { ok: false as const, error: error.message }
+    revalidatePath(`/club/${clubSlug}`)
+    return { ok: true as const, category: data as { id: string; name: string; emoji: string | null } }
+  }
+
+  const { error } = await supabase.from('change_requests').insert({
+    club_id: clubId,
+    kind: 'category_add',
+    payload: { name: clean, emoji: null },
+    requested_by: user.id,
+  })
+  if (error) return { ok: false as const, error: error.message }
+  revalidatePath(`/club/${clubSlug}`)
+  return { ok: true as const, proposed: true as const }
+}
+
 export async function deleteCategory(clubId: string, clubSlug: string, categoryId: string) {
   const supabase = await supabaseServer()
   const {

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
 import { queueNotification, dispatchQueuedNotifications, reconcileHandoffs } from '@/lib/notify'
 import { siteUrl } from '@/lib/site-url'
-import { nudgeNonResponders } from '@/lib/nudge'
+import { nudgeNonResponders, nudgeMissingAvailability } from '@/lib/nudge'
 
 // Day-of reminder. Every other notification is queued by something a member
 // did, so this is the app's only scheduled job: Vercel Cron calls it each
@@ -114,6 +114,26 @@ export async function GET(request: Request) {
 
   let nudged = 0
   for (const ev of upcoming ?? []) nudged += await nudgeNonResponders(db, ev.id)
+
+  // The confirm deadline, honored. It was a column an organizer could fill in
+  // and nothing ever read it, so the field was a promise the app did not keep.
+  // Now the people who never answered hear about it once the moment passes,
+  // and what they owe depends on the phase: a painted grid while a time is
+  // still being found, a yes or no once there is one. Both nudges are
+  // idempotent per member per event, so a deadline that stays in the past
+  // does not turn into a daily drip.
+  const { data: pastDeadline } = await db
+    .from('events')
+    .select('id, status')
+    .in('status', ['scheduling', 'scheduled'])
+    .is('deleted_at', null)
+    .not('confirm_deadline', 'is', null)
+    .lte('confirm_deadline', now.toISOString())
+
+  for (const ev of pastDeadline ?? []) {
+    nudged +=
+      ev.status === 'scheduling' ? await nudgeMissingAvailability(db, ev.id) : await nudgeNonResponders(db, ev.id)
+  }
 
   // the daily backstop: resolve anything still waiting on a verdict, then
   // send today's reminders and the nudges queued above

@@ -1,11 +1,12 @@
 'use client'
 
-import { useActionState, useState } from 'react'
-import { createEvent, updateEvent } from '@/app/actions'
+import { useActionState, useState, useTransition } from 'react'
+import { createEvent, updateEvent, createCategoryInline } from '@/app/actions'
 import { Input, Select, Checkbox } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Dropdown } from '@/components/ui/Dropdown'
+import { Segmented } from '@/components/ui/Segmented'
 import { LocationPicker, type Place } from '@/components/ui/LocationPicker'
 
 function toDatetimeLocal(iso: string | null) {
@@ -72,6 +73,37 @@ export default function EventForm({
   )
   const [title, setTitle] = useState(initial?.title ?? '')
   const [categoryId, setCategoryId] = useState(initial?.category_id ?? '')
+
+  // Categories were only creatable from the club page, so an organizer who
+  // got here and found that "Cata de vinos" doesn't exist had to abandon a
+  // half-filled form to go make it. NEW is a sentinel value on the picker
+  // rather than a separate button, because the moment you want a new category
+  // is the moment you open the list and it isn't there.
+  const NEW = '__new__'
+  const [cats, setCats] = useState(categories)
+  const [newName, setNewName] = useState('')
+  const [catNote, setCatNote] = useState<string | null>(null)
+  const [addingCat, startAddCat] = useTransition()
+
+  const addCategory = () =>
+    startAddCat(async () => {
+      const res = await createCategoryInline(clubId, slug, newName)
+      if (!res.ok) {
+        setCatNote(res.error)
+        return
+      }
+      if ('category' in res && res.category) {
+        setCats((c) => [...c, res.category])
+        setCategoryId(res.category.id)
+        setNewName('')
+        setCatNote(null)
+      } else {
+        setCategoryId('')
+        setNewName('')
+        setCatNote('Se lo pedimos a la administración del club. Mientras, el evento se crea sin categoría.')
+      }
+    })
+
   // still finding a time: the scheduling window can change. Once a slot's
   // picked, those fields are locked - editing them here wouldn't touch the
   // already-chosen chosen_start/chosen_end anyway.
@@ -81,17 +113,45 @@ export default function EventForm({
     <form action={formAction} className="flex flex-col gap-4">
       <Input id="title" name="title" label="Título" required placeholder="Noche de juegos" value={title} onChange={(e) => setTitle(e.target.value)} />
 
-      <Dropdown
-        name="category_id"
-        label="Categoría"
-        value={categoryId}
-        onChange={setCategoryId}
-        placeholder="Sin categoría"
-        options={[
-          { value: '', label: 'Sin categoría' },
-          ...categories.map((c) => ({ value: c.id, label: `${c.emoji ? `${c.emoji} ` : ''}${c.name}` })),
-        ]}
-      />
+      <div>
+        <Dropdown
+          name={categoryId === NEW ? 'category_new' : 'category_id'}
+          label="Categoría"
+          value={categoryId}
+          onChange={(v) => {
+            setCategoryId(v)
+            setCatNote(null)
+          }}
+          placeholder="Sin categoría"
+          options={[
+            { value: '', label: 'Sin categoría' },
+            ...cats.map((c) => ({ value: c.id, label: `${c.emoji ? `${c.emoji} ` : ''}${c.name}` })),
+            { value: NEW, label: '＋ Nueva categoría' },
+          ]}
+        />
+        {categoryId === NEW && (
+          <div className="mt-2 flex items-end gap-2">
+            <div className="flex-1">
+              <Input
+                id="new_category"
+                label="Nombre de la categoría"
+                value={newName}
+                placeholder="Cata de vinos"
+                onChange={(e) => setNewName(e.target.value)}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={addingCat || !newName.trim()}
+              onClick={addCategory}
+            >
+              {addingCat ? 'Creando…' : 'Crear'}
+            </Button>
+          </div>
+        )}
+        {catNote && <p className="mt-1.5 text-xs text-ink-500">{catNote}</p>}
+      </div>
 
       <LocationPicker name="location" label="Lugar (opcional)" defaultValue={initial?.location ?? ''} saved={savedPlaces} recent={recentPlaces} />
 
@@ -124,12 +184,20 @@ export default function EventForm({
                 ))}
               </Select>
             </div>
-            <div className="flex-1">
-              <Select id="slot_minutes" name="slot_minutes" label="Celdas" defaultValue={initial?.sched_slot_minutes ?? 60}>
-                <option value={30}>30 min</option>
-                <option value={60}>1 h</option>
-              </Select>
-            </div>
+          </div>
+          {/* was a <select> labelled "Celdas", which is a word about our grid,
+              not about their evening. Two options hidden behind a tap, and
+              nothing said what picking one did. */}
+          <div className="mt-2.5">
+            <Segmented
+              name="slot_minutes"
+              label="Qué tan fino se marca"
+              defaultValue={initial?.sched_slot_minutes ?? 60}
+              options={[
+                { value: 30, label: 'Cada 30 min', note: 'Más preciso. La cuadrícula sale al doble de larga.' },
+                { value: 60, label: 'Cada hora', note: 'Se marca rápido. Suficiente para la mayoría de los planes.' },
+              ]}
+            />
           </div>
         </Fieldset>
       )}
@@ -152,13 +220,21 @@ export default function EventForm({
             </label>
             <Checkbox name="waitlist_enabled" label="lista de espera" defaultChecked={initial?.waitlist_enabled} />
           </div>
-          <Input
-            id="confirm_deadline"
-            name="confirm_deadline"
-            type="datetime-local"
-            label="Confirmar antes de"
-            defaultValue={toDatetimeLocal(initial?.confirm_deadline ?? null)}
-          />
+          {/* the field said "Confirmar antes de" and left you to guess what
+              happens at that moment, so most people left it empty. */}
+          <div>
+            <Input
+              id="confirm_deadline"
+              name="confirm_deadline"
+              type="datetime-local"
+              label="Confirmar antes de"
+              defaultValue={toDatetimeLocal(initial?.confirm_deadline ?? null)}
+            />
+            <p className="mt-1.5 text-xs text-ink-300">
+              Pasada esa fecha, a quien no haya respondido le llega un recordatorio (uno solo). Nadie pierde su lugar ni
+              se cierra nada. Déjalo vacío si no corre prisa.
+            </p>
+          </div>
           <Select id="join_policy" name="join_policy" label="Quién puede entrar con el enlace" defaultValue={initial?.join_policy ?? 'club_members_only'}>
             <option value="club_members_only">solo miembros del club</option>
             <option value="anyone_with_link">cualquiera con el enlace</option>

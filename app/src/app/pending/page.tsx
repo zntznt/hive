@@ -31,12 +31,11 @@ export default async function PendingPage() {
   const status = (queue?.[0] ?? null) as {
     reviewers: string[] | null
     ahead: number | null
-    nudged_at: string | null
+    nudged_recently: boolean | null
   } | null
   const names = (status?.reviewers ?? []).slice(0, 3)
   const ahead = status?.ahead ?? null
-  const nudgedRecently =
-    !!status?.nudged_at && Date.now() - new Date(status.nudged_at).getTime() < 24 * 3600_000
+  const nudgedRecently = status?.nudged_recently === true
 
   return (
     <main className="flex min-h-[70vh] items-center justify-center p-6">
