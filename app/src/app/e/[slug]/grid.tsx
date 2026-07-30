@@ -1,10 +1,10 @@
 'use client'
 
-import { Fragment, useMemo, useState, useTransition } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { pickSlot, saveAvailability } from '@/app/actions'
-import { Button } from '@/components/ui/Button'
 import { SectionHeader } from '@/components/ui/SectionHeader'
+import { Icon } from '@/components/ui/Icon'
 
 type Props = {
   eventId: string
@@ -19,11 +19,26 @@ type Props = {
   isOrganizer: boolean
 }
 
+// One gesture, two meanings. Press a cell, drag down the day, release.
+//
+// The drag never leaves the column it started in, previews as one outlined
+// block, and commits on release. Marking your own time, a run adds to your
+// marks, or wipes them if you started on one of your own. Picking the time,
+// the run is the selection and replaces whatever was there, at any start and
+// any length.
+//
+// Saving is automatic on release. The old grid made you paint cell by cell and
+// then find a button, so a member who painted and left saved nothing at all.
+// Pinning used to force a three hour block from one of three suggestions,
+// which meant the app decided how long your evening was.
+
 function hhmm(minutes: number) {
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
+
+type Drag = { day: number; from: number; to: number; erasing: boolean }
 
 export default function Grid({
   eventId,
@@ -37,120 +52,263 @@ export default function Grid({
   totalMembers,
   isOrganizer,
 }: Props) {
-  const slotsPerDay = Math.max(1, Math.floor((timeMax - timeMin) / slotMinutes))
+  const rows = Math.max(1, Math.floor((timeMax - timeMin) / slotMinutes))
   const [selected, setSelected] = useState<Set<number>>(new Set(initialSlots))
-  const [dirty, setDirty] = useState(false)
+  const [drag, setDrag] = useState<Drag | null>(null)
+  const [mode, setMode] = useState<'paint' | 'pick'>('paint')
+  const [pick, setPick] = useState<{ day: number; a: number; b: number } | null>(null)
+  const [saved, setSaved] = useState(false)
   const [pending, startTransition] = useTransition()
+  const surface = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
-  function toggle(idx: number) {
-    setSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(idx)) next.delete(idx)
-      else next.add(idx)
-      return next
-    })
-    setDirty(true)
+  const idx = (day: number, row: number) => day * rows + row
+  const slotDate = (day: number, row: number) =>
+    new Date(`${days[day]}T${hhmm(timeMin + row * slotMinutes)}:00`)
+
+  // Where the pointer is, whatever the input device. Reading the element under
+  // the finger beats per-cell enter handlers, which touch does not fire.
+  function cellAt(x: number, y: number) {
+    const el = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-day]')
+    if (!el) return null
+    return { day: Number(el.dataset.day), row: Number(el.dataset.row) }
   }
 
-  function save() {
+  function onDown(e: React.PointerEvent) {
+    const at = cellAt(e.clientX, e.clientY)
+    if (!at) return
+    surface.current?.setPointerCapture(e.pointerId)
+    setSaved(false)
+    setDrag({
+      day: at.day,
+      from: at.row,
+      to: at.row,
+      // erase only when marking your own time, and only when the gesture
+      // starts on something you already marked
+      erasing: mode === 'paint' && selected.has(idx(at.day, at.row)),
+    })
+  }
+
+  function onMove(e: React.PointerEvent) {
+    if (!drag) return
+    const at = cellAt(e.clientX, e.clientY)
+    // stay in the column the gesture started in
+    if (!at || at.day !== drag.day) return
+    if (at.row !== drag.to) setDrag({ ...drag, to: at.row })
+  }
+
+  function onUp() {
+    if (!drag) return
+    const [a, b] = drag.from <= drag.to ? [drag.from, drag.to] : [drag.to, drag.from]
+
+    if (mode === 'pick') {
+      setPick({ day: drag.day, a, b })
+      setDrag(null)
+      return
+    }
+
+    const next = new Set(selected)
+    for (let r = a; r <= b; r++) {
+      const i = idx(drag.day, r)
+      if (drag.erasing) next.delete(i)
+      else next.add(i)
+    }
+    setDrag(null)
+    setSelected(next)
     startTransition(async () => {
-      await saveAvailability(eventId, slug, [...selected].sort((a, b) => a - b))
-      setDirty(false)
+      await saveAvailability(eventId, slug, [...next].sort((x, y) => x - y))
+      setSaved(true)
       router.refresh()
     })
   }
 
-  const slotDate = (idx: number) => {
-    const day = days[Math.floor(idx / slotsPerDay)]
-    const minutes = timeMin + (idx % slotsPerDay) * slotMinutes
-    return new Date(`${day}T${hhmm(minutes)}:00`)
+  // Release is handled only here, never on the element as well. Pointer
+  // capture sends the event to the container and it then bubbles to window,
+  // so having both would commit the same run twice and save it twice. This
+  // also catches a gesture that ends outside the grid, which would otherwise
+  // be silently lost.
+  useEffect(() => {
+    if (!drag) return
+    const end = () => onUp()
+    window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
+    return () => {
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+    }
+  })
+
+  const inDrag = (day: number, row: number) => {
+    if (!drag || drag.day !== day) return false
+    const [a, b] = drag.from <= drag.to ? [drag.from, drag.to] : [drag.to, drag.from]
+    return row >= a && row <= b
   }
+  const inPick = (day: number, row: number) =>
+    mode === 'pick' && !!pick && pick.day === day && row >= pick.a && row <= pick.b
 
   const best = useMemo(() => {
-    return Object.entries(counts)
-      .map(([idx, n]) => ({ idx: Number(idx), n }))
-      .filter((s) => s.n > 0)
-      .sort((a, b) => b.n - a.n || a.idx - b.idx)
-      .slice(0, 3)
-  }, [counts])
+    // Contiguous runs, not single cells. Three separate rows of the same good
+    // evening is not three suggestions.
+    const runs: { day: number; a: number; b: number; n: number }[] = []
+    for (let d = 0; d < days.length; d++) {
+      let start = -1
+      let low = Infinity
+      for (let r = 0; r <= rows; r++) {
+        const n = r < rows ? (counts[idx(d, r)] ?? 0) : 0
+        if (n > 0) {
+          if (start === -1) start = r
+          low = Math.min(low, n)
+        } else if (start !== -1) {
+          runs.push({ day: d, a: start, b: r - 1, n: low })
+          start = -1
+          low = Infinity
+        }
+      }
+    }
+    return runs.sort((x, y) => y.n - x.n || y.b - y.a - (x.b - x.a)).slice(0, 3)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [counts, days.length, rows])
 
-  function finalize(idx: number) {
-    const start = slotDate(idx)
-    const end = new Date(start.getTime() + 3 * 60 * 60 * 1000)
+  function commitPick(day: number, a: number, b: number) {
+    const start = slotDate(day, a)
+    const end = new Date(slotDate(day, b).getTime() + slotMinutes * 60_000)
     startTransition(async () => {
       await pickSlot(eventId, slug, start.toISOString(), end.toISOString())
       router.refresh()
     })
   }
 
+  const marked = selected.size
+
   return (
     <div>
-      <p className="mb-2 text-sm text-ink-500">Toca las celdas en las que puedes. Cuanto más honey, más gente puede.</p>
+      {isOrganizer && (
+        <div className="mb-2.5 flex gap-1 rounded-pill bg-cream-sunk p-1">
+          {(['paint', 'pick'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              className={`h-10 flex-1 rounded-pill text-[12.5px] font-bold ${
+                mode === m ? 'bg-paper text-ink-900 shadow-card' : 'text-ink-500'
+              }`}
+            >
+              {m === 'paint' ? 'Marcar la mía' : 'Fijar la hora'}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <p className="mb-1 text-sm text-ink-500">
+        {mode === 'pick'
+          ? 'Arrastra sobre el día para elegir el rango exacto.'
+          : 'Mantén y arrastra sobre un día. Cuanto más honey, más gente puede.'}
+      </p>
+      <p className="mb-2 text-[11.5px] text-ink-300">
+        <Icon name="globe" size={10} /> Horario de Ciudad de México (GMT-6)
+      </p>
+
       <div
-        className="grid gap-[3px] text-center text-[11px] text-ink-500"
+        ref={surface}
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        className="grid touch-none select-none gap-[3px] text-center text-[11px] text-ink-500"
         style={{ gridTemplateColumns: `44px repeat(${days.length}, 1fr)` }}
       >
         <div />
         {days.map((d) => (
           <div key={d} className="pb-1 font-bold">
-            {new Date(`${d}T00:00:00`).toLocaleDateString('es-ES', {
-              weekday: 'short',
-              day: 'numeric',
-            })}
+            {new Date(`${d}T00:00:00`).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' })}
           </div>
         ))}
-        {Array.from({ length: slotsPerDay }).map((_, t) => (
-          <Fragment key={t}>
-            <div className="pr-1 text-right leading-6">{hhmm(timeMin + t * slotMinutes)}</div>
-            {days.map((_, d) => {
-              const idx = d * slotsPerDay + t
-              const n = counts[idx] ?? 0
-              const alpha = n === 0 ? 0 : 0.18 + 0.62 * (n / Math.max(totalMembers, 1))
-              const mine = selected.has(idx)
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => toggle(idx)}
-                  aria-label={`slot ${idx}`}
-                  className={`h-6 rounded-[5px] ${mine ? 'border-2 border-charcoal' : 'border border-line-card'}`}
-                  style={{ backgroundColor: alpha ? `rgba(235,169,55,${alpha})` : 'var(--paper)' }}
-                />
-              )
-            })}
-          </Fragment>
-        ))}
-      </div>
-      <div className="mt-3 flex items-center justify-between">
-        <span className="text-[11px] text-ink-300">tu selección = borde charcoal</span>
-        <Button size="sm" onClick={save} disabled={!dirty || pending}>
-          {pending ? 'Zumbando…' : 'Guardar disponibilidad'}
-        </Button>
+        {Array.from({ length: rows }).map((_, r) => {
+          const minutes = timeMin + r * slotMinutes
+          const onHour = minutes % 60 === 0
+          return (
+            <Fragment key={r}>
+              {/* half hours stay labelled, just quieter, so a 30 minute grid
+                  does not read as half its rows being unavailable */}
+              <div className={`pr-1 text-right leading-6 ${onHour ? '' : 'text-ink-300'}`}>{hhmm(minutes)}</div>
+              {days.map((_, d) => {
+                const i = idx(d, r)
+                const n = counts[i] ?? 0
+                const alpha = n === 0 ? 0 : 0.18 + 0.62 * (n / Math.max(totalMembers, 1))
+                const mine = mode === 'paint' && selected.has(i)
+                const preview = inDrag(d, r)
+                const picked = inPick(d, r)
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    data-day={d}
+                    data-row={r}
+                    aria-label={`${days[d]} ${hhmm(minutes)}`}
+                    className={`h-6 rounded-[5px] ${
+                      picked || preview
+                        ? 'border-2 border-charcoal'
+                        : mine
+                          ? 'border-2 border-charcoal'
+                          : 'border border-line-card'
+                    }`}
+                    style={{ backgroundColor: alpha ? `rgba(235,169,55,${alpha})` : 'var(--paper)' }}
+                  />
+                )
+              })}
+            </Fragment>
+          )
+        })}
       </div>
 
-      {best.length > 0 && (
+      <p className="mt-2.5 text-[11.5px] text-ink-300">
+        {mode === 'pick'
+          ? pick
+            ? `${days[pick.day]} · ${hhmm(timeMin + pick.a * slotMinutes)} a ${hhmm(timeMin + (pick.b + 1) * slotMinutes)}`
+            : 'Nada elegido todavía.'
+          : `${marked} ${marked === 1 ? 'hueco marcado' : 'huecos marcados'}${
+              pending ? ' · guardando…' : saved ? ' · guardado' : ''
+            }`}
+      </p>
+
+      {mode === 'pick' && pick && (
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => commitPick(pick.day, pick.a, pick.b)}
+          className="mt-2 w-full rounded-md bg-honey-500 py-3 text-sm font-extrabold text-charcoal shadow-lip disabled:opacity-50"
+        >
+          Fijar este rango
+        </button>
+      )}
+
+      {mode === 'pick' && best.length > 0 && (
         <div className="mt-5">
           <SectionHeader>Mejores huecos</SectionHeader>
           <ul className="flex flex-col gap-1.5">
             {best.map((s) => (
-              <li key={s.idx} className="flex items-center justify-between rounded-md border border-line-card bg-paper p-2 text-sm">
+              <li
+                key={`${s.day}-${s.a}`}
+                className="flex items-center justify-between rounded-md border border-line-card bg-paper p-2 text-sm"
+              >
                 <span className="text-ink-700">
-                  {slotDate(s.idx).toLocaleString('es-ES', {
+                  {slotDate(s.day, s.a).toLocaleString('es-MX', {
                     weekday: 'short',
                     day: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit',
                   })}
+                  {' a '}
+                  {hhmm(timeMin + (s.b + 1) * slotMinutes)}
                   <span className="ml-2 text-ink-300">
                     {s.n}/{totalMembers}
                   </span>
                 </span>
-                {isOrganizer && (
-                  <button onClick={() => finalize(s.idx)} disabled={pending} className="rounded-md border-[1.5px] border-honey-500 px-2 py-1 text-xs font-bold text-honey-700">
-                    Fijar (3 h)
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setPick({ day: s.day, a: s.a, b: s.b })}
+                  className="rounded-md border-[1.5px] border-honey-500 px-2 py-1 text-xs font-bold text-honey-700"
+                >
+                  Usar
+                </button>
               </li>
             ))}
           </ul>
