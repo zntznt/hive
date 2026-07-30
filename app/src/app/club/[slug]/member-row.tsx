@@ -83,7 +83,7 @@ export function MemberRow({
                 <option value="organizer">organizador</option>
                 <option value="admin">admin</option>
               </select>
-              <button onClick={() => setConfirmRemove(true)} className="text-[12.5px] font-bold text-danger">
+              <button onClick={() => setConfirmRemove(true)} className="tap text-[12.5px] font-bold text-danger">
                 Quitar
               </button>
             </>
@@ -96,7 +96,7 @@ export function MemberRow({
                   setRequestedRemoval(true)
                 })
               }
-              className="text-[12.5px] font-bold text-ink-500 disabled:opacity-50"
+              className="tap text-[12.5px] font-bold text-ink-500 disabled:opacity-50"
             >
               {requestedRemoval ? 'Solicitud enviada' : 'Solicitar remoción'}
             </button>

@@ -46,7 +46,7 @@ export default async function AccountPage() {
     <main className="mx-auto w-full max-w-md p-6">
       <header className="mb-6 flex items-baseline justify-between gap-3">
         <h1 className="font-display text-xl font-bold text-ink-900">Mi cuenta</h1>
-        <Link href="/" className="shrink-0 text-sm font-semibold text-honey-700 underline">
+        <Link href="/" className="tap shrink-0 text-sm font-semibold text-honey-700 underline">
           inicio
         </Link>
       </header>

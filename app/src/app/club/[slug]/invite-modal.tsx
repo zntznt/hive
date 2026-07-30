@@ -35,7 +35,7 @@ export function InviteModal({ clubId, slug, clubName, isAdmin }: { clubId: strin
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="text-[12.5px] font-bold text-honey-700">
+      <button onClick={() => setOpen(true)} className="tap text-[12.5px] font-bold text-honey-700">
         ＋ Invitar
       </button>
       {open && (

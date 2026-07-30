@@ -40,7 +40,7 @@ export function AddPollButton({ eventId, slug }: { eventId: string; slug: string
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="text-[12.5px] font-bold text-honey-700">
+      <button onClick={() => setOpen(true)} className="tap text-[12.5px] font-bold text-honey-700">
         ＋ Añadir
       </button>
       {open && (

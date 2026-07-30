@@ -58,7 +58,7 @@ export default function Polls({ eventId, slug, myId, isOrganizer, nameOf, polls 
                     {closed && <Badge>cerrada</Badge>}
                     {isOrganizer && (
                       <form action={(closed ? reopenPoll : closePoll).bind(null, p.id, slug)}>
-                        <button className="font-bold text-ink-500">{closed ? 'reabrir' : 'cerrar'}</button>
+                        <button className="tap font-bold text-ink-500">{closed ? 'reabrir' : 'cerrar'}</button>
                       </form>
                     )}
                   </span>
@@ -79,7 +79,7 @@ export default function Polls({ eventId, slug, myId, isOrganizer, nameOf, polls 
                           </form>
                           {isOrganizer && !applied && (
                             <form action={applyPollOption.bind(null, p.id, o.id, slug)}>
-                              <button className="flex-shrink-0 text-xs font-bold text-honey-700">elegir</button>
+                              <button className="tap flex-shrink-0 text-xs font-bold text-honey-700">elegir</button>
                             </form>
                           )}
                         </div>

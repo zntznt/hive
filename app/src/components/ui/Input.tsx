@@ -108,7 +108,7 @@ export function Checkbox({
   return (
     <label
       htmlFor={iid}
-      className={`inline-flex cursor-pointer items-center gap-2 text-sm text-ink-700 ${className}`}
+      className={`tap inline-flex cursor-pointer items-center gap-2 text-sm text-ink-700 ${className}`}
     >
       <input id={iid} type="checkbox" className="h-[17px] w-[17px] accent-honey-500" {...rest} />
       {label}

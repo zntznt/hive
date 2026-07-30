@@ -108,7 +108,7 @@ export function AppBar({
                 <div onClick={() => setOpen(false)} className="fixed inset-0 z-scrim" />
                 <div className="absolute right-0.5 top-[calc(100%+2px)] z-popover min-w-[208px] rounded-md border border-line-card bg-paper p-[5px] shadow-pop">
                   {items.map((it) => {
-                    const cls = `flex min-h-10 w-full items-center gap-[11px] rounded-sm px-2.5 text-left text-[13.5px] font-semibold ${
+                    const cls = `flex min-h-11 w-full items-center gap-[11px] rounded-sm px-2.5 text-left text-[13.5px] font-semibold ${
                       it.danger ? 'text-danger' : 'text-ink-700'
                     } ${it.disabled ? 'cursor-not-allowed opacity-45' : ''}`
                     const inner = (

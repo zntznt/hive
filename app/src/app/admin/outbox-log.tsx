@@ -58,7 +58,7 @@ export default function OutboxLog({ rows }: { rows: OutboxRow[] }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="rounded-md border-[1.5px] border-honey-500 px-2.5 py-1 text-xs font-bold text-honey-700"
+        className="tap rounded-md border-[1.5px] border-honey-500 px-2.5 py-1 text-xs font-bold text-honey-700"
       >
         {open ? 'Ocultar' : `Ver los últimos ${rows.length}`}
       </button>

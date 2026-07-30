@@ -43,7 +43,7 @@ export function TemplateSyncBar() {
             setBusy(false)
           }
         }}
-        className="text-xs font-bold text-honey-700 disabled:opacity-50"
+        className="tap text-xs font-bold text-honey-700 disabled:opacity-50"
       >
         {busy ? 'Actualizando…' : 'Actualizar estados de WhatsApp'}
       </button>
@@ -65,7 +65,7 @@ export function TemplateRow({ tplKey, email, whatsapp }: { tplKey: string; email
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left"
+        className="min-h-11 flex w-full items-center gap-2 px-3.5 py-2.5 text-left"
       >
         <ChevronDownIcon className={`flex-shrink-0 text-ink-300 transition-transform ${open ? '' : '-rotate-90'}`} />
         <span className="truncate font-mono text-[13.5px] font-bold text-ink-900">{tplKey}</span>
@@ -91,7 +91,7 @@ export function TemplateRow({ tplKey, email, whatsapp }: { tplKey: string; email
                 className="rounded-sm border border-line-input bg-paper p-1.5 text-xs text-ink-900"
               />
               <textarea name="body" defaultValue={email.body} rows={4} className="rounded-sm border border-line-input bg-paper p-1.5 text-xs text-ink-900" />
-              <button className="self-start text-xs font-bold text-honey-700">Guardar</button>
+              <button className="tap self-start text-xs font-bold text-honey-700">Guardar</button>
             </form>
           )}
           {whatsapp && (
@@ -99,7 +99,7 @@ export function TemplateRow({ tplKey, email, whatsapp }: { tplKey: string; email
               <form action={updateNotificationTemplate.bind(null, 'whatsapp', tplKey)} className="flex flex-col gap-1.5">
                 <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-ink-300">WhatsApp</span>
                 <textarea name="body" defaultValue={whatsapp.body} rows={4} className="rounded-sm border border-line-input bg-paper p-1.5 text-xs text-ink-900" />
-                <button className="self-start text-xs font-bold text-honey-700">Guardar</button>
+                <button className="tap self-start text-xs font-bold text-honey-700">Guardar</button>
               </form>
 
               <p className="text-[11px] leading-snug text-ink-300">
@@ -125,7 +125,7 @@ export function TemplateRow({ tplKey, email, whatsapp }: { tplKey: string; email
                     setBusy(false)
                   }
                 }}
-                className="self-start text-xs font-bold text-honey-700 disabled:opacity-50"
+                className="tap self-start text-xs font-bold text-honey-700 disabled:opacity-50"
               >
                 {busy ? 'Enviando…' : status ? 'Volver a enviar a revisión' : 'Enviar a revisión'}
               </button>

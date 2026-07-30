@@ -10,7 +10,7 @@ export function MyPaymentDetailsButton({ methods }: { methods: PaymentMethod[] }
   const [open, setOpen] = useState(false)
   return (
     <>
-      <button onClick={() => setOpen(true)} className="text-[12.5px] font-bold text-ink-500">
+      <button onClick={() => setOpen(true)} className="tap text-[12.5px] font-bold text-ink-500">
         mis datos
       </button>
       {open && (

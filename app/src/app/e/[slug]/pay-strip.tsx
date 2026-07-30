@@ -34,7 +34,7 @@ export function PayStrip({
             } catch {}
             toast('Datos de pago copiados')
           }}
-          className="text-[12.5px] font-bold text-honey-700"
+          className="tap text-[12.5px] font-bold text-honey-700"
         >
           copiar
         </button>

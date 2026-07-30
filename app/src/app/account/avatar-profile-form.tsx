@@ -88,7 +88,7 @@ export default function AvatarProfileForm({
         <BugAvatarPicker bug={bug} color={color} onChange={({ bug: b, color: c }) => { setBug(b); setColor(c) }} />
         <div className="mt-3 flex items-center gap-3">
           {photoUrl && <HexAvatar name={displayName} size={44} src={photoUrl} />}
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-pill border-[1.5px] border-line-input bg-paper px-3.5 py-1.5 text-[12.5px] font-bold text-ink-700">
+          <label className="tap inline-flex cursor-pointer items-center gap-2 rounded-pill border-[1.5px] border-line-input bg-paper px-3.5 py-1.5 text-[12.5px] font-bold text-ink-700">
             {uploading ? 'Subiendo…' : photoUrl ? 'Cambiar foto' : 'O usa tu propia foto'}
             <input
               ref={fileRef}
@@ -103,7 +103,7 @@ export default function AvatarProfileForm({
             <button
               type="button"
               onClick={() => setPhotoUrl(null)}
-              className="text-[12.5px] font-bold text-ink-500"
+              className="tap text-[12.5px] font-bold text-ink-500"
             >
               Volver a tu bicho
             </button>

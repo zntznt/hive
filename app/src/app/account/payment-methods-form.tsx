@@ -78,7 +78,7 @@ export default function PaymentMethodsForm({ methods }: { methods: PaymentMethod
               type="button"
               onClick={() => removeRow(row.key)}
               aria-label="Quitar forma de pago"
-              className="mt-2.5 shrink-0 text-[12.5px] font-bold text-ink-500"
+              className="tap mt-2.5 shrink-0 text-[12.5px] font-bold text-ink-500"
             >
               Quitar
             </button>

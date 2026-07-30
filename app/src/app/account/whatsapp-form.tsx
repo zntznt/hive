@@ -68,7 +68,7 @@ export default function WhatsappForm({ phone, verifiedAt }: { phone: string | nu
           <button
             type="button"
             onClick={() => (step === 'closed' ? setStep('number') : close())}
-            className="rounded-md border-[1.5px] border-honey-500 px-2.5 py-1 text-xs font-bold text-honey-700"
+            className="tap rounded-md border-[1.5px] border-honey-500 px-2.5 py-1 text-xs font-bold text-honey-700"
           >
             {step !== 'closed' ? 'cancelar' : phone ? 'cambiar' : 'agregar'}
           </button>

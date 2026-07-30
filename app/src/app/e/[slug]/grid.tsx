@@ -197,7 +197,7 @@ export default function Grid({
               key={m}
               type="button"
               onClick={() => setMode(m)}
-              className={`h-10 flex-1 rounded-pill text-[12.5px] font-bold ${
+              className={`h-11 flex-1 rounded-pill text-[12.5px] font-bold ${
                 mode === m ? 'bg-paper text-ink-900 shadow-card' : 'text-ink-500'
               }`}
             >
@@ -312,7 +312,7 @@ export default function Grid({
                   router.refresh()
                 })
               }
-              className="flex-shrink-0 rounded-md border-[1.5px] border-honey-500 px-2.5 py-1 text-xs font-bold text-honey-700 disabled:opacity-50"
+              className="tap flex-shrink-0 rounded-md border-[1.5px] border-honey-500 px-2.5 py-1 text-xs font-bold text-honey-700 disabled:opacity-50"
             >
               <Icon name="paper-plane" size={11} /> {nudged ? 'Recordado' : 'Recordarles'}
             </button>
@@ -353,7 +353,7 @@ export default function Grid({
                 <button
                   type="button"
                   onClick={() => setPick({ day: s.day, a: s.a, b: s.b })}
-                  className="rounded-md border-[1.5px] border-honey-500 px-2 py-1 text-xs font-bold text-honey-700"
+                  className="tap rounded-md border-[1.5px] border-honey-500 px-2 py-1 text-xs font-bold text-honey-700"
                 >
                   Usar
                 </button>

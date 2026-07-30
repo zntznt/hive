@@ -63,7 +63,7 @@ function CategoryModal({
   return (
     <>
       {small ? (
-        <button aria-label="Editar categoría" onClick={() => setOpen(true)} className="-ml-0.5 px-1 text-[11px] text-ink-300">
+        <button aria-label="Editar categoría" onClick={() => setOpen(true)} className="tap -ml-0.5 px-1 text-[11px] text-ink-300">
           {trigger}
         </button>
       ) : (

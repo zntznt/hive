@@ -157,7 +157,7 @@ export default function SignIn() {
                 setCode('')
                 setError(null)
               }}
-              className="text-xs text-on-dark-mute underline"
+              className="tap text-xs text-on-dark-mute underline"
             >
               ¿No te llegó? Pídelo de nuevo
             </button>

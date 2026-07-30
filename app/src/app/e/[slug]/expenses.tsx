@@ -205,7 +205,7 @@ export default async function Expenses({
                   ) : (
                     (s.from_user === myId || isOrganizer) && (
                       <form action={deleteSettlement.bind(null, s.id, slug)}>
-                        <button className="text-xs font-bold text-ink-500">retirar</button>
+                        <button className="tap text-xs font-bold text-ink-500">retirar</button>
                       </form>
                     )
                   )}

@@ -47,7 +47,7 @@ export function Dropdown({
         type="button"
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
-        className={`flex w-full items-center justify-between gap-2 rounded-md border-[1.5px] bg-paper px-[13px] py-[11px] text-left text-sm ${
+        className={`flex min-h-11 w-full items-center justify-between gap-2 rounded-md border-[1.5px] bg-paper px-[13px] py-[11px] text-left text-sm ${
           open ? 'border-honey-500' : 'border-line-input'
         } ${cur && cur.value !== '' ? 'text-ink-900' : 'text-ink-300'} ${disabled ? 'opacity-60' : 'cursor-pointer'}`}
       >
@@ -64,7 +64,7 @@ export function Dropdown({
                 onChange(o.value)
                 setOpen(false)
               }}
-              className={`flex w-full items-center justify-between gap-2 px-[13px] py-2.5 text-left text-sm text-ink-900 ${
+              className={`flex min-h-11 w-full items-center justify-between gap-2 px-[13px] py-2.5 text-left text-sm text-ink-900 ${
                 o.value === value ? 'bg-honey-50' : ''
               }`}
             >

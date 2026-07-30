@@ -197,7 +197,7 @@ export default async function ClubPage({
                 href={l.url.startsWith('http') ? l.url : `https://${l.url}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-pill bg-cream-sunk px-3 py-1 text-xs font-bold text-honey-700"
+                className="tap inline-flex items-center gap-1.5 rounded-pill bg-cream-sunk px-3 py-1 text-xs font-bold text-honey-700"
               >
                 <Icon name="link" size={12} /> {l.label}
               </a>
@@ -249,7 +249,7 @@ export default async function ClubPage({
 
       <SectionHeader
         action={
-          <Link href={`/events?club=${club.id}&when=past`} className="text-[12.5px] font-bold text-honey-700">
+          <Link href={`/events?club=${club.id}&when=past`} className="tap text-[12.5px] font-bold text-honey-700">
             Historial completo →
           </Link>
         }
@@ -262,7 +262,7 @@ export default async function ClubPage({
           <Link
             key={e.id}
             href={`/e/${e.slug}`}
-            className="flex items-center justify-between gap-2.5 rounded-md border border-line-card bg-paper px-[13px] py-[11px] text-sm"
+            className="min-h-11 flex items-center justify-between gap-2.5 rounded-md border border-line-card bg-paper px-[13px] py-[11px] text-sm"
           >
             <span className="flex min-w-0 items-center gap-2">
               <span className="min-w-0 truncate text-ink-900">{e.title}</span>
@@ -283,7 +283,7 @@ export default async function ClubPage({
         <>
           <SectionHeader
             action={
-              <Link href="/admin" className="text-[12.5px] font-bold text-honey-700">
+              <Link href="/admin" className="tap text-[12.5px] font-bold text-honey-700">
                 Revisar en Admin →
               </Link>
             }
@@ -311,7 +311,7 @@ export default async function ClubPage({
                   {isAdmin && (
                     <div className="flex gap-2">
                       <form action={decideChangeRequest.bind(null, r.id, slug, false)}>
-                        <button className="text-[12.5px] font-bold text-ink-500">Rechazar</button>
+                        <button className="tap text-[12.5px] font-bold text-ink-500">Rechazar</button>
                       </form>
                       <form action={decideChangeRequest.bind(null, r.id, slug, true)}>
                         <Button size="sm">Aprobar</Button>
@@ -329,7 +329,7 @@ export default async function ClubPage({
         <>
           <SectionHeader
             action={
-              <Link href="/admin" className="text-[12.5px] font-bold text-honey-700">
+              <Link href="/admin" className="tap text-[12.5px] font-bold text-honey-700">
                 Revisar en Admin →
               </Link>
             }
@@ -348,7 +348,7 @@ export default async function ClubPage({
                   {isAdmin ? (
                     <span className="flex flex-shrink-0 gap-2">
                       <form action={decideJoinRequest.bind(null, r.id, slug, false)}>
-                        <button className="text-[12.5px] font-bold text-ink-500">Rechazar</button>
+                        <button className="tap text-[12.5px] font-bold text-ink-500">Rechazar</button>
                       </form>
                       <form action={decideJoinRequest.bind(null, r.id, slug, true)}>
                         <Button size="sm">Aprobar</Button>
@@ -394,7 +394,7 @@ export default async function ClubPage({
                 {inv.declined_at ? <Badge tone="disabled">no puede</Badge> : <Badge>invitado</Badge>}
               </span>
               <form action={revokeInvitation.bind(null, inv.id, `/club/${slug}`)} className="flex-shrink-0">
-                <button className="text-[12.5px] font-bold text-ink-500">Revocar</button>
+                <button className="tap text-[12.5px] font-bold text-ink-500">Revocar</button>
               </form>
             </div>
           ))}
@@ -416,7 +416,7 @@ export default async function ClubPage({
               <option value="invite_only">solo con invitación</option>
               <option value="anyone_with_link">cualquiera con el enlace (pide aprobación)</option>
             </select>
-            <button className="rounded-md border border-line-input px-2 py-1 text-xs font-bold">Guardar</button>
+            <button className="tap rounded-md border border-line-input px-2 py-1 text-xs font-bold">Guardar</button>
           </form>
         </section>
       )}
@@ -425,7 +425,7 @@ export default async function ClubPage({
         <section className="mb-6">
           <SectionHeader
             action={
-              <Link href={`/events?club=${club.id}&owed=true`} className="text-[12.5px] font-bold text-honey-700">
+              <Link href={`/events?club=${club.id}&owed=true`} className="tap text-[12.5px] font-bold text-honey-700">
                 Ver eventos →
               </Link>
             }
@@ -437,7 +437,7 @@ export default async function ClubPage({
               <Link
                 key={o.userId}
                 href={`/events?club=${club.id}&owed=true&person=${o.userId}`}
-                className={`flex items-center justify-between gap-2 px-[13px] py-[11px] ${i ? 'border-t border-line-divider' : ''}`}
+                className={`min-h-11 flex items-center justify-between gap-2 px-[13px] py-[11px] ${i ? 'border-t border-line-divider' : ''}`}
               >
                 <span className="flex items-center gap-2.5">
                   <UserAvatar user={o.user} size={28} />

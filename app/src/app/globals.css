@@ -337,3 +337,28 @@ textarea::placeholder {
   text-transform: uppercase;
   color: var(--text-muted);
 }
+
+/* Minimum tap target.
+ *
+ * A 13px text button is about 18px tall, and a thumb is not. The rule is 44px
+ * of touchable area, but growing the button to 44px would blow up the rhythm
+ * of every dense row it sits in, so the area grows and the box does not: an
+ * invisible overlay, centered on the control, claiming the missing height and
+ * width. Layout is untouched because the overlay is absolutely positioned.
+ *
+ * Use on small inline controls (text buttons in rows, icon-only buttons).
+ * Anything already 44px or taller does not need it. */
+.tap {
+  position: relative;
+}
+.tap::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  min-width: 44px;
+  min-height: 44px;
+  width: 100%;
+  height: 100%;
+}

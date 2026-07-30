@@ -40,7 +40,7 @@ export function AvatarUpload({ clubId, slug, clubName, avatarUrl }: { clubId: st
       <HexAvatar name={clubName} size={40} src={avatarUrl} />
       <label
         title="Cambiar foto del club"
-        className="absolute -bottom-1 -right-2 grid h-5 w-5 cursor-pointer place-items-center rounded-full bg-paper text-[9px] text-ink-700 shadow-card"
+        className="tap absolute -bottom-1 -right-2 grid h-5 w-5 cursor-pointer place-items-center rounded-full bg-paper text-[9px] text-ink-700 shadow-card"
       >
         {pending ? '…' : <Icon name="camera" size={13} />}
         <input type="file" accept="image/*" className="hidden" onChange={onFile} disabled={pending} />

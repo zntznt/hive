@@ -40,7 +40,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
         <h1 className="text-[22px] font-display font-bold leading-[1.2] text-ink-900">
           Invitar · {event.title}
         </h1>
-        <Link href={`/e/${slug}`} className="shrink-0 text-sm font-semibold text-honey-700 underline">
+        <Link href={`/e/${slug}`} className="tap shrink-0 text-sm font-semibold text-honey-700 underline">
           volver
         </Link>
       </header>

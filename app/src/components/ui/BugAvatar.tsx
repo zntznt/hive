@@ -85,7 +85,7 @@ export function BugAvatarPicker({
                 type="button"
                 onClick={() => onChange({ bug, color: c })}
                 aria-label={`color ${c}`}
-                className="h-[26px] w-[26px] rounded-full border-2 border-paper"
+                className="tap h-[26px] w-[26px] rounded-full border-2 border-paper"
                 style={{ background: c, outline: on ? '2px solid var(--charcoal)' : '2px solid var(--border-input)' }}
               />
             )

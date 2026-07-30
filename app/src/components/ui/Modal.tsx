@@ -55,7 +55,7 @@ export function Modal({
               type="button"
               onClick={onClose}
               aria-label="Cerrar"
-              className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-sm bg-cream-sunk text-base leading-none text-ink-500"
+              className="tap grid h-8 w-8 flex-shrink-0 place-items-center rounded-sm bg-cream-sunk text-base leading-none text-ink-500"
             >
               <Icon name="xmark" size={12} />
             </button>

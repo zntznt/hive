@@ -27,6 +27,8 @@ export function Chip({ variant, active, className, children, ...rest }: Props & 
   )
 }
 
+// A chip is ~22px tall by design (it is a label first), so the tappable one
+// keeps its size and borrows the area it is missing from .tap.
 export function ChipButton({
   variant,
   active,
@@ -35,7 +37,7 @@ export function ChipButton({
   ...rest
 }: Props & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button type="button" className={`${chipClass({ variant, active, className })} cursor-pointer`} {...rest}>
+    <button type="button" className={`tap ${chipClass({ variant, active, className })} cursor-pointer`} {...rest}>
       {children}
     </button>
   )

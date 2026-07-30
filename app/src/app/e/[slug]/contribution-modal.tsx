@@ -50,7 +50,7 @@ export function AddContributionButton({
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="text-[12.5px] font-bold text-honey-700">
+      <button onClick={() => setOpen(true)} className="tap text-[12.5px] font-bold text-honey-700">
         ＋ Añadir
       </button>
       {open && (
@@ -133,7 +133,7 @@ export function EditContributionButton({
 
   return (
     <>
-      <button onClick={() => setOpen(true)} aria-label="Editar" className="border-none bg-transparent p-0 text-xs text-ink-300">
+      <button onClick={() => setOpen(true)} aria-label="Editar" className="tap border-none bg-transparent p-0 text-xs text-ink-300">
         <Icon name="pen" size={12} />
       </button>
       {open && (

@@ -35,7 +35,7 @@ export function BannerUpload({ clubId, slug }: { clubId: string; slug: string })
     <>
       <label
         title="Cambiar portada"
-        className="absolute right-2.5 top-2.5 grid h-[30px] w-[30px] cursor-pointer place-items-center rounded-full bg-paper text-[13px] text-ink-700 shadow-card"
+        className="tap absolute right-2.5 top-2.5 grid h-[30px] w-[30px] cursor-pointer place-items-center rounded-full bg-paper text-[13px] text-ink-700 shadow-card"
       >
         {pending ? '…' : <Icon name="camera" size={13} />}
         <input type="file" accept="image/*" className="hidden" onChange={onFile} disabled={pending} />

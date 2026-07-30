@@ -273,7 +273,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             <div className="min-w-0 flex-1">
               <div className="text-sm font-extrabold text-ink-900">
                 Estás aquí como invitado de{' '}
-                <Link href={`/club/${club!.slug}`} className="text-honey-700">
+                <Link href={`/club/${club!.slug}`} className="tap text-honey-700">
                   {club!.name}
                 </Link>
               </div>
@@ -370,7 +370,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                     key={r.user_id}
                     href={`/events?person=${r.user_id}`}
                     title={`Ver eventos de ${nameOf.get(r.user_id)}`}
-                    className="inline-flex items-center gap-1.5 rounded-pill border border-line-card bg-paper py-[3px] pl-[3px] pr-2.5 text-[12.5px] font-bold text-ink-900"
+                    className="tap inline-flex items-center gap-1.5 rounded-pill border border-line-card bg-paper py-[3px] pl-[3px] pr-2.5 text-[12.5px] font-bold text-ink-900"
                   >
                     <UserAvatar user={u ?? { display_name: nameOf.get(r.user_id) ?? '·' }} size={22} />
                     {nameOf.get(r.user_id)}
@@ -388,12 +388,12 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               {myGuests.map((g) => (
                 <form key={g.id} action={removeGuest.bind(null, g.id, event.slug)} className="mb-1.5 flex items-center justify-between gap-2 text-sm last:mb-0">
                   <span className="text-ink-700">+1 · {g.name}</span>
-                  <button className="text-xs font-bold text-ink-500">quitar</button>
+                  <button className="tap text-xs font-bold text-ink-500">quitar</button>
                 </form>
               ))}
               <form action={addGuest.bind(null, event.id, event.slug)} className="flex gap-2">
                 <input name="name" placeholder="Nombre de quien traes" className="flex-1 rounded-md border border-line-input bg-paper p-2 text-sm text-ink-900" />
-                <button className="rounded-md bg-honey-500 px-3 py-2 text-xs font-bold text-charcoal">Traer a alguien (+1)</button>
+                <button className="tap rounded-md bg-honey-500 px-3 py-2 text-xs font-bold text-charcoal">Traer a alguien (+1)</button>
               </form>
             </div>
           )}
@@ -474,18 +474,18 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                     <>
                       <EditContributionButton id={c.id} slug={event.slug} title={c.title} qty={c.qty} />
                       <form action={removeContribution.bind(null, c.id, event.slug)}>
-                        <button aria-label="Quitar" className="text-xs text-ink-300">
+                        <button aria-label="Quitar" className="tap text-xs text-ink-300">
                           <Icon name="xmark" size={12} />
                         </button>
                       </form>
                       <form action={toggleContribution.bind(null, c.id, event.slug, true)}>
-                        <button className="text-xs font-bold text-honey-700">hecho</button>
+                        <button className="tap text-xs font-bold text-honey-700">hecho</button>
                       </form>
                     </>
                   )}
                   {c.done && (c.assigned_to === profile.id || isOrganizer) && (
                     <form action={toggleContribution.bind(null, c.id, event.slug, false)}>
-                      <button className="text-xs font-bold text-honey-700">deshacer</button>
+                      <button className="tap text-xs font-bold text-honey-700">deshacer</button>
                     </form>
                   )}
                 </span>

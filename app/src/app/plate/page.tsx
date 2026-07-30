@@ -25,7 +25,7 @@ export default async function PlatePage() {
     <main className="mx-auto w-full max-w-md p-6">
       <header className="mb-1 flex items-baseline justify-between">
         <h1 className="font-display text-[23px] font-bold text-ink-900">En tu plato</h1>
-        <Link href="/" className="text-[13px] text-ink-500">
+        <Link href="/" className="tap text-[13px] text-ink-500">
           inicio
         </Link>
       </header>
@@ -209,7 +209,7 @@ export default async function PlatePage() {
               >
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-bold text-ink-900">{s.name}</span>
-                  <Link href={`/events?person=${s.userId}`} className="text-[12px] font-semibold text-honey-700">
+                  <Link href={`/events?person=${s.userId}`} className="tap text-[12px] font-semibold text-honey-700">
                     {s.events} {s.events === 1 ? 'evento' : 'eventos'}
                   </Link>
                 </span>

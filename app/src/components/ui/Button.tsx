@@ -3,10 +3,13 @@ import { type ButtonHTMLAttributes, type ReactNode } from 'react'
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 type Size = 'sm' | 'md' | 'lg'
 
+// min-h is the tap target, not the look: sm and md were 36px and 42px tall,
+// both under the 44px a thumb actually needs. Padding is unchanged, so short
+// labels get the height from min-h and nothing else moves.
 const PAD: Record<Size, string> = {
-  sm: 'px-3.5 py-2 text-sm',
-  md: 'px-[18px] py-[11px] text-sm',
-  lg: 'px-[22px] py-3.5 text-base',
+  sm: 'px-3.5 py-2 text-sm min-h-11',
+  md: 'px-[18px] py-[11px] text-sm min-h-11',
+  lg: 'px-[22px] py-3.5 text-base min-h-[52px]',
 }
 
 const SKIN: Record<Variant, string> = {

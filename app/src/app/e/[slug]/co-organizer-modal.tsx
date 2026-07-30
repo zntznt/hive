@@ -26,7 +26,7 @@ export function CoOrganizerButton({ eventId, slug, candidates }: { eventId: stri
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="text-[12.5px] font-bold text-honey-700">
+      <button onClick={() => setOpen(true)} className="tap text-[12.5px] font-bold text-honey-700">
         ＋ Co-organizador
       </button>
       {open && (
@@ -38,7 +38,7 @@ export function CoOrganizerButton({ eventId, slug, candidates }: { eventId: stri
                 key={c.user_id}
                 disabled={pending}
                 onClick={() => invite(c.user_id, c.user.display_name)}
-                className="flex items-center gap-2.5 rounded-md border border-line-card bg-paper p-2.5 text-left text-sm font-bold text-ink-900 disabled:opacity-60"
+                className="min-h-11 flex items-center gap-2.5 rounded-md border border-line-card bg-paper p-2.5 text-left text-sm font-bold text-ink-900 disabled:opacity-60"
               >
                 <UserAvatar user={c.user} size={28} />
                 {c.user.display_name}

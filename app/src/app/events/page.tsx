@@ -191,7 +191,7 @@ export default async function EventsPage({
     <main className="mx-auto w-full max-w-lg p-6">
       <header className="mb-1 flex items-baseline justify-between">
         <h1 className="font-display text-xl font-bold text-ink-900">Eventos</h1>
-        <Link href="/" className="text-sm text-ink-500 underline">
+        <Link href="/" className="tap text-sm text-ink-500 underline">
           inicio
         </Link>
       </header>
@@ -309,7 +309,7 @@ export default async function EventsPage({
                     {clubInfo ? (
                       <Link
                         href={`/club/${clubInfo.slug}`}
-                        className="relative z-10 font-bold text-honey-700 hover:underline"
+                        className="tap relative z-10 font-bold text-honey-700 hover:underline"
                       >
                         {clubInfo.name}
                       </Link>
@@ -356,7 +356,7 @@ export default async function EventsPage({
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-3.5">
           {clampedPage > 1 ? (
-            <Link href={pageHref(clampedPage - 1)} className="text-[12.5px] font-bold text-honey-700">
+            <Link href={pageHref(clampedPage - 1)} className="tap text-[12.5px] font-bold text-honey-700">
               ← Anterior
             </Link>
           ) : (
@@ -366,7 +366,7 @@ export default async function EventsPage({
             Página {clampedPage} de {totalPages}
           </span>
           {clampedPage < totalPages ? (
-            <Link href={pageHref(clampedPage + 1)} className="text-[12.5px] font-bold text-honey-700">
+            <Link href={pageHref(clampedPage + 1)} className="tap text-[12.5px] font-bold text-honey-700">
               Siguiente →
             </Link>
           ) : (

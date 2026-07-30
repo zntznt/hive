@@ -44,7 +44,7 @@ export function MarkDoneButton({
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="font-bold text-honey-700">
+      <button onClick={() => setOpen(true)} className="tap font-bold text-honey-700">
         Hecho
       </button>
     )

@@ -134,7 +134,7 @@ export function ImageCropModal({
           )}
           {shape === 'hex' && <HexMask frameW={frameW} frameH={frameH} />}
         </div>
-        <label className="flex w-full items-center gap-2.5">
+        <label className="min-h-11 flex w-full items-center gap-2.5">
           <span className="text-xs text-ink-300">−</span>
           <input
             type="range"

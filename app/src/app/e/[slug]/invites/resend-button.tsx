@@ -29,7 +29,7 @@ export default function ResendButton({ invitationId, path }: { invitationId: str
           }
         })
       }
-      className="flex-shrink-0 rounded-md border-[1.5px] border-honey-500 px-2.5 py-1 text-xs font-bold text-honey-700 disabled:opacity-50"
+      className="tap flex-shrink-0 rounded-md border-[1.5px] border-honey-500 px-2.5 py-1 text-xs font-bold text-honey-700 disabled:opacity-50"
     >
       {pending ? 'Enviando…' : 'Reenviar'}
     </button>

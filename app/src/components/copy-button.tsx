@@ -14,7 +14,7 @@ export default function CopyButton({ path, label = 'Copiar enlace' }: { path: st
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
       }}
-      className="rounded-md border-[1.5px] border-honey-500 px-2 py-1 text-xs font-bold text-honey-700"
+      className="tap rounded-md border-[1.5px] border-honey-500 px-2 py-1 text-xs font-bold text-honey-700"
     >
       {copied ? (
         <>

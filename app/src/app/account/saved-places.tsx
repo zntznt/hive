@@ -47,7 +47,7 @@ export function SavedPlaces({ places }: { places: Place[] }) {
                 </span>
               </span>
               <form action={removeSavedPlace.bind(null, p.id)} className="flex-shrink-0">
-                <button className="text-[12.5px] font-bold text-ink-500">Quitar</button>
+                <button className="tap text-[12.5px] font-bold text-ink-500">Quitar</button>
               </form>
             </div>
           ))}
@@ -56,7 +56,7 @@ export function SavedPlaces({ places }: { places: Place[] }) {
       <form ref={formRef} action={submit} className="flex flex-col gap-2.5">
         <Input label="Nombre" value={name} onChange={(e) => setName(e.target.value)} placeholder="Casa de Marta" />
         <LocationPicker name="addr" label="Dirección" />
-        <button disabled={pending} className="self-start text-[12.5px] font-bold text-honey-700 disabled:opacity-60">
+        <button disabled={pending} className="tap self-start text-[12.5px] font-bold text-honey-700 disabled:opacity-60">
           {pending ? 'Guardando…' : '＋ Guardar lugar'}
         </button>
       </form>

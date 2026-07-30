@@ -67,7 +67,7 @@ export default function AddToCalendar({
               target="_blank"
               rel="noreferrer"
               onClick={() => setOpen(false)}
-              className="flex min-h-10 items-center gap-[11px] rounded-sm px-2.5 text-[13.5px] font-semibold text-ink-700"
+              className="min-h-11 flex items-center gap-[11px] rounded-sm px-2.5 text-[13.5px] font-semibold text-ink-700"
             >
               <Icon name="google" size={13} className="text-ink-300" />
               Google Calendar
@@ -75,7 +75,7 @@ export default function AddToCalendar({
             <a
               href={`/e/${slug}/calendar.ics`}
               onClick={() => setOpen(false)}
-              className="flex min-h-10 items-center gap-[11px] rounded-sm px-2.5 text-[13.5px] font-semibold text-ink-700"
+              className="min-h-11 flex items-center gap-[11px] rounded-sm px-2.5 text-[13.5px] font-semibold text-ink-700"
             >
               <Icon name="apple" size={13} className="text-ink-300" />
               Apple, Outlook y otros

@@ -221,15 +221,15 @@ export default async function AdminPage() {
                     <span className="flex flex-shrink-0 items-center gap-2.5">
                       {u.status === 'active' ? (
                         <form action={setUserStatus.bind(null, u.id, 'disabled')}>
-                          <button className="text-xs font-bold text-danger">desactivar</button>
+                          <button className="tap text-xs font-bold text-danger">desactivar</button>
                         </form>
                       ) : (
                         <form action={setUserStatus.bind(null, u.id, 'active')}>
-                          <button className="text-xs font-bold text-honey-700">reactivar</button>
+                          <button className="tap text-xs font-bold text-honey-700">reactivar</button>
                         </form>
                       )}
                       <form action={toggleAppAdmin.bind(null, u.id, !u.is_app_admin)}>
-                        <button className="text-xs font-bold text-ink-500">{u.is_app_admin ? 'quitar admin' : 'hacer admin'}</button>
+                        <button className="tap text-xs font-bold text-ink-500">{u.is_app_admin ? 'quitar admin' : 'hacer admin'}</button>
                       </form>
                     </span>
                   )}

@@ -84,7 +84,7 @@ export default function Thread({
                       router.refresh()
                     })
                   }
-                  className="h-8 w-8 flex-shrink-0 text-ink-300"
+                  className="tap h-8 w-8 flex-shrink-0 text-ink-300"
                 >
                   <Icon name="trash" size={12} />
                 </button>

@@ -59,7 +59,7 @@ export function AboutEditor({
 
   return (
     <>
-      <button aria-label="Editar acerca de" onClick={() => setOpen(true)} className="flex-shrink-0 p-0.5 text-xs text-ink-300">
+      <button aria-label="Editar acerca de" onClick={() => setOpen(true)} className="tap flex-shrink-0 p-0.5 text-xs text-ink-300">
         <Icon name="pen" size={12} />
       </button>
       {open && (
@@ -93,13 +93,13 @@ export function AboutEditor({
                       className="w-[38%] flex-none"
                     />
                     <Input value={r.url} placeholder="link.com/…" onChange={(e) => updateLink(i, { url: e.target.value })} className="flex-1" />
-                    <button aria-label="Quitar enlace" onClick={() => removeLink(i)} className="flex-shrink-0 text-ink-300">
+                    <button aria-label="Quitar enlace" onClick={() => removeLink(i)} className="tap flex-shrink-0 text-ink-300">
                       <Icon name="xmark" size={12} />
                     </button>
                   </div>
                 ))}
                 {rows.length < 4 && (
-                  <button onClick={addLink} className="self-start text-[12.5px] font-bold text-honey-700">
+                  <button onClick={addLink} className="tap self-start text-[12.5px] font-bold text-honey-700">
                     ＋ Añadir enlace
                   </button>
                 )}

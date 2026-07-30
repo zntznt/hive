@@ -179,7 +179,7 @@ export default async function Home() {
             {/* "cuenta" used to live here and is now the You tab. Signing out
                 stays, because it belongs next to who you are signed in as. */}
             <form action={signOut} className="contents">
-              <button type="submit" className="font-bold text-ink-500 underline underline-offset-2">
+              <button type="submit" className="tap font-bold text-ink-500 underline underline-offset-2">
                 salir
               </button>
             </form>
@@ -198,7 +198,7 @@ export default async function Home() {
           <ul className="flex flex-col gap-1.5">
             {away.map((a) => (
               <li key={a.id}>
-                <Link href={a.href} className="flex items-center gap-2 text-[13px] text-ink-700">
+                <Link href={a.href} className="tap flex items-center gap-2 text-[13px] text-ink-700">
                   <Icon
                     name={a.kind === 'cancelled' ? 'ban' : a.kind === 'settled' ? 'circle-check' : 'calendar-check'}
                     size={11}
@@ -226,7 +226,7 @@ export default async function Home() {
       <section className="mb-7">
         <SectionHeader
           action={
-            <Link href="/plate" className="text-[12.5px] font-bold text-honey-700">
+            <Link href="/plate" className="tap text-[12.5px] font-bold text-honey-700">
               Ver todo →
             </Link>
           }
@@ -289,7 +289,7 @@ export default async function Home() {
               )
             })}
             {total > shownPlate.length && (
-              <Link href="/plate" className="text-[12.5px] font-bold text-ink-500">
+              <Link href="/plate" className="tap text-[12.5px] font-bold text-ink-500">
                 +{total - shownPlate.length} más en tu plato →
               </Link>
             )}
@@ -301,7 +301,7 @@ export default async function Home() {
         <section className="mb-7">
           <SectionHeader
             action={
-              <Link href={`/events?person=${profile.id}&when=past`} className="text-[12.5px] font-bold text-honey-700">
+              <Link href={`/events?person=${profile.id}&when=past`} className="tap text-[12.5px] font-bold text-honey-700">
                 Tu historial →
               </Link>
             }
@@ -367,7 +367,7 @@ export default async function Home() {
 
       {profile.is_app_admin && (
         <div className="mt-8 border-t border-line-card pt-5">
-          <Link href="/admin" className="text-sm font-bold text-honey-700">
+          <Link href="/admin" className="tap text-sm font-bold text-honey-700">
             Panel de administración →
           </Link>
         </div>

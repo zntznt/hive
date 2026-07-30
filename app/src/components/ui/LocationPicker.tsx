@@ -80,7 +80,7 @@ export function LocationPicker({
                 setPicked(null)
                 setValue('')
               }}
-              className="flex-shrink-0 text-[12.5px] font-bold text-honey-700"
+              className="tap flex-shrink-0 text-[12.5px] font-bold text-honey-700"
             >
               Cambiar
             </button>
@@ -116,7 +116,7 @@ export function LocationPicker({
               key={`s-${p.name}`}
               type="button"
               onClick={() => pick(p)}
-              className={`flex w-full items-start gap-2 px-[13px] py-2.5 text-left text-[13.5px] ${i ? 'border-t border-line-divider' : ''}`}
+              className={`min-h-11 flex w-full items-start gap-2 px-[13px] py-2.5 text-left text-[13.5px] ${i ? 'border-t border-line-divider' : ''}`}
             >
               <span className="mt-0.5 text-xs" aria-hidden="true">
                 <Icon name="star" size={12} />
@@ -133,7 +133,7 @@ export function LocationPicker({
               key={`r-${p.name}`}
               type="button"
               onClick={() => pick(p)}
-              className={`flex w-full items-start gap-2 px-[13px] py-2.5 text-left text-[13.5px] ${i ? 'border-t border-line-divider' : ''}`}
+              className={`min-h-11 flex w-full items-start gap-2 px-[13px] py-2.5 text-left text-[13.5px] ${i ? 'border-t border-line-divider' : ''}`}
             >
               <span className="mt-0.5">
                 <MapPinIcon color="var(--ink-500)" />
