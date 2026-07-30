@@ -1,8 +1,8 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { requireProfile } from '@/lib/gate'
 import EventForm from '@/app/club/[slug]/new-event/event-form'
 import type { Place } from '@/components/ui/LocationPicker'
+import { AppBar } from '@/components/ui/AppBar'
 
 export default async function EditEventPage({ params }: { params: Promise<{ slug: string }> }) {
   const { supabase, profile } = await requireProfile()
@@ -33,13 +33,9 @@ export default async function EditEventPage({ params }: { params: Promise<{ slug
     .map((n) => ({ name: n, q: n }))
 
   return (
-    <main className="mx-auto w-full max-w-md p-6">
-      <header className="mb-6 flex items-baseline justify-between">
-        <h1 className="font-display text-xl font-bold text-ink-900">Editar · {event.title}</h1>
-        <Link href={`/e/${slug}`} className="text-sm text-ink-500">
-          volver
-        </Link>
-      </header>
+    <>
+      <AppBar title="Editar evento" subtitle={event.title} backHref={`/e/${slug}`} />
+      <main className="mx-auto w-full max-w-md px-6 pb-6">
       <EventForm
         clubId={club.id}
         slug={slug}
@@ -65,5 +61,6 @@ export default async function EditEventPage({ params }: { params: Promise<{ slug
         }}
       />
     </main>
+    </>
   )
 }

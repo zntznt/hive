@@ -20,6 +20,7 @@ import { MemberRow } from './member-row'
 import { InviteModal } from './invite-modal'
 import { DangerZone } from './danger-zone'
 import { updateClubJoinMode, decideChangeRequest, decideJoinRequest, revokeInvitation } from '@/app/actions'
+import { AppBar } from '@/components/ui/AppBar'
 
 type Category = { id: string; name: string; emoji: string | null }
 type AttendanceRow = { user_id: string; category_id: string | null; events_attended: number; last_attended_at: string }
@@ -159,7 +160,13 @@ export default async function ClubPage({
   const links = (club.links ?? []) as Link_[]
 
   return (
-    <main className="mx-auto w-full max-w-md p-6">
+    <>
+      <AppBar
+        title={club.name}
+        backHref="/clubs"
+        action={isManager ? { label: 'Nuevo evento', icon: 'plus', href: `/club/${slug}/new-event` } : undefined}
+      />
+      <main className="mx-auto w-full max-w-md px-6 pb-6">
       <div className="relative mb-3 mt-1">
         <div
           className="h-[110px] rounded-lg border border-line-card bg-cream bg-center bg-cover"
@@ -168,18 +175,13 @@ export default async function ClubPage({
         {isManager && <BannerUpload clubId={club.id} slug={slug} />}
       </div>
 
-      <header className="mb-4 flex items-center justify-between">
-        <span className="flex items-center gap-3">
-          {isManager ? (
-            <AvatarUpload clubId={club.id} slug={slug} clubName={club.name} avatarUrl={club.avatar_url} />
-          ) : (
-            <HexAvatar name={club.name} size={40} src={club.avatar_url} />
-          )}
-          <span className="text-xl font-extrabold text-ink-900">{club.name}</span>
-        </span>
-        <Link href="/" className="text-[13px] text-ink-500">
-          inicio
-        </Link>
+      <header className="mb-4 flex items-center gap-3">
+        {isManager ? (
+          <AvatarUpload clubId={club.id} slug={slug} clubName={club.name} avatarUrl={club.avatar_url} />
+        ) : (
+          <HexAvatar name={club.name} size={40} src={club.avatar_url} />
+        )}
+        <span className="text-xl font-extrabold text-ink-900">{club.name}</span>
       </header>
 
       <Card className="mb-[18px]">
@@ -456,6 +458,7 @@ export default async function ClubPage({
       <SectionHeader>Ajustes del club</SectionHeader>
       <DangerZone clubId={club.id} clubName={club.name} isAdmin={isAdmin} isLastAdmin={isAdmin && adminCount === 1} memberCount={(roster ?? []).length} />
     </main>
+    </>
   )
 }
 

@@ -1,14 +1,12 @@
 import Link from 'next/link'
 import { requireProfile } from '@/lib/gate'
 import type { Contribution, EventRow, RsvpStatus } from '@/lib/types'
-import { addGuest, removeGuest, setEventStatus, setRsvp, toggleContribution, removeContribution } from '@/app/actions'
+import { addGuest, removeGuest, setRsvp, toggleContribution, removeContribution } from '@/app/actions'
 import Grid from './grid'
 import Expenses from './expenses'
 import Polls from './polls'
-import CopyButton from '@/components/copy-button'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
 import { Chip } from '@/components/ui/Chip'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
@@ -19,6 +17,7 @@ import { AddContributionButton, EditContributionButton } from './contribution-mo
 import { CoOrganizerButton } from './co-organizer-modal'
 import { RequestJoinClubButton } from './request-join-button'
 import { ClaimContributionButton, PromoteNextButton } from './claim-modal'
+import EventAppBar from './event-app-bar'
 
 function dayRange(start: string, end: string) {
   // walk in UTC so toISOString() reads the same date we stepped - parsing as
@@ -161,25 +160,19 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             : 'borrador'
 
   return (
-    <main className="mx-auto w-full max-w-md p-6">
-      <div className="mb-2.5 flex justify-end gap-3 text-sm">
-        {isOrganizer && event.status !== 'cancelled' && (
-          <Link href={`/e/${event.slug}/edit`} className="font-bold text-honey-700">
-            editar
-          </Link>
-        )}
-        {isOrganizer && (
-          <Link href={`/e/${event.slug}/invites`} className="font-bold text-honey-700">
-            invitar
-          </Link>
-        )}
-        <CopyButton path={`/e/${event.slug}`} label="copiar enlace" />
-        {club && (
-          <Link href={`/club/${club.slug}`} className="text-ink-500">
-            {club.name}
-          </Link>
-        )}
-      </div>
+    <>
+      {/* full-bleed, so it is a sibling of the content column rather than
+          inside it */}
+      <EventAppBar
+        eventId={event.id}
+        slug={event.slug}
+        title={event.title}
+        status={event.status}
+        clubName={club?.name}
+        clubSlug={club?.slug}
+        isOrganizer={isOrganizer}
+      />
+      <main className="mx-auto w-full max-w-md px-6 pb-6">
 
       {event.status === 'cancelled' && (
         <div className="mb-3.5 flex items-start gap-2.5 rounded-md border border-danger-bg bg-danger-bg px-3.5 py-2.5 text-[13.5px] leading-relaxed text-ink-700">
@@ -267,31 +260,6 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         </div>
       )}
 
-      {isOrganizer && (event.status === 'scheduled' || event.status === 'done') && (
-        <div className="mb-6 flex gap-2">
-          {event.status === 'scheduled' && (
-            <>
-              <form action={setEventStatus.bind(null, event.id, event.slug, 'done')}>
-                <Button variant="secondary" size="sm">
-                  Marcar celebrado
-                </Button>
-              </form>
-              <form action={setEventStatus.bind(null, event.id, event.slug, 'cancelled')}>
-                <Button variant="secondary" size="sm">
-                  Cancelar evento
-                </Button>
-              </form>
-            </>
-          )}
-          {event.status === 'done' && (
-            <form action={setEventStatus.bind(null, event.id, event.slug, 'scheduled')}>
-              <Button variant="secondary" size="sm">
-                Reabrir
-              </Button>
-            </form>
-          )}
-        </div>
-      )}
 
       {event.status === 'scheduling' && event.sched_start_date && event.sched_end_date && (
         <section className="mb-8">
@@ -496,5 +464,6 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
       <Polls eventId={event.id} slug={event.slug} myId={profile.id} isOrganizer={!!isOrganizer} nameOf={nameOf} polls={(polls ?? []) as never} />
     </main>
+    </>
   )
 }

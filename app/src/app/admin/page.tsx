@@ -12,6 +12,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { TemplateRow, TemplateSyncBar } from './template-row'
 import OutboxLog, { type OutboxRow } from './outbox-log'
+import { AppBar } from '@/components/ui/AppBar'
 
 const CHANGE_KIND_LABEL: Record<string, string> = {
   about: 'Acerca de',
@@ -101,13 +102,9 @@ export default async function AdminPage() {
   const approvalsCount = (changeReqs ?? []).length + (joinReqs ?? []).length
 
   return (
-    <main className="mx-auto max-w-lg p-6">
-      <header className="mb-6 flex items-baseline justify-between">
-        <h1 className="font-display text-xl font-bold text-ink-900">Administración</h1>
-        <Link href="/" className="text-sm text-ink-500">
-          inicio
-        </Link>
-      </header>
+    <>
+      <AppBar title="Administración" backHref="/" />
+      <main className="mx-auto max-w-lg px-6 pb-6">
 
       <section className="mb-8">
         <SectionHeader>Aprobaciones · {approvalsCount}</SectionHeader>
@@ -268,5 +265,6 @@ export default async function AdminPage() {
         </>
       )}
     </main>
+    </>
   )
 }

@@ -1,7 +1,7 @@
-import Link from 'next/link'
 import { requireProfile } from '@/lib/gate'
 import EventForm from './event-form'
 import type { Place } from '@/components/ui/LocationPicker'
+import { AppBar } from '@/components/ui/AppBar'
 
 export default async function NewEventPage({ params }: { params: Promise<{ slug: string }> }) {
   const { supabase, profile } = await requireProfile()
@@ -28,14 +28,11 @@ export default async function NewEventPage({ params }: { params: Promise<{ slug:
     .map((n) => ({ name: n, q: n }))
 
   return (
-    <main className="mx-auto w-full max-w-md p-6">
-      <header className="mb-6 flex items-baseline justify-between">
-        <h1 className="font-display text-xl font-bold text-ink-900">Nuevo evento · {club.name}</h1>
-        <Link href={`/club/${slug}`} className="text-sm text-ink-500">
-          volver
-        </Link>
-      </header>
+    <>
+      <AppBar title="Nuevo evento" subtitle={club.name} subtitleHref={`/club/${slug}`} backHref={`/club/${slug}`} />
+      <main className="mx-auto w-full max-w-md px-6 pb-6">
       <EventForm clubId={club.id} slug={slug} categories={categories ?? []} savedPlaces={yourPlaces} recentPlaces={recentPlaces} />
     </main>
+    </>
   )
 }
