@@ -79,6 +79,19 @@
   --r-2xl: 24px;
   --r-pill: 999px;
 
+  /* ---- Layers ----
+     One scale for everything that stacks, from the design kit. The ordering
+     that matters: a popover always outranks the chrome it is anchored in, and
+     the nav sits above page content but below anything modal. z-index cannot
+     escape a clip, so a popover inside an overflow:hidden card has to be
+     positioned in viewport space rather than given a bigger number. */
+  --z-chrome: 30;
+  --z-nav: 50;
+  --z-scrim: 79;
+  --z-popover: 80;
+  --z-modal: 100;
+  --z-toast: 140;
+
   /* ---- Shadows (warm-charcoal tinted) ---- */
   --shadow-card: 0 1px 2px rgba(43, 38, 32, 0.04);
   --shadow-raised: 0 4px 16px rgba(43, 38, 32, 0.08);
@@ -245,6 +258,13 @@
   --radius-xl: var(--r-xl);
   --radius-2xl: var(--r-2xl);
   --radius-pill: var(--r-pill);
+
+  --z-index-chrome: var(--z-chrome);
+  --z-index-nav: var(--z-nav);
+  --z-index-scrim: var(--z-scrim);
+  --z-index-popover: var(--z-popover);
+  --z-index-modal: var(--z-modal);
+  --z-index-toast: var(--z-toast);
 
   --shadow-card: var(--shadow-card);
   --shadow-raised: var(--shadow-raised);

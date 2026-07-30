@@ -38,7 +38,7 @@ export function Modal({
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose?.()
       }}
-      className="fixed inset-0 z-[60] flex items-end justify-center overflow-y-auto p-4 backdrop-blur-[3px] sm:items-center"
+      className="fixed inset-0 z-modal flex items-end justify-center overflow-y-auto p-4 backdrop-blur-[3px] sm:items-center"
       style={{ background: 'rgba(43,38,32,.45)' }}
     >
       <div

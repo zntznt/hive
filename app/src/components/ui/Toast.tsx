@@ -28,7 +28,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {message && (
         <div
           role="status"
-          className="fixed bottom-7 left-1/2 z-[140] flex max-w-[calc(100vw-40px)] -translate-x-1/2 items-center gap-2 rounded-pill px-[18px] py-2.5 text-[13.5px] font-bold text-on-dark shadow-raised"
+          className="fixed bottom-7 left-1/2 z-toast flex max-w-[calc(100vw-40px)] -translate-x-1/2 items-center gap-2 rounded-pill px-[18px] py-2.5 text-[13.5px] font-bold text-on-dark shadow-raised"
           style={{ background: 'var(--charcoal-2)' }}
         >
           <Icon name="jar" size={15} />

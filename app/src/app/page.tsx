@@ -18,7 +18,7 @@ import { UserAvatar } from '@/components/ui/Avatar'
 import { HexAvatar } from '@/components/ui/HexAvatar'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { PlateItemRow } from '@/components/ui/PlateItemRow'
-import { type IconName } from '@/components/ui/Icon'
+import { Icon, type IconName } from '@/components/ui/Icon'
 import { SettleUpFlow, ConfirmPaymentModal } from '@/components/settle-up'
 import { CreateClubButton } from './create-club-modal'
 import { MarkDoneButton } from './plate/mark-done-modal'
@@ -164,20 +164,26 @@ export default async function Home() {
             <div>
               hola, <span className="font-bold text-ink-900">{profile.display_name}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Link href="/account" className="font-bold text-honey-700">
-                cuenta
-              </Link>
-              <span aria-hidden="true">·</span>
-              <form action={signOut} className="contents">
-                <button type="submit" className="font-bold text-ink-500 underline underline-offset-2">
-                  salir
-                </button>
-              </form>
-            </div>
+            {/* "cuenta" used to live here and is now the You tab. Signing out
+                stays, because it belongs next to who you are signed in as. */}
+            <form action={signOut} className="contents">
+              <button type="submit" className="font-bold text-ink-500 underline underline-offset-2">
+                salir
+              </button>
+            </form>
           </div>
         </div>
       </header>
+
+      {/* The way into /search. The tab bar has five slots and search is not one
+          of them: it is a thing you reach for, not a place you live. */}
+      <Link
+        href="/search"
+        className="mb-6 flex min-h-11 items-center gap-2.5 rounded-pill border-[1.5px] border-line-input bg-paper px-4 text-sm text-ink-300"
+      >
+        <Icon name="magnifying-glass" size={13} className="text-ink-500" />
+        Busca eventos, clubs, personas
+      </Link>
 
       <section className="mb-7">
         <SectionHeader
