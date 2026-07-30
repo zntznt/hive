@@ -11,6 +11,11 @@ type Preview = {
   phone: string | null
   inviter: string | null
   claimed: boolean
+  event_when: string | null
+  event_where: string | null
+  going: number | null
+  capacity: number | null
+  declined: boolean
 }
 
 export default async function InvitePage({ params }: { params: Promise<{ token: string }> }) {
@@ -56,6 +61,11 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
       inviter={inv.inviter}
       presetEmail={inv.email}
       phoneOnly={!inv.email && !!inv.phone}
+      when={inv.event_when}
+      where={inv.event_where}
+      going={inv.going}
+      capacity={inv.capacity}
+      declined={inv.declined}
     />
   )
 }

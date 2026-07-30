@@ -116,15 +116,22 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5 text-sm text-ink-700">
                     <span className="flex min-w-0 items-center gap-2">
                       <span className="truncate">{inv.email ?? inv.phone}</span>
+                      {/* a declined invitation is an answer, not a silence.
+                          Without this the organizer keeps resending to
+                          someone who already said no. */}
                       {inv.claimed_by_user_id ? (
                         <Badge tone="active">aceptada</Badge>
+                      ) : inv.declined_at ? (
+                        <Badge tone="disabled">no puede</Badge>
                       ) : (
                         <Badge tone="pending">pendiente</Badge>
                       )}
                     </span>
-                    <span className="text-[11.5px] text-ink-300">{timeAgo(inv.created_at)}</span>
+                    <span className="text-[11.5px] text-ink-300">
+                      {inv.declined_at ? `respondió ${timeAgo(inv.declined_at)}` : timeAgo(inv.created_at)}
+                    </span>
                   </span>
-                  {!inv.claimed_by_user_id && (
+                  {!inv.claimed_by_user_id && !inv.declined_at && (
                     <span className="flex flex-shrink-0 items-center gap-1.5">
                       <CopyButton path={`/i/${inv.token}`} label="Copiar" />
                       <ResendButton invitationId={inv.id} path={`/e/${slug}/invites`} />

@@ -34,6 +34,9 @@ export type TemplateKey =
   | 'availability_pending'
   | 'payment_received'
   | 'payment_confirmed'
+  // queued by a trigger when an account appears, and by the waiting room's
+  // own nudge. No topic: an admin cannot mute the queue they are the queue for.
+  | 'admin_pending_user'
 
 // The Account page's notification matrix rows. Every topic maps 1:n to the
 // template keys above; a template without a topic follows the old global

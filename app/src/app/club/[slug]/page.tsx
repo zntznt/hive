@@ -391,7 +391,7 @@ export default async function ClubPage({
               <span className="flex min-w-0 items-center gap-2.5">
                 <HexAvatar name={inv.email ?? inv.phone ?? '?'} size={28} />
                 <span className="min-w-0 truncate text-ink-500">{inv.email ?? inv.phone}</span>
-                <Badge>invitado</Badge>
+                {inv.declined_at ? <Badge tone="disabled">no puede</Badge> : <Badge>invitado</Badge>}
               </span>
               <form action={revokeInvitation.bind(null, inv.id, `/club/${slug}`)} className="flex-shrink-0">
                 <button className="text-[12.5px] font-bold text-ink-500">Revocar</button>

@@ -1388,11 +1388,13 @@ export async function resendInvitation(invitationId: string, path: string) {
 
   const { data: inv } = await supabase
     .from('invitations')
-    .select('token, email, phone, club_id, event_id, claimed_by_user_id')
+    .select('token, email, phone, club_id, event_id, claimed_by_user_id, declined_at')
     .eq('id', invitationId)
     .maybeSingle()
   if (!inv) throw new Error('No encontramos esa invitación.')
   if (inv.claimed_by_user_id) return { ok: false as const, error: 'Esa invitación ya se usó.' }
+  // they answered. Resending would be asking the same question again.
+  if (inv.declined_at) return { ok: false as const, error: 'Esa persona ya dijo que no puede.' }
   if (!inv.email && !inv.phone) return { ok: false as const, error: 'Esa invitación no tiene a dónde llegar.' }
 
   const [{ data: inviter }, { data: club }, { data: event }] = await Promise.all([
@@ -1527,4 +1529,37 @@ export async function snoozePlateItem(itemKey: string) {
   if (error) throw new Error(error.message)
   revalidatePath('/plate')
   revalidatePath('/')
+}
+
+// "Ya casi": someone stuck in the waiting room asking the admins to look.
+//
+// Once a day, at most. The screen already told them we know they arrived, so
+// the value here is agency rather than volume, and a queue of one person
+// hitting a button repeatedly is exactly what would make admins stop reading
+// the notification.
+export async function nudgeAdmins() {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
+
+  // The rate limit and the admin roster both live in rows this account cannot
+  // read, so claim_admin_nudge does both under its own credentials: it hands
+  // back the admins to notify, or an empty set if we already nudged today.
+  const { data: admins } = await supabase.rpc('claim_admin_nudge')
+  const ids = (admins ?? []) as unknown as string[]
+  if (!ids.length) return { ok: true as const, already: true }
+
+  const { data: me } = await supabase.from('users').select('display_name').eq('id', user.id).maybeSingle()
+  for (const id of ids) {
+    await queueNotification(supabase, {
+      userId: id,
+      template: 'admin_pending_user',
+      vars: { pending_user: me?.display_name ?? 'Alguien', pending_user_id: user.id },
+    })
+  }
+  dispatchAfterResponse(supabase)
+  revalidatePath('/pending')
+  return { ok: true as const, already: false }
 }
