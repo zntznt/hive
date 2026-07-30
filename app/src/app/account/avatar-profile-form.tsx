@@ -83,7 +83,7 @@ export default function AvatarProfileForm({
 
   return (
     <>
-      <section className="mb-6">
+      <section>
         <SectionHeader>Tu bicho</SectionHeader>
         <BugAvatarPicker bug={bug} color={color} onChange={({ bug: b, color: c }) => { setBug(b); setColor(c) }} />
         <div className="mt-3 flex items-center gap-3">
@@ -116,7 +116,7 @@ export default function AvatarProfileForm({
         </p>
       </section>
 
-      <section className="mb-6">
+      <section className="mt-[18px]">
         <SectionHeader>Perfil</SectionHeader>
         <form action={submit} className="flex flex-col gap-3.5">
           <Input label="Nombre" name="display_name" defaultValue={displayName} required maxLength={60} />

@@ -8,6 +8,7 @@ import { Select, Checkbox } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { Chip } from '@/components/ui/Chip'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { Page, PageHeader } from '@/components/ui/Page'
 import { MapPinIcon } from '@/components/ui/Icon'
 
 // Cross-club event browser: the single "event viewer" page. Reached from Home,
@@ -188,18 +189,18 @@ export default async function EventsPage({
   const pageHref = (p: number) => `/events${qs({ ...baseParams, page: p > 1 ? String(p) : undefined })}`
 
   return (
-    <main className="mx-auto w-full max-w-lg p-6">
-      <header className="mb-1 flex items-baseline justify-between">
-        <h1 className="font-display text-xl font-bold text-ink-900">Eventos</h1>
-        <Link href="/" className="tap text-sm text-ink-500 underline">
-          inicio
-        </Link>
-      </header>
-      <p className="mb-5 text-[13px] text-ink-500">
-        Todos los eventos de tus clubs. Filtra, ordena y toca uno para abrirlo.
-      </p>
+    <Page>
+      <PageHeader
+        title="Eventos"
+        lede="Todos los eventos de tus clubs. Filtra, ordena y toca uno para abrirlo."
+        action={
+          <Link href="/" className="tap text-sm text-ink-500 underline">
+            inicio
+          </Link>
+        }
+      />
 
-      <Card pad="md" className="mb-4">
+      <Card pad="md">
         <form method="get" action="/events" className="space-y-3.5">
           <div className="grid grid-cols-3 gap-2.5">
             <Select label="Club" name="club" defaultValue={club}>
@@ -259,7 +260,7 @@ export default async function EventsPage({
         </form>
       </Card>
 
-      <div className="mb-2.5 flex items-baseline justify-between text-[12.5px] text-ink-500">
+      <div className="mb-2.5 mt-7 flex items-baseline justify-between text-[12.5px] text-ink-500">
         <span>
           {rows.length} evento{rows.length === 1 ? '' : 's'}
         </span>
@@ -271,7 +272,7 @@ export default async function EventsPage({
         )}
       </div>
 
-      <div className="mb-5 flex flex-col gap-2.5">
+      <div className="flex flex-col gap-2.5">
         {shown.length === 0 && (
           <EmptyState icon="magnifying-glass" title="No hay eventos que coincidan." hint="Afloja algún filtro." />
         )}
@@ -354,7 +355,7 @@ export default async function EventsPage({
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3.5">
+        <div className="mt-5 flex items-center justify-center gap-3.5">
           {clampedPage > 1 ? (
             <Link href={pageHref(clampedPage - 1)} className="tap text-[12.5px] font-bold text-honey-700">
               ← Anterior
@@ -374,6 +375,6 @@ export default async function EventsPage({
           )}
         </div>
       )}
-    </main>
+    </Page>
   )
 }

@@ -3,6 +3,7 @@ import { requireProfile } from '@/lib/gate'
 import { getPlateItems, plateCount, plateItemKey, getStandings } from '@/lib/plate'
 import { fmtMoney } from '@/lib/money'
 import { SectionHeader } from '@/components/ui/SectionHeader'
+import { Page, PageHeader } from '@/components/ui/Page'
 import { PlateItemRow } from '@/components/ui/PlateItemRow'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SettleUpFlow, ConfirmPaymentModal } from '@/components/settle-up'
@@ -22,16 +23,16 @@ export default async function PlatePage() {
   const methodsFor = (uid: string) => (methodRows ?? []).filter((m) => m.user_id === uid)
 
   return (
-    <main className="mx-auto w-full max-w-md p-6">
-      <header className="mb-1 flex items-baseline justify-between">
-        <h1 className="font-display text-[23px] font-bold text-ink-900">En tu plato</h1>
-        <Link href="/" className="tap text-[13px] text-ink-500">
-          inicio
-        </Link>
-      </header>
-      <p className="mb-5 text-[13px] text-ink-500">
-        Todo lo pendiente antes de que cierre cada evento. Actúa aquí, o toca el nombre del evento para abrirlo.
-      </p>
+    <Page>
+      <PageHeader
+        title="En tu plato"
+        lede="Todo lo pendiente antes de que cierre cada evento. Actúa aquí, o toca el nombre del evento para abrirlo."
+        action={
+          <Link href="/" className="tap text-[13px] text-ink-500">
+            inicio
+          </Link>
+        }
+      />
 
       {total === 0 ? (
         <EmptyState icon="jar" title="Todo en orden." hint="No tienes nada pendiente por ahora. A disfrutar el zumbido." />
@@ -42,7 +43,7 @@ export default async function PlatePage() {
               generic plate confirmation would offer "yes, I brought it" to a
               row that is asking whether you are coming. */}
           {board.toAnswer.length > 0 && (
-            <section className="mb-6">
+            <section>
               <SectionHeader>Te están esperando · {board.toAnswer.length}</SectionHeader>
               <div className="flex flex-col gap-2">
                 {board.toAnswer.map((item, i) => (
@@ -74,7 +75,7 @@ export default async function PlatePage() {
           )}
 
           {board.toPay.length > 0 && (
-            <section className="mb-6">
+            <section className="mt-7">
               <SectionHeader>Pagos · por hacer</SectionHeader>
               <div className="flex flex-col gap-2">
                 {board.toPay.map((item, i) => (
@@ -106,7 +107,7 @@ export default async function PlatePage() {
           )}
 
           {board.toConfirm.length > 0 && (
-            <section className="mb-6">
+            <section className="mt-[18px]">
               <SectionHeader>Pagos · por confirmar</SectionHeader>
               <div className="flex flex-col gap-2">
                 {board.toConfirm.map((item) => (
@@ -137,7 +138,7 @@ export default async function PlatePage() {
           )}
 
           {board.tasks.length > 0 && (
-            <section className="mb-6">
+            <section className="mt-7">
               <SectionHeader>Tareas</SectionHeader>
               <div className="flex flex-col gap-2">
                 {board.tasks.map((item) => (
@@ -165,7 +166,7 @@ export default async function PlatePage() {
           )}
 
           {board.bringing.length > 0 && (
-            <section className="mb-6">
+            <section className="mt-[18px]">
               <SectionHeader>Traes</SectionHeader>
               <div className="flex flex-col gap-2">
                 {board.bringing.map((item) => (
@@ -199,7 +200,7 @@ export default async function PlatePage() {
           because one netted transfer cannot be accepted or rejected per
           event. */}
       {standings.length > 0 && (
-        <section className="mt-2">
+        <section className="mt-7">
           <SectionHeader>Cómo van las cuentas · por persona</SectionHeader>
           <div className="overflow-hidden rounded-lg border border-line-card bg-paper">
             {standings.map((s) => (
@@ -225,6 +226,6 @@ export default async function PlatePage() {
           </div>
         </section>
       )}
-    </main>
+    </Page>
   )
 }

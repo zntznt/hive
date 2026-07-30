@@ -5,6 +5,7 @@ import { HexAvatar } from '@/components/ui/HexAvatar'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Icon } from '@/components/ui/Icon'
 import { CreateClubButton } from '../create-club-modal'
+import { Page, PageHeader } from '@/components/ui/Page'
 
 // The Clubs tab. This used to be a section inside Home, one 68px row per club,
 // which made the two clubs you actually live in look like search results.
@@ -75,11 +76,12 @@ export default async function ClubsPage() {
     .sort((a, b) => (a.clubs!.name ?? '').localeCompare(b.clubs!.name ?? ''))
 
   return (
-    <main className="mx-auto w-full max-w-md p-6">
-      <header className="mb-6 flex items-baseline justify-between gap-3">
-        <h1 className="font-display text-xl font-bold text-ink-900">Clubs</h1>
-        <CreateClubButton />
-      </header>
+    <Page>
+      <PageHeader
+        title="Clubs"
+        lede={clubs.length > 0 ? 'Los lugares a los que perteneces y lo que hacen luego.' : undefined}
+        action={<CreateClubButton />}
+      />
 
       {clubs.length === 0 ? (
         <EmptyState
@@ -154,6 +156,6 @@ export default async function ClubsPage() {
           })}
         </div>
       )}
-    </main>
+    </Page>
   )
 }

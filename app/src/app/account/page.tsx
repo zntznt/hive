@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { requireProfile } from '@/lib/gate'
 import { Badge } from '@/components/ui/Badge'
 import { SectionHeader } from '@/components/ui/SectionHeader'
+import { Page, PageHeader } from '@/components/ui/Page'
 import AvatarProfileForm from './avatar-profile-form'
 import NotifPrefsForm from './notif-prefs-form'
 import WhatsappForm from './whatsapp-form'
@@ -43,13 +44,18 @@ export default async function AccountPage() {
   const paymentMethods = (methods ?? []) as PaymentMethod[]
 
   return (
-    <main className="mx-auto w-full max-w-md p-6">
-      <header className="mb-6 flex items-baseline justify-between gap-3">
-        <h1 className="font-display text-xl font-bold text-ink-900">Mi cuenta</h1>
-        <Link href="/" className="tap shrink-0 text-sm font-semibold text-honey-700 underline">
-          inicio
-        </Link>
-      </header>
+    <Page>
+      {/* the order is who you are, how you get in, what you have saved, what
+          reaches you, and the way out. Sections inside a group sit 18px
+          apart, groups 28px, so the page has a shape before you read a word */}
+      <PageHeader
+        title="Mi cuenta"
+        action={
+          <Link href="/" className="tap shrink-0 text-sm font-semibold text-honey-700 underline">
+            inicio
+          </Link>
+        }
+      />
 
       <AvatarProfileForm
         userId={profile.id}
@@ -60,7 +66,7 @@ export default async function AccountPage() {
         avatarPhotoUrl={account?.avatar_photo_url ?? null}
       />
 
-      <section className="mb-6">
+      <section className="mt-[18px]">
         <SectionHeader>Cómo entras</SectionHeader>
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2 rounded-md border border-line-card bg-paper px-3.5 py-2.5 text-sm">
@@ -87,6 +93,6 @@ export default async function AccountPage() {
       />
 
       <DangerZone />
-    </main>
+    </Page>
   )
 }

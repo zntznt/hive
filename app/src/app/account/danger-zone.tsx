@@ -16,7 +16,7 @@ export default function DangerZone() {
   const [confirmText, setConfirmText] = useState('')
 
   return (
-    <div className="mt-6 rounded-lg border border-danger-bg bg-paper p-4">
+    <div className="mt-7 rounded-lg border border-danger-bg bg-paper p-4">
       <div className="mb-2.5 text-xs font-bold uppercase tracking-wide text-danger">
         Zona de riesgo
       </div>

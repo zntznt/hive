@@ -21,6 +21,7 @@ import { PlateItemRow } from '@/components/ui/PlateItemRow'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { SettleUpFlow, ConfirmPaymentModal } from '@/components/settle-up'
 import { CreateClubButton } from './create-club-modal'
+import { Page } from '@/components/ui/Page'
 import { MarkDoneButton } from './plate/mark-done-modal'
 import { getAwayItems } from '@/lib/away'
 import { timeAgo } from '@/lib/relative-time'
@@ -167,8 +168,8 @@ export default async function Home() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-md p-6">
-      <header className="mb-7 flex items-center justify-between gap-3">
+    <Page>
+      <header className="mb-6 flex items-center justify-between gap-3">
         <BrandMark size="sm" />
         <div className="flex items-center gap-2.5">
           <UserAvatar user={profile} size={36} />
@@ -191,7 +192,7 @@ export default async function Home() {
           you and need nothing from you. No unread state and no dismiss, it
           just ages out, which is the whole reason this is not an inbox. */}
       {away.length > 0 && (
-        <section className="mb-6 rounded-lg bg-cream-sunk px-3.5 py-3">
+        <section className="rounded-lg bg-cream-sunk px-3.5 py-3">
           <p className="mb-2 text-[11px] font-bold uppercase tracking-[.04em] text-ink-300">
             Mientras no estabas
           </p>
@@ -217,13 +218,13 @@ export default async function Home() {
           of them: it is a thing you reach for, not a place you live. */}
       <Link
         href="/search"
-        className="mb-6 flex min-h-11 items-center gap-2.5 rounded-pill border-[1.5px] border-line-input bg-paper px-4 text-sm text-ink-300"
+        className={`${away.length > 0 ? 'mt-[18px]' : ''} flex min-h-11 items-center gap-2.5 rounded-pill border-[1.5px] border-line-input bg-paper px-4 text-sm text-ink-300`}
       >
         <Icon name="magnifying-glass" size={13} className="text-ink-500" />
         Busca eventos, clubs, personas
       </Link>
 
-      <section className="mb-7">
+      <section className="mt-7">
         <SectionHeader
           action={
             <Link href="/plate" className="tap text-[12.5px] font-bold text-honey-700">
@@ -298,7 +299,7 @@ export default async function Home() {
       </section>
 
       {clubIds.length > 0 && (
-        <section className="mb-7">
+        <section className="mt-7">
           <SectionHeader
             action={
               <Link href={`/events?person=${profile.id}&when=past`} className="tap text-[12.5px] font-bold text-honey-700">
@@ -333,7 +334,7 @@ export default async function Home() {
         </section>
       )}
 
-      <section>
+      <section className="mt-7">
         <SectionHeader>Tus clubs</SectionHeader>
         {clubs.length === 0 ? (
           <EmptyState
@@ -372,6 +373,6 @@ export default async function Home() {
           </Link>
         </div>
       )}
-    </main>
+    </Page>
   )
 }

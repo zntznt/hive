@@ -31,7 +31,7 @@ export function SavedPlaces({ places }: { places: Place[] }) {
   }
 
   return (
-    <section className="mb-6">
+    <section className="mt-[18px]">
       <SectionHeader>Lugares donde puedes ser anfitrión</SectionHeader>
       {places.length > 0 && (
         <div className="mb-3 flex flex-col gap-2">
