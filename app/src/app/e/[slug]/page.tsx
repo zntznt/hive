@@ -127,6 +127,13 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   }
   const mySlots = ((avail ?? []).find((a) => a.user_id === profile.id)?.slots ?? []) as number[]
 
+  // Painted nothing at all. Someone who saved an empty grid has a row and is
+  // not waiting on anything: they answered, the answer was "no time works".
+  const painted = new Set((avail ?? []).map((a) => a.user_id as string))
+  const waitingOn = (members ?? [])
+    .filter((m) => !painted.has(m.user_id))
+    .map((m) => ({ id: m.user_id as string, user: (userOf.get(m.user_id) ?? { display_name: '·' }) as AvatarUser }))
+
   const contributions = (contribs ?? []) as Contribution[]
   const byStatus = (st: RsvpStatus) => (rsvps ?? []).filter((r) => r.status === st)
   // confirmed = "in" with no waitlist position; waitlisted = "in" parked behind capacity
@@ -276,6 +283,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               counts={counts}
               totalMembers={(members ?? []).length}
               isOrganizer={!!isOrganizer}
+              waitingOn={waitingOn}
             />
           </Card>
         </section>

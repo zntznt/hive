@@ -10,7 +10,7 @@ import { normalizePhone } from '@/lib/phone'
 import { sendWhatsappMagicLink } from '@/lib/magic-link'
 import { requestSigninCode, verifySigninCode } from '@/lib/signin-code'
 import { startPhoneChange, confirmPhoneChange } from '@/lib/phone-verify'
-import { nudgeNonResponders } from '@/lib/nudge'
+import { nudgeNonResponders, nudgeMissingAvailability } from '@/lib/nudge'
 
 type Supabase = Awaited<ReturnType<typeof supabaseServer>>
 
@@ -1427,4 +1427,17 @@ export async function verifyWhatsappCode(rawPhone: string, code: string, next?: 
   const phone = normalizePhone(rawPhone)
   if (!phone) return { ok: false as const, error: 'Ese número no se ve completo.' }
   return verifySigninCode(phone, code, next)
+}
+
+// The organizer's nudge from the grid: whoever has not painted anything yet.
+export async function remindMissingAvailability(eventId: string, slug: string) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
+  const queued = await nudgeMissingAvailability(supabase, eventId)
+  dispatchAfterResponse(supabase)
+  revalidatePath(`/e/${slug}`)
+  return { queued }
 }

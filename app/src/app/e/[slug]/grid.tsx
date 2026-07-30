@@ -2,9 +2,11 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { pickSlot, saveAvailability } from '@/app/actions'
+import { pickSlot, saveAvailability, remindMissingAvailability } from '@/app/actions'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Icon } from '@/components/ui/Icon'
+import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
+import { useToast } from '@/components/ui/Toast'
 
 type Props = {
   eventId: string
@@ -17,6 +19,9 @@ type Props = {
   counts: Record<number, number>
   totalMembers: number
   isOrganizer: boolean
+  // members who have not painted anything at all, with their faces, so the
+  // organizer sees who they are waiting on rather than a number
+  waitingOn: { id: string; user: AvatarUser }[]
 }
 
 // One gesture, two meanings. Press a cell, drag down the day, release.
@@ -51,6 +56,7 @@ export default function Grid({
   counts,
   totalMembers,
   isOrganizer,
+  waitingOn,
 }: Props) {
   const rows = Math.max(1, Math.floor((timeMax - timeMin) / slotMinutes))
   const [selected, setSelected] = useState<Set<number>>(new Set(initialSlots))
@@ -59,8 +65,10 @@ export default function Grid({
   const [pick, setPick] = useState<{ day: number; a: number; b: number } | null>(null)
   const [saved, setSaved] = useState(false)
   const [pending, startTransition] = useTransition()
+  const [nudged, setNudged] = useState(false)
   const surface = useRef<HTMLDivElement>(null)
   const router = useRouter()
+  const toast = useToast()
 
   const idx = (day: number, row: number) => day * rows + row
   const slotDate = (day: number, row: number) =>
@@ -278,6 +286,46 @@ export default function Grid({
         >
           Fijar este rango
         </button>
+      )}
+
+      {/* The one thing an organizer running a poll actually needs. Faces
+          rather than a count, because "waiting on 3" is a statistic and
+          "waiting on Marta, Jorge and Lucía" is a decision. */}
+      {isOrganizer && waitingOn.length > 0 && (
+        <div className="mt-5 rounded-lg border border-line-card bg-paper p-3.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[13.5px] font-bold text-ink-900">
+              Faltan {waitingOn.length} de {totalMembers}
+            </span>
+            <button
+              type="button"
+              disabled={pending || nudged}
+              onClick={() =>
+                startTransition(async () => {
+                  const res = await remindMissingAvailability(eventId, slug)
+                  setNudged(true)
+                  toast(
+                    res.queued > 0
+                      ? `Les recordamos a ${res.queued}`
+                      : 'Ya les habíamos recordado'
+                  )
+                  router.refresh()
+                })
+              }
+              className="flex-shrink-0 rounded-md border-[1.5px] border-honey-500 px-2.5 py-1 text-xs font-bold text-honey-700 disabled:opacity-50"
+            >
+              <Icon name="paper-plane" size={11} /> {nudged ? 'Recordado' : 'Recordarles'}
+            </button>
+          </div>
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {waitingOn.map((m) => (
+              <span key={m.id} className="flex items-center gap-1.5 rounded-pill bg-cream-sunk py-0.5 pl-0.5 pr-2.5">
+                <UserAvatar user={m.user} size={22} />
+                <span className="text-[12px] font-semibold text-ink-700">{m.user.display_name}</span>
+              </span>
+            ))}
+          </div>
+        </div>
       )}
 
       {mode === 'pick' && best.length > 0 && (

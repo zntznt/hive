@@ -69,3 +69,49 @@ export async function nudgeNonResponders(db: SupabaseClient, eventId: string): P
   }
   return queued
 }
+
+// The same chase, one phase earlier. Before a time exists, the thing people
+// owe is a painted grid, and an organizer staring at a half-filled heatmap has
+// exactly one useful move.
+//
+// A non-responder here is a club member with no availability row at all.
+// Someone who painted nothing on purpose still has a row, so they are left
+// alone: they answered, the answer was "no time works".
+export async function nudgeMissingAvailability(db: SupabaseClient, eventId: string): Promise<number> {
+  const { data: event } = await db
+    .from('events')
+    .select('id, slug, title, club_id, status')
+    .eq('id', eventId)
+    .maybeSingle()
+  if (!event?.club_id || event.status !== 'scheduling') return 0
+
+  const [{ data: roster }, { data: painted }] = await Promise.all([
+    db.from('club_members').select('user_id').eq('club_id', event.club_id),
+    db.from('availability').select('user_id').eq('event_id', event.id),
+  ])
+
+  const done = new Set((painted ?? []).map((r) => r.user_id as string))
+  const pending = (roster ?? []).map((m) => m.user_id as string).filter((id) => !done.has(id))
+  if (!pending.length) return 0
+
+  const vars = {
+    event: event.title as string,
+    link: `${siteUrl()}/e/${event.slug}`,
+    event_id: event.id as string,
+  }
+
+  let queued = 0
+  for (const userId of pending) {
+    const { count } = await db
+      .from('notification_outbox')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('template', 'availability_pending')
+      .eq('payload->>event_id', event.id)
+    if (count && count > 0) continue
+
+    await queueNotification(db, { userId, template: 'availability_pending', vars })
+    queued++
+  }
+  return queued
+}
