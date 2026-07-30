@@ -18,6 +18,8 @@ import { CoOrganizerButton } from './co-organizer-modal'
 import { RequestJoinClubButton } from './request-join-button'
 import { ClaimContributionButton, PromoteNextButton } from './claim-modal'
 import EventAppBar from './event-app-bar'
+import AddToCalendar from './add-to-calendar'
+import { siteUrl } from '@/lib/site-url'
 
 function dayRange(start: string, end: string) {
   // walk in UTC so toISOString() reads the same date we stepped - parsing as
@@ -267,6 +269,20 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         </div>
       )}
 
+
+      {event.status === 'scheduled' && event.chosen_start && (
+        <div className="mb-5">
+          <AddToCalendar
+            slug={event.slug}
+            title={event.title}
+            startIso={event.chosen_start}
+            endIso={event.chosen_end}
+            location={event.location}
+            clubName={club?.name ?? null}
+            eventUrl={`${siteUrl()}/e/${event.slug}`}
+          />
+        </div>
+      )}
 
       {event.status === 'scheduling' && event.sched_start_date && event.sched_end_date && (
         <section className="mb-8">
