@@ -1441,3 +1441,29 @@ export async function remindMissingAvailability(eventId: string, slug: string) {
   revalidatePath(`/e/${slug}`)
   return { queued }
 }
+
+// The event thread. Deliberately not a chat: it belongs to one event, dies
+// with it, and never becomes a place anyone has to keep up with. RLS decides
+// who may post (event members) and who may remove (the author, or an
+// organizer moderating), so these only carry the write.
+export async function addComment(eventId: string, slug: string, formData: FormData) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
+  const body = String(formData.get('body') ?? '').trim()
+  if (!body) return
+  const { error } = await supabase
+    .from('event_comments')
+    .insert({ event_id: eventId, user_id: user.id, body: body.slice(0, 2000) })
+  if (error) throw new Error(error.message)
+  revalidatePath(`/e/${slug}`)
+}
+
+export async function removeComment(commentId: string, slug: string) {
+  const supabase = await supabaseServer()
+  const { error } = await supabase.from('event_comments').delete().eq('id', commentId)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/e/${slug}`)
+}

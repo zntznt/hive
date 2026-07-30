@@ -20,6 +20,7 @@ import { ClaimContributionButton, PromoteNextButton } from './claim-modal'
 import EventAppBar from './event-app-bar'
 import AddToCalendar from './add-to-calendar'
 import { siteUrl } from '@/lib/site-url'
+import Thread from './thread'
 
 function dayRange(start: string, end: string) {
   // walk in UTC so toISOString() reads the same date we stepped - parsing as
@@ -75,6 +76,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     { data: avail },
     { data: contribs },
     { data: guests },
+    { data: commentRows },
     { data: expenses },
     { data: balances },
     { data: settlements },
@@ -91,6 +93,11 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     supabase.from('availability').select('user_id, slots').eq('event_id', event.id),
     supabase.from('contributions').select('*').eq('event_id', event.id).order('created_at'),
     supabase.from('guests').select('*').eq('event_id', event.id),
+    supabase
+      .from('event_comments')
+      .select('id, body, created_at, user_id, users(display_name, avatar_kind, avatar_bug, avatar_color, avatar_photo_url)')
+      .eq('event_id', event.id)
+      .order('created_at', { ascending: true }),
     supabase.from('expenses').select('*').eq('event_id', event.id).order('spent_at'),
     supabase.from('event_balances').select('*').eq('event_id', event.id),
     supabase.from('settlements').select('*').eq('event_id', event.id).order('created_at'),
@@ -487,6 +494,20 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       />
 
       <Polls eventId={event.id} slug={event.slug} myId={profile.id} isOrganizer={!!isOrganizer} nameOf={nameOf} polls={(polls ?? []) as never} />
+
+      <Thread
+        eventId={event.id}
+        slug={event.slug}
+        myId={profile.id}
+        isOrganizer={!!isOrganizer}
+        comments={(commentRows ?? []).map((c) => ({
+          id: c.id as string,
+          body: c.body as string,
+          created_at: c.created_at as string,
+          user_id: c.user_id as string,
+          user: (c.users ?? { display_name: '·' }) as unknown as AvatarUser,
+        }))}
+      />
     </main>
     </>
   )
