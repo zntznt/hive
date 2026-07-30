@@ -22,6 +22,8 @@ import { Icon, type IconName } from '@/components/ui/Icon'
 import { SettleUpFlow, ConfirmPaymentModal } from '@/components/settle-up'
 import { CreateClubButton } from './create-club-modal'
 import { MarkDoneButton } from './plate/mark-done-modal'
+import { getAwayItems } from '@/lib/away'
+import { timeAgo } from '@/lib/relative-time'
 
 type UpcomingEvent = {
   id: string
@@ -132,6 +134,7 @@ export default async function Home() {
   ])
 
   const total = plateCount(board)
+  const away = await getAwayItems(supabase, profile.id)
   const shownPlate = [...board.toAnswer, ...board.toPay, ...board.toConfirm, ...board.tasks, ...board.bringing].slice(0, 4)
   const payMethodTargets = [...new Set(shownPlate.filter((i) => i.kind === 'pay').map((i) => i.toUserId))]
   const { data: payMethodRows } = payMethodTargets.length
@@ -182,6 +185,32 @@ export default async function Home() {
           </div>
         </div>
       </header>
+
+      {/* Since you were away: the last 48 hours of things that happened to
+          you and need nothing from you. No unread state and no dismiss, it
+          just ages out, which is the whole reason this is not an inbox. */}
+      {away.length > 0 && (
+        <section className="mb-6 rounded-lg bg-cream-sunk px-3.5 py-3">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-[.04em] text-ink-300">
+            Mientras no estabas
+          </p>
+          <ul className="flex flex-col gap-1.5">
+            {away.map((a) => (
+              <li key={a.id}>
+                <Link href={a.href} className="flex items-center gap-2 text-[13px] text-ink-700">
+                  <Icon
+                    name={a.kind === 'cancelled' ? 'ban' : a.kind === 'settled' ? 'circle-check' : 'calendar-check'}
+                    size={11}
+                    className={a.kind === 'cancelled' ? 'text-danger' : 'text-honey-700'}
+                  />
+                  <span className="min-w-0 flex-1 truncate">{a.text}</span>
+                  <span className="flex-shrink-0 text-[11px] text-ink-300">{timeAgo(a.at)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* The way into /search. The tab bar has five slots and search is not one
           of them: it is a thing you reach for, not a place you live. */}

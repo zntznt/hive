@@ -124,6 +124,9 @@ export async function pickSlot(eventId: string, slug: string, startIso: string, 
     slot_end: endIso,
   })
   if (error) throw new Error(error.message)
+  // stamped here rather than inside the RPC, so the receipt on the event page
+  // does not require reopening a function that already works
+  await supabase.from('events').update({ scheduled_at: new Date().toISOString() }).eq('id', eventId)
   revalidatePath(`/e/${slug}`)
 }
 
@@ -835,6 +838,11 @@ export async function setEventStatus(
   const supabase = await supabaseServer()
   const { error } = await supabase.rpc('set_event_status', { eid: eventId, new_status: status })
   if (error) throw new Error(error.message)
+  // cancelling is the one transition worth dating on the event itself, so the
+  // banner can say when rather than just that
+  if (status === 'cancelled') {
+    await supabase.from('events').update({ cancelled_at: new Date().toISOString() }).eq('id', eventId)
+  }
   revalidatePath(`/e/${slug}`)
 }
 

@@ -29,6 +29,10 @@ export type EventRow = {
   sched_slot_minutes: number
   chosen_start: string | null
   chosen_end: string | null
+  // when the time was locked, and when it was called off. Kept so the event
+  // can carry its own receipt instead of the app keeping a notification log.
+  scheduled_at: string | null
+  cancelled_at: string | null
 }
 
 export type Contribution = {

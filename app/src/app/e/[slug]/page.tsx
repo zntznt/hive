@@ -21,6 +21,7 @@ import EventAppBar from './event-app-bar'
 import AddToCalendar from './add-to-calendar'
 import { siteUrl } from '@/lib/site-url'
 import Thread from './thread'
+import { timeAgo } from '@/lib/relative-time'
 
 function dayRange(start: string, end: string) {
   // walk in UTC so toISOString() reads the same date we stepped - parsing as
@@ -276,6 +277,16 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         </div>
       )}
 
+
+      {/* The receipt lives on the object it describes. This is what the app
+          has instead of a notification log. */}
+      {(event.scheduled_at || event.cancelled_at) && (
+        <p className="mb-3.5 text-[12px] text-ink-300">
+          {event.cancelled_at
+            ? `Se canceló ${timeAgo(event.cancelled_at)}. Se avisó a quienes iban.`
+            : `${nameOf.get(event.organizer_user_id) ?? 'Quien organiza'} fijó la hora ${timeAgo(event.scheduled_at)}. Se avisó al club.`}
+        </p>
+      )}
 
       {event.status === 'scheduled' && event.chosen_start && (
         <div className="mb-5">
