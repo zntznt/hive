@@ -41,7 +41,7 @@ export default async function PlatePage() {
                 {board.toPay.map((item, i) => (
                   <PlateItemRow
                     key={i}
-                    icon="money-transfer"
+                    icon="money-bill-transfer"
                     tone="danger"
                     title={`Le debes ${item.toName}`}
                     eventTitle={item.eventTitle}
@@ -132,7 +132,7 @@ export default async function PlatePage() {
                 {board.bringing.map((item) => (
                   <PlateItemRow
                     key={item.contributionId}
-                    icon="basket"
+                    icon="basket-shopping"
                     tone="honey"
                     title={item.qty ? `${item.title} · ${item.qty}` : item.title}
                     eventTitle={item.eventTitle}

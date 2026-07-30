@@ -219,7 +219,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           </Chip>
         </div>
         <div className="flex flex-wrap gap-x-4.5 gap-y-1.5 px-3.5 pb-3 text-[13px] text-ink-700">
-          <span><Icon name="calendar" size={12} /> {event.status === 'scheduling' ? 'fecha no definida' : dateChip}</span>
+          <span><Icon name="calendar-days" size={12} /> {event.status === 'scheduling' ? 'fecha no definida' : dateChip}</span>
           <span>
             <Icon name="users" size={12} /> van {confirmed.length} · quizás {byStatus('maybe').length}
           </span>

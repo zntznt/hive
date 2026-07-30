@@ -235,7 +235,7 @@ export default async function ClubPage({
       <section className="mb-6">
         <SectionHeader>Próximos</SectionHeader>
         {upcoming.length === 0 ? (
-          <EmptyState icon="calendar" title="Nada en esta categoría todavía." hint={isManager ? 'Empieza algo →' : 'Vuelve pronto.'} />
+          <EmptyState icon="calendar-days" title="Nada en esta categoría todavía." hint={isManager ? 'Empieza algo →' : 'Vuelve pronto.'} />
         ) : (
           <div className="flex flex-col gap-3.5">
             {upcoming.map((e) => (
@@ -494,7 +494,7 @@ function EvCard({ e, catName, counts }: { e: EventRow; catName: string | undefin
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1 px-3.5 pb-3.5 text-[12.5px] text-ink-700">
         <span>
-          <Icon name="calendar" size={12} /> {e.status === 'scheduling' ? 'sin fecha aún' : e.status === 'scheduled' ? fmt(e.chosen_start) : e.status}
+          <Icon name="calendar-days" size={12} /> {e.status === 'scheduling' ? 'sin fecha aún' : e.status === 'scheduled' ? fmt(e.chosen_start) : e.status}
         </span>
         <span>
           <Icon name="users" size={12} /> van {counts?.going ?? 0} · quizás {counts?.maybe ?? 0}

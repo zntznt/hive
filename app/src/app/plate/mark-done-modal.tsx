@@ -84,7 +84,7 @@ export function MarkDoneButton({
     >
       <div className="flex items-start gap-3 rounded-md bg-warning-bg px-3.5 py-3">
         <span aria-hidden="true" className="mt-0.5">
-          <Icon name="warning" size={13} />
+          <Icon name="triangle-exclamation" size={13} />
         </span>
         <p className="text-[13.5px] leading-relaxed text-ink-700">
           {isTask

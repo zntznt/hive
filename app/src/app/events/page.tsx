@@ -272,7 +272,7 @@ export default async function EventsPage({
 
       <div className="mb-5 flex flex-col gap-2.5">
         {shown.length === 0 && (
-          <EmptyState icon="search" title="No hay eventos que coincidan." hint="Afloja algún filtro." />
+          <EmptyState icon="magnifying-glass" title="No hay eventos que coincidan." hint="Afloja algún filtro." />
         )}
         {shown.map((e) => {
           const clubInfo = e.club_id ? clubById.get(e.club_id) : undefined

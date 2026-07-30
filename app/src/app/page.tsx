@@ -59,13 +59,13 @@ function plateKey(item: PlateItem) {
 function plateRowContent(item: PlateItem): { icon: IconName; tone: 'honey' | 'sage' | 'danger' | 'neutral'; title: string } {
   switch (item.kind) {
     case 'pay':
-      return { icon: 'money-transfer', tone: 'danger', title: `Le debes ${peso(item.amountCents)} a ${item.toName}` }
+      return { icon: 'money-bill-transfer', tone: 'danger', title: `Le debes ${peso(item.amountCents)} a ${item.toName}` }
     case 'confirm':
       return { icon: 'circle-check', tone: 'honey', title: `${item.fromName} dice que te pagó ${peso(item.amountCents)}` }
     case 'task':
       return { icon: 'clipboard', tone: 'sage', title: item.qty ? `${item.title} · ${item.qty}` : item.title }
     case 'bring':
-      return { icon: 'basket', tone: 'sage', title: item.qty ? `${item.title} · ${item.qty}` : item.title }
+      return { icon: 'basket-shopping', tone: 'sage', title: item.qty ? `${item.title} · ${item.qty}` : item.title }
   }
 }
 
@@ -261,7 +261,7 @@ export default async function Home() {
             Lo que viene
           </SectionHeader>
           {upcoming.length === 0 ? (
-            <EmptyState icon="calendar" hint="Nada en puerta todavía." />
+            <EmptyState icon="calendar-days" hint="Nada en puerta todavía." />
           ) : (
             <div className="flex flex-col gap-2">
               {upcoming.map((e) => (
