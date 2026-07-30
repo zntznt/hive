@@ -71,7 +71,7 @@ export function AddExpenseButton({
   return (
     <>
       <button onClick={() => setOpen(true)} className="tap text-[12.5px] font-bold text-honey-700">
-        ＋ Añadir
+        <Icon name="plus" size={10} /> Añadir
       </button>
       {open && (
         <Modal

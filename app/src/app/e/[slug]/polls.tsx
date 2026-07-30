@@ -31,7 +31,7 @@ type Props = {
 
 export default function Polls({ eventId, slug, myId, isOrganizer, nameOf, polls }: Props) {
   return (
-    <section className="mb-8">
+    <section className="mb-[26px]">
       <SectionHeader action={<AddPollButton eventId={eventId} slug={slug} />}>Encuestas</SectionHeader>
 
       {polls.length === 0 && <p className="mb-3 text-sm text-ink-500">Nadie ha preguntado nada todavía.</p>}

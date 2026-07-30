@@ -6,10 +6,10 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Select, Checkbox } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
-import { Chip } from '@/components/ui/Chip'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Page, PageHeader } from '@/components/ui/Page'
-import { MapPinIcon } from '@/components/ui/Icon'
+import { Icon, MapPinIcon } from '@/components/ui/Icon'
+import { WhenPill } from '@/components/ui/WhenPill'
 
 // Cross-club event browser: the single "event viewer" page. Reached from Home,
 // Club history, and Plate's "still owed" links via query presets (?club=, ?when=,
@@ -40,13 +40,6 @@ function eventDate(e: EventFull): Date | null {
 function isPastEvent(e: EventFull): boolean {
   const d = eventDate(e)
   return d ? d.getTime() < Date.now() : false
-}
-
-function dateLabel(e: EventFull): string {
-  if (e.status === 'scheduling') return 'buscando fecha'
-  const d = eventDate(e)
-  if (!d) return '·'
-  return d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 function qs(params: Record<string, string | undefined>) {
@@ -260,7 +253,7 @@ export default async function EventsPage({
         </form>
       </Card>
 
-      <div className="mb-2.5 mt-7 flex items-baseline justify-between text-[12.5px] text-ink-500">
+      <div className="mb-2.5 mt-[26px] flex items-baseline justify-between text-[12.5px] text-ink-500">
         <span>
           {rows.length} evento{rows.length === 1 ? '' : 's'}
         </span>
@@ -294,7 +287,7 @@ export default async function EventsPage({
           } else if (myRsvp?.status === 'in' && past) {
             statusBadge = <Badge tone="active">fuiste</Badge>
           } else if (myRsvp?.status === 'in') {
-            statusBadge = <Chip variant="honey">vas</Chip>
+            statusBadge = <Badge tone="mine">vas</Badge>
           }
 
           return (
@@ -327,7 +320,7 @@ export default async function EventsPage({
                   </div>
                 </div>
                 <div className="flex-shrink-0 text-right">
-                  <div className="text-[12.5px] font-bold text-ink-700">{dateLabel(e)}</div>
+                  <WhenPill at={e.status === 'scheduling' ? null : e.chosen_start} status={e.status} />
                   {person !== 'all' ? (
                     owedShown > 0 && (
                       <span
@@ -357,21 +350,21 @@ export default async function EventsPage({
       {totalPages > 1 && (
         <div className="mt-5 flex items-center justify-center gap-3.5">
           {clampedPage > 1 ? (
-            <Link href={pageHref(clampedPage - 1)} className="tap text-[12.5px] font-bold text-honey-700">
-              ← Anterior
+            <Link href={pageHref(clampedPage - 1)} className="inline-flex items-center gap-1 tap text-[12.5px] font-bold text-honey-700">
+              <Icon name="chevron-left" size={10} /> Anterior
             </Link>
           ) : (
-            <span className="text-[12.5px] font-bold text-ink-300">← Anterior</span>
+            <span className="inline-flex items-center gap-1 text-[12.5px] font-bold text-ink-300"><Icon name="chevron-left" size={10} /> Anterior</span>
           )}
           <span className="text-[12.5px] font-bold text-ink-500">
             Página {clampedPage} de {totalPages}
           </span>
           {clampedPage < totalPages ? (
-            <Link href={pageHref(clampedPage + 1)} className="tap text-[12.5px] font-bold text-honey-700">
-              Siguiente →
+            <Link href={pageHref(clampedPage + 1)} className="inline-flex items-center gap-1 tap text-[12.5px] font-bold text-honey-700">
+              Siguiente <Icon name="chevron-right" size={10} />
             </Link>
           ) : (
-            <span className="text-[12.5px] font-bold text-ink-300">Siguiente →</span>
+            <span className="inline-flex items-center gap-1 text-[12.5px] font-bold text-ink-300">Siguiente <Icon name="chevron-right" size={10} /></span>
           )}
         </div>
       )}

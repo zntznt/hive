@@ -1,19 +1,10 @@
 import { requireProfile } from '@/lib/gate'
 import SearchClient, { type SearchClub, type SearchEvent, type SearchPerson } from './search-client'
 import type { AvatarUser } from '@/components/ui/Avatar'
+import { whenPill } from '@/components/ui/WhenPill'
 
 // Everything this member is allowed to see, handed to the client once so
 // typing filters instantly. RLS is what scopes it, not a where clause here.
-
-function whenLabel(iso: string | null, status: string) {
-  if (status === 'scheduling') return 'buscando fecha'
-  if (!iso) return ''
-  return new Intl.DateTimeFormat('es-MX', {
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'America/Mexico_City',
-  }).format(new Date(iso))
-}
 
 export default async function SearchPage() {
   const { supabase, profile } = await requireProfile()
@@ -62,7 +53,7 @@ export default async function SearchPage() {
     slug: e.slug,
     title: e.title,
     club: (e.club_id && clubName.get(e.club_id)) || '',
-    when: whenLabel(e.chosen_start, e.status),
+    when: whenPill(e.chosen_start, e.status)?.label ?? '',
     place: e.location,
   }))
 

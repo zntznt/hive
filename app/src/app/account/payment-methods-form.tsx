@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { PAYMENT_METHOD_OPTIONS } from '@/lib/payment-method-labels'
+import { Icon } from '@/components/ui/Icon'
 
 export type PaymentMethod = {
   id: string
@@ -53,7 +54,7 @@ export default function PaymentMethodsForm({ methods }: { methods: PaymentMethod
   }
 
   return (
-    <section className="mt-7">
+    <section className="mt-[26px]">
       <SectionHeader>Cómo te pagan</SectionHeader>
       <form action={submit} className="flex flex-col gap-2.5">
         {rows.map((row) => (
@@ -85,7 +86,7 @@ export default function PaymentMethodsForm({ methods }: { methods: PaymentMethod
           </div>
         ))}
         <Button type="button" variant="ghost" size="sm" className="self-start" onClick={addRow}>
-          ＋ Agregar forma de pago
+          <Icon name="plus" size={10} /> Agregar forma de pago
         </Button>
         {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
         <Button type="submit" disabled={saving}>

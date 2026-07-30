@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
 import { createClubInvitation } from '@/app/actions'
+import { Icon } from '@/components/ui/Icon'
 
 export function InviteModal({ clubId, slug, clubName, isAdmin }: { clubId: string; slug: string; clubName: string; isAdmin: boolean }) {
   const [open, setOpen] = useState(false)
@@ -36,7 +37,7 @@ export function InviteModal({ clubId, slug, clubName, isAdmin }: { clubId: strin
   return (
     <>
       <button onClick={() => setOpen(true)} className="tap text-[12.5px] font-bold text-honey-700">
-        ＋ Invitar
+        <Icon name="plus" size={10} /> Invitar
       </button>
       {open && (
         <Modal

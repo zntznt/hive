@@ -19,7 +19,7 @@ export default async function ClubJoinPage({ params }: { params: Promise<{ token
 
   if (!preview || !preview.club_name) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center p-6 text-center">
+      <main className="mx-auto flex min-h-screen max-w-entry flex-col justify-center px-4 pb-10 pt-6 text-center">
         <h1 className="mb-2 font-display text-xl font-bold text-ink-900">Club no encontrado</h1>
         <p className="text-ink-500">
           El enlace no es válido. Pide a quien administra el club que te mande otro.
@@ -30,7 +30,7 @@ export default async function ClubJoinPage({ params }: { params: Promise<{ token
 
   if (preview.join_mode !== 'anyone_with_link') {
     return (
-      <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center p-6">
+      <main className="mx-auto flex min-h-screen max-w-entry flex-col justify-center px-4 pb-10 pt-6">
         <Card honeycomb className="text-center">
           <div className="mb-4 flex justify-center">
             <BrandMark size="sm" variant="hex" showWordmark={false} />

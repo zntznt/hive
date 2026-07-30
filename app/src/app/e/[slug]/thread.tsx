@@ -56,7 +56,7 @@ export default function Thread({
   }
 
   return (
-    <section className="mb-8">
+    <section className="mb-[26px]">
       <SectionHeader>Conversación{comments.length ? ` · ${comments.length}` : ''}</SectionHeader>
 
       {comments.length > 0 && (

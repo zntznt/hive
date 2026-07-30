@@ -12,7 +12,7 @@ import { Icon } from '@/components/ui/Icon'
 type Category = { id: string; name: string; emoji: string | null }
 
 export function AddCategoryButton({ clubId, slug, isAdmin }: { clubId: string; slug: string; isAdmin: boolean }) {
-  return <CategoryModal clubId={clubId} slug={slug} isAdmin={isAdmin} trigger={<span>＋ Categoría</span>} />
+  return <CategoryModal clubId={clubId} slug={slug} isAdmin={isAdmin} trigger={<span className="inline-flex items-center gap-1"><Icon name="plus" size={10} /> Categoría</span>} />
 }
 
 export function EditCategoryButton({ clubId, slug, isAdmin, category }: { clubId: string; slug: string; isAdmin: boolean; category: Category }) {

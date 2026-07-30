@@ -103,7 +103,7 @@ export default function SignIn() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center p-6">
+    <main className="mx-auto flex min-h-screen max-w-entry flex-col justify-center px-4 pb-10 pt-6">
       {/* Dark hero card. Tailwind's bg- and text- utilities are class selectors,
           so they win over the global `input { color; background-color }` rule
           (an element selector) regardless of source order; no !important needed. */}

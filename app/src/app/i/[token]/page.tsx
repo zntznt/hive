@@ -26,7 +26,7 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
   const inv = (data?.[0] ?? null) as Preview | null
   if (!inv) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center p-6 text-center">
+      <main className="mx-auto flex min-h-screen max-w-entry flex-col justify-center px-4 pb-10 pt-6 text-center">
         <h1 className="mb-2 font-display text-xl font-bold text-ink-900">Invitación no encontrada</h1>
         <p className="text-ink-500">
           El enlace no es válido. Pide a quien organiza que te mande otro.
@@ -43,7 +43,7 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
     })
     if (error) {
       return (
-        <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center p-6 text-center">
+        <main className="mx-auto flex min-h-screen max-w-entry flex-col justify-center px-4 pb-10 pt-6 text-center">
           <h1 className="mb-2 font-display text-xl font-bold text-ink-900">No se pudo usar la invitación</h1>
           <p className="text-ink-500">{error.message}</p>
         </main>

@@ -99,7 +99,7 @@ export default function InviteSignIn({
   const spots = capacity != null && going != null ? capacity - going : null
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center p-6">
+    <main className="mx-auto flex min-h-screen max-w-entry flex-col justify-center px-4 pb-10 pt-6">
       <div className="overflow-hidden rounded-2xl border border-line-card shadow-raised">
         <div
           className="border-b border-line-card px-[26px] pb-[22px] pt-7"

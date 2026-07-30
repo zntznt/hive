@@ -35,7 +35,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
     .order('created_at', { ascending: false })
 
   return (
-    <main className="mx-auto w-full max-w-md p-6">
+    <main className="mx-auto w-full max-w-col px-4 pb-6 pt-5">
       <header className="mb-6 flex items-baseline justify-between gap-3">
         <h1 className="text-[22px] font-display font-bold leading-[1.2] text-ink-900">
           Invitar · {event.title}
@@ -45,7 +45,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
         </Link>
       </header>
 
-      <section className="mb-6">
+      <section className="mb-[26px]">
         <SectionHeader>Enlace del evento</SectionHeader>
         <Card>
           <div className="flex items-center justify-between gap-2 rounded-md bg-cream-sunk px-3 py-2.5 text-sm">
@@ -78,7 +78,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
         </Card>
       </section>
 
-      <section className="mb-6">
+      <section className="mb-[26px]">
         <SectionHeader>Invitación personal</SectionHeader>
         <Card className="border-dashed">
           <form

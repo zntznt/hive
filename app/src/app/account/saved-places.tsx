@@ -57,7 +57,7 @@ export function SavedPlaces({ places }: { places: Place[] }) {
         <Input label="Nombre" value={name} onChange={(e) => setName(e.target.value)} placeholder="Casa de Marta" />
         <LocationPicker name="addr" label="Dirección" />
         <button disabled={pending} className="tap self-start text-[12.5px] font-bold text-honey-700 disabled:opacity-60">
-          {pending ? 'Guardando…' : '＋ Guardar lugar'}
+          {pending ? ( 'Guardando…' ) : ( <><Icon name="plus" size={10} /> Guardar lugar</> )}
         </button>
       </form>
       <p className="mt-2.5 text-xs text-ink-300">

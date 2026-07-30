@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, Checkbox } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
 import { createPoll } from '@/app/actions'
+import { Icon } from '@/components/ui/Icon'
 
 export function AddPollButton({ eventId, slug }: { eventId: string; slug: string }) {
   const [open, setOpen] = useState(false)
@@ -41,7 +42,7 @@ export function AddPollButton({ eventId, slug }: { eventId: string; slug: string
   return (
     <>
       <button onClick={() => setOpen(true)} className="tap text-[12.5px] font-bold text-honey-700">
-        ＋ Añadir
+        <Icon name="plus" size={10} /> Añadir
       </button>
       {open && (
         <Modal

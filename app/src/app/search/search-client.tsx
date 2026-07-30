@@ -74,7 +74,7 @@ export default function SearchClient({
   )
 
   return (
-    <main className="mx-auto w-full max-w-md p-6">
+    <main className="mx-auto w-full max-w-col px-4 pb-6 pt-5">
       <div className="mb-[18px] mt-1 flex items-center gap-2.5">
         <div className="flex min-h-11 flex-1 items-center gap-2.5 rounded-pill border-[1.5px] border-line-input bg-paper px-4">
           <Icon name="magnifying-glass" size={13} className="text-ink-500" />

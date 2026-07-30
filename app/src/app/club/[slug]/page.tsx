@@ -21,6 +21,7 @@ import { InviteModal } from './invite-modal'
 import { DangerZone } from './danger-zone'
 import { updateClubJoinMode, decideChangeRequest, decideJoinRequest, revokeInvitation } from '@/app/actions'
 import { AppBar } from '@/components/ui/AppBar'
+import { WhenPill } from '@/components/ui/WhenPill'
 
 type Category = { id: string; name: string; emoji: string | null }
 type AttendanceRow = { user_id: string; category_id: string | null; events_attended: number; last_attended_at: string }
@@ -54,7 +55,7 @@ export default async function ClubPage({
   const { data: club } = await supabase.from('clubs').select('*').eq('slug', slug).maybeSingle()
   if (!club) {
     return (
-      <main className="mx-auto max-w-md p-6">
+      <main className="mx-auto max-w-col px-4 pb-6 pt-5">
         <p className="text-ink-700">Este club no existe o todavía no eres miembro. Pide el enlace de invitación.</p>
       </main>
     )
@@ -166,7 +167,7 @@ export default async function ClubPage({
         backHref="/clubs"
         action={isManager ? { label: 'Nuevo evento', icon: 'plus', href: `/club/${slug}/new-event` } : undefined}
       />
-      <main className="mx-auto w-full max-w-md px-6 pb-6">
+      <main className="mx-auto w-full max-w-col px-4 pb-6">
       <div className="relative mb-3 mt-1">
         <div
           className="h-[110px] rounded-lg border border-line-card bg-cream bg-center bg-cover"
@@ -225,19 +226,19 @@ export default async function ClubPage({
       </nav>
 
       {isManager && (
-        <p className="mb-5">
+        <p className="mb-[18px]">
           <Link href={`/club/${slug}/new-event`}>
-            <Button display icon={<span>＋</span>}>
+            <Button display icon={<Icon name="plus" size={11} />}>
               Nuevo evento
             </Button>
           </Link>
         </p>
       )}
 
-      <section className="mb-6">
+      <section className="mb-[26px]">
         <SectionHeader>Próximos</SectionHeader>
         {upcoming.length === 0 ? (
-          <EmptyState icon="calendar-days" title="Nada en esta categoría todavía." hint={isManager ? 'Empieza algo →' : 'Vuelve pronto.'} />
+          <EmptyState icon="calendar-days" title="Nada en esta categoría todavía." hint={isManager ? 'Empieza algo.' : 'Vuelve pronto.'} />
         ) : (
           <div className="flex flex-col gap-3.5">
             {upcoming.map((e) => (
@@ -249,8 +250,8 @@ export default async function ClubPage({
 
       <SectionHeader
         action={
-          <Link href={`/events?club=${club.id}&when=past`} className="tap text-[12.5px] font-bold text-honey-700">
-            Historial completo →
+          <Link href={`/events?club=${club.id}&when=past`} className="inline-flex items-center gap-1 tap text-[12.5px] font-bold text-honey-700">
+            Historial completo <Icon name="chevron-right" size={10} />
           </Link>
         }
       >
@@ -283,8 +284,8 @@ export default async function ClubPage({
         <>
           <SectionHeader
             action={
-              <Link href="/admin" className="tap text-[12.5px] font-bold text-honey-700">
-                Revisar en Admin →
+              <Link href="/admin" className="inline-flex items-center gap-1 tap text-[12.5px] font-bold text-honey-700">
+                Revisar en Admin <Icon name="chevron-right" size={10} />
               </Link>
             }
           >
@@ -329,8 +330,8 @@ export default async function ClubPage({
         <>
           <SectionHeader
             action={
-              <Link href="/admin" className="tap text-[12.5px] font-bold text-honey-700">
-                Revisar en Admin →
+              <Link href="/admin" className="inline-flex items-center gap-1 tap text-[12.5px] font-bold text-honey-700">
+                Revisar en Admin <Icon name="chevron-right" size={10} />
               </Link>
             }
           >
@@ -402,7 +403,7 @@ export default async function ClubPage({
 
 
       {isAdmin && (
-        <section className="mb-6">
+        <section className="mb-[26px]">
           <SectionHeader>Enlace para unirse</SectionHeader>
           <div className="flex items-center justify-between gap-2 rounded-md border border-line-card bg-paper px-[13px] py-[11px] text-sm">
             <span className="truncate text-ink-500">/c/{club.join_token}</span>
@@ -422,11 +423,11 @@ export default async function ClubPage({
       )}
 
       {isManager && owedByMember.length > 0 && (
-        <section className="mb-6">
+        <section className="mb-[26px]">
           <SectionHeader
             action={
-              <Link href={`/events?club=${club.id}&owed=true`} className="tap text-[12.5px] font-bold text-honey-700">
-                Ver eventos →
+              <Link href={`/events?club=${club.id}&owed=true`} className="inline-flex items-center gap-1 tap text-[12.5px] font-bold text-honey-700">
+                Ver eventos <Icon name="chevron-right" size={10} />
               </Link>
             }
           >
@@ -444,7 +445,7 @@ export default async function ClubPage({
                   <span className="text-sm text-ink-900">{o.user.display_name}</span>
                 </span>
                 <span className="text-[13px] font-extrabold text-danger">
-                  {fmtMoney(o.cents)} <span className="font-semibold text-ink-300">· {o.eventCount} evento{o.eventCount > 1 ? 's' : ''} →</span>
+                  {fmtMoney(o.cents)} <span className="font-semibold text-ink-300">· {o.eventCount} evento{o.eventCount > 1 ? 's' : ''} </span>
                 </span>
               </Link>
             ))}
@@ -492,12 +493,12 @@ function EvCard({ e, catName, counts }: { e: EventRow; catName: string | undefin
         {cancelled ? (
           <Badge tone="disabled">cancelado</Badge>
         ) : (
-          <Chip variant="honey">{e.status === 'scheduling' ? 'buscando fecha' : e.status === 'scheduled' ? fmt(e.chosen_start) : e.status}</Chip>
+          <WhenPill at={e.status === 'scheduling' ? null : e.chosen_start} status={e.status} />
         )}
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1 px-3.5 pb-3.5 text-[12.5px] text-ink-700">
         <span>
-          <Icon name="calendar-days" size={12} /> {e.status === 'scheduling' ? 'sin fecha aún' : e.status === 'scheduled' ? fmt(e.chosen_start) : e.status}
+          <Icon name="calendar-days" size={12} /> {e.status === 'scheduling' ? 'sin fecha aún' : fmt(e.chosen_start)}
         </span>
         <span>
           <Icon name="users" size={12} /> van {counts?.going ?? 0} · quizás {counts?.maybe ?? 0}

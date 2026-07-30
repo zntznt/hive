@@ -22,6 +22,7 @@ import AddToCalendar from './add-to-calendar'
 import { siteUrl } from '@/lib/site-url'
 import Thread from './thread'
 import { timeAgo } from '@/lib/relative-time'
+import { WhenPill } from '@/components/ui/WhenPill'
 
 function dayRange(start: string, end: string) {
   // walk in UTC so toISOString() reads the same date we stepped - parsing as
@@ -61,7 +62,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const { data } = await supabase.from('events').select('*, clubs(id, slug, name, join_mode, join_token)').eq('slug', slug).maybeSingle()
   if (!data) {
     return (
-      <main className="mx-auto max-w-md p-6">
+      <main className="mx-auto max-w-col px-4 pb-6 pt-5">
         <p className="text-ink-700">
           Este evento es solo con invitación (o el enlace no es correcto). Pide a quien organiza que te invite.
         </p>
@@ -195,7 +196,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         isClubAdmin={isClubAdmin}
         isDeleted={!!event.deleted_at}
       />
-      <main className="mx-auto w-full max-w-md px-6 pb-6">
+      <main className="mx-auto w-full max-w-col px-4 pb-6">
 
       {/* A binned event stays reachable by direct link so it can be brought
           back, and says plainly that it is on its way out. */}
@@ -242,9 +243,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           ) : (
             <span className="text-sm text-ink-300">Sin lugar todavía</span>
           )}
-          <Chip variant="honey" className="flex-shrink-0">
-            {dateChip}
-          </Chip>
+          <WhenPill at={event.status === 'scheduling' ? null : event.chosen_start} status={event.status} className="flex-shrink-0" />
         </div>
         <div className="flex flex-wrap gap-x-4.5 gap-y-1.5 px-3.5 pb-3 text-[13px] text-ink-700">
           <span><Icon name="calendar-days" size={12} /> {event.status === 'scheduling' ? 'fecha no definida' : dateChip}</span>
@@ -259,7 +258,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             rel="noreferrer"
             className="block border-t border-line-divider py-2.5 text-center text-sm font-bold text-honey-700"
           >
-            Ver ruta →
+            Ver ruta <Icon name="arrow-up-right-from-square" size={10} />
           </a>
         )}
       </div>
@@ -307,7 +306,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       )}
 
       {event.status === 'scheduled' && event.chosen_start && (
-        <div className="mb-5">
+        <div className="mb-[26px]">
           <AddToCalendar
             slug={event.slug}
             title={event.title}
@@ -321,7 +320,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       )}
 
       {event.status === 'scheduling' && event.sched_start_date && event.sched_end_date && (
-        <section className="mb-8">
+        <section className="mb-[26px]">
           <p className="mb-2.5 text-sm text-ink-500">Seguimos buscando fecha. Marca cuándo puedes abajo.</p>
           <Card>
             <Grid
@@ -342,7 +341,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       )}
 
       {event.status !== 'scheduling' && event.status !== 'cancelled' && (
-        <section className="mb-8">
+        <section className="mb-[26px]">
           <div className="mb-3 flex gap-2">
             {RSVP_OPTIONS.map((o) => (
               <form key={o.v} action={setRsvp.bind(null, event.id, event.slug, o.v)} className="flex-1">
@@ -432,7 +431,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       <SectionHeader action={isOrganizer ? <CoOrganizerButton eventId={event.id} slug={event.slug} candidates={coOrganizerCandidates} /> : null}>
         Organizadores
       </SectionHeader>
-      <div className="mb-8 flex flex-wrap gap-2">
+      <div className="mb-[26px] flex flex-wrap gap-2">
         {organizers.map((o) => {
           const u = userOf.get(o.user_id)
           return (
@@ -497,7 +496,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         ))}
       </ul>
       {contributions.some((c) => !c.assigned_to) && (
-        <div className="mb-8">
+        <div className="mb-[26px]">
           <EmptyState
             icon="jar"
             title="Casi cubierto."

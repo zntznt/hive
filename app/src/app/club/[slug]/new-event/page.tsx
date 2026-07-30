@@ -9,7 +9,7 @@ export default async function NewEventPage({ params }: { params: Promise<{ slug:
   const { data: club } = await supabase.from('clubs').select('*').eq('slug', slug).maybeSingle()
   if (!club) {
     return (
-      <main className="mx-auto max-w-md p-6">
+      <main className="mx-auto max-w-col px-4 pb-6 pt-5">
         <p className="text-ink-700">Este club no existe o no eres miembro.</p>
       </main>
     )
@@ -30,7 +30,7 @@ export default async function NewEventPage({ params }: { params: Promise<{ slug:
   return (
     <>
       <AppBar title="Nuevo evento" subtitle={club.name} subtitleHref={`/club/${slug}`} backHref={`/club/${slug}`} />
-      <main className="mx-auto w-full max-w-md px-6 pb-6">
+      <main className="mx-auto w-full max-w-col px-4 pb-6">
       <EventForm clubId={club.id} slug={slug} categories={categories ?? []} savedPlaces={yourPlaces} recentPlaces={recentPlaces} />
     </main>
     </>

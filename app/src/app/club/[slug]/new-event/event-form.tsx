@@ -126,7 +126,7 @@ export default function EventForm({
           options={[
             { value: '', label: 'Sin categoría' },
             ...cats.map((c) => ({ value: c.id, label: `${c.emoji ? `${c.emoji} ` : ''}${c.name}` })),
-            { value: NEW, label: '＋ Nueva categoría' },
+            { value: NEW, label: 'Nueva categoría…' },
           ]}
         />
         {categoryId === NEW && (

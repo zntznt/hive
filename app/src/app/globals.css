@@ -116,7 +116,12 @@
   --space-8: 32px;
   --space-10: 40px;
   --space-12: 48px;
-  --col-mobile: 448px;
+  /* One column for the whole app. The AppBar and the TabBar are built to the
+     same 460, so headers, content and nav line up instead of each screen
+     sitting inside its own chrome. --col-entry is the narrower card column,
+     and only sign-in, the invite landings and the waiting room use it. */
+  --col-mobile: 460px;
+  --col-entry: 400px;
   --col-content: 640px;
 
   /* ---- Typography ---- */
@@ -273,6 +278,9 @@
 
   --font-body: var(--font-body);
   --font-display: var(--font-display);
+
+  --container-col: var(--col-mobile);
+  --container-entry: var(--col-entry);
 
   --spacing-0: var(--space-0);
   --spacing-1: var(--space-1);

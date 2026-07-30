@@ -100,7 +100,7 @@ export function AboutEditor({
                 ))}
                 {rows.length < 4 && (
                   <button onClick={addLink} className="tap self-start text-[12.5px] font-bold text-honey-700">
-                    ＋ Añadir enlace
+                    <Icon name="plus" size={10} /> Añadir enlace
                   </button>
                 )}
               </div>

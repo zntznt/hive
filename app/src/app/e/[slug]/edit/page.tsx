@@ -35,7 +35,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ slug
   return (
     <>
       <AppBar title="Editar evento" subtitle={event.title} backHref={`/e/${slug}`} />
-      <main className="mx-auto w-full max-w-md px-6 pb-6">
+      <main className="mx-auto w-full max-w-col px-4 pb-6">
       <EventForm
         clubId={club.id}
         slug={slug}

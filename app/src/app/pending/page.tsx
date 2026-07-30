@@ -39,7 +39,7 @@ export default async function PendingPage() {
 
   return (
     <main className="flex min-h-[70vh] items-center justify-center p-6">
-      <div className="w-full max-w-sm text-center">
+      <div className="w-full max-w-entry text-center">
         <div className="mb-4.5 flex justify-center">
           <BugAvatar bug="bug" size={68} color="var(--honey-300)" />
         </div>

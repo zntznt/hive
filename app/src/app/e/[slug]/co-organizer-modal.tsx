@@ -6,6 +6,7 @@ import { Modal } from '@/components/ui/Modal'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { useToast } from '@/components/ui/Toast'
 import { addCoOrganizer } from '@/app/actions'
+import { Icon } from '@/components/ui/Icon'
 
 type Candidate = { user_id: string; user: AvatarUser }
 
@@ -27,7 +28,7 @@ export function CoOrganizerButton({ eventId, slug, candidates }: { eventId: stri
   return (
     <>
       <button onClick={() => setOpen(true)} className="tap text-[12.5px] font-bold text-honey-700">
-        ＋ Co-organizador
+        <Icon name="plus" size={10} /> Co-organizador
       </button>
       {open && (
         <Modal open onClose={() => setOpen(false)} title="Añadir co-organizador" subtitle="Puede editar el evento y gestionar quién va">
@@ -42,7 +43,7 @@ export function CoOrganizerButton({ eventId, slug, candidates }: { eventId: stri
               >
                 <UserAvatar user={c.user} size={28} />
                 {c.user.display_name}
-                <span className="ml-auto text-[12.5px] font-bold text-honey-700">Invitar →</span>
+                <span className="inline-flex items-center gap-1 ml-auto text-[12.5px] font-bold text-honey-700">Invitar <Icon name="chevron-right" size={10} /></span>
               </button>
             ))}
           </div>

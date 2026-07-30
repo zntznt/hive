@@ -104,9 +104,9 @@ export default async function AdminPage() {
   return (
     <>
       <AppBar title="Administración" backHref="/" />
-      <main className="mx-auto max-w-lg px-6 pb-6">
+      <main className="mx-auto max-w-col px-4 pb-6">
 
-      <section className="mb-8">
+      <section className="mb-[26px]">
         <SectionHeader>Aprobaciones · {approvalsCount}</SectionHeader>
         {approvalsCount === 0 ? (
           <EmptyState icon="clipboard" title="Nada pendiente." hint="Las propuestas y solicitudes aparecen aquí." />
@@ -185,7 +185,7 @@ export default async function AdminPage() {
 
       {profile.is_app_admin && (
         <>
-          <section className="mb-8">
+          <section className="mb-[26px]">
             <SectionHeader>Pendientes de verificar ({pendingUsers.length})</SectionHeader>
             {pendingUsers.length === 0 ? (
               <p className="text-sm text-ink-500">Nadie espera en la puerta.</p>
@@ -206,7 +206,7 @@ export default async function AdminPage() {
             )}
           </section>
 
-          <section className="mb-8">
+          <section className="mb-[26px]">
             <SectionHeader>Usuarios ({restUsers.length})</SectionHeader>
             <div className="flex flex-col gap-2">
               {restUsers.map((u) => (
@@ -238,7 +238,7 @@ export default async function AdminPage() {
             </div>
           </section>
 
-          <section className="mb-8">
+          <section className="mb-[26px]">
             <SectionHeader>Mensajes salientes</SectionHeader>
             <p className="text-sm text-ink-700">
               en cola {counts.queued} · esperando confirmación {counts.pending} · enviados {counts.sent} ·{' '}

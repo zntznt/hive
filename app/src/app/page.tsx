@@ -10,7 +10,6 @@ import { supabaseServer } from '@/lib/supabase/server'
 import SignIn from './signin'
 import { signOut } from './actions'
 import { getPlateItems, plateCount, type PlateItem } from '@/lib/plate'
-import { Chip } from '@/components/ui/Chip'
 import { Badge } from '@/components/ui/Badge'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -25,6 +24,7 @@ import { Page } from '@/components/ui/Page'
 import { MarkDoneButton } from './plate/mark-done-modal'
 import { getAwayItems } from '@/lib/away'
 import { timeAgo } from '@/lib/relative-time'
+import { WhenPill } from '@/components/ui/WhenPill'
 
 type UpcomingEvent = {
   id: string
@@ -38,11 +38,6 @@ type UpcomingEvent = {
 
 function peso(cents: number) {
   return (cents / 100).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
-}
-
-function fmtDate(d: string | null) {
-  if (!d) return 'buscando fecha'
-  return new Date(d).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 function plateKey(item: PlateItem) {
@@ -81,8 +76,8 @@ function plateRowContent(item: PlateItem): { icon: IconName; tone: 'honey' | 'sa
 }
 
 function rsvpChip(eventStatus: string, myStatus?: string, waitlisted?: boolean) {
-  if (eventStatus === 'scheduling') return <Chip variant="neutral">buscando fecha</Chip>
-  if (myStatus === 'in') return waitlisted ? <Badge tone="pending">en espera</Badge> : <Chip variant="honey">vas</Chip>
+  if (eventStatus === 'scheduling') return null
+  if (myStatus === 'in') return waitlisted ? <Badge tone="pending">en espera</Badge> : <Badge tone="mine">vas</Badge>
   return null
 }
 
@@ -224,11 +219,11 @@ export default async function Home() {
         Busca eventos, clubs, personas
       </Link>
 
-      <section className="mt-7">
+      <section className="mt-[26px]">
         <SectionHeader
           action={
-            <Link href="/plate" className="tap text-[12.5px] font-bold text-honey-700">
-              Ver todo →
+            <Link href="/plate" className="inline-flex items-center gap-1 tap text-[12.5px] font-bold text-honey-700">
+              Ver todo <Icon name="chevron-right" size={10} />
             </Link>
           }
         >
@@ -290,8 +285,8 @@ export default async function Home() {
               )
             })}
             {total > shownPlate.length && (
-              <Link href="/plate" className="tap text-[12.5px] font-bold text-ink-500">
-                +{total - shownPlate.length} más en tu plato →
+              <Link href="/plate" className="inline-flex items-center gap-1 tap text-[12.5px] font-bold text-ink-500">
+                +{total - shownPlate.length} más en tu plato <Icon name="chevron-right" size={10} />
               </Link>
             )}
           </div>
@@ -299,11 +294,11 @@ export default async function Home() {
       </section>
 
       {clubIds.length > 0 && (
-        <section className="mt-7">
+        <section className="mt-[26px]">
           <SectionHeader
             action={
-              <Link href={`/events?person=${profile.id}&when=past`} className="tap text-[12.5px] font-bold text-honey-700">
-                Tu historial →
+              <Link href={`/events?person=${profile.id}&when=past`} className="inline-flex items-center gap-1 tap text-[12.5px] font-bold text-honey-700">
+                Tu historial <Icon name="chevron-right" size={10} />
               </Link>
             }
           >
@@ -322,11 +317,14 @@ export default async function Home() {
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-bold text-ink-900">{e.title}</span>
                     <span className="text-[12.5px] text-ink-500">
-                      {(e.club_id && clubById.get(e.club_id)?.name) ?? '·'} · {fmtDate(e.chosen_start)}
+                      {(e.club_id && clubById.get(e.club_id)?.name) ?? '·'}
                       {e.location ? ` · ${e.location}` : ''}
                     </span>
                   </span>
-                  {rsvpChip(e.status, rsvpByEvent.get(e.id)?.status, rsvpByEvent.get(e.id)?.waitlist_pos != null)}
+                  <span className="flex flex-shrink-0 flex-col items-end gap-1">
+                    <WhenPill at={e.chosen_start} status={e.status} />
+                    {rsvpChip(e.status, rsvpByEvent.get(e.id)?.status, rsvpByEvent.get(e.id)?.waitlist_pos != null)}
+                  </span>
                 </Link>
               ))}
             </div>
@@ -334,7 +332,7 @@ export default async function Home() {
         </section>
       )}
 
-      <section className="mt-7">
+      <section className="mt-[26px]">
         <SectionHeader>Tus clubs</SectionHeader>
         {clubs.length === 0 ? (
           <EmptyState
@@ -368,8 +366,8 @@ export default async function Home() {
 
       {profile.is_app_admin && (
         <div className="mt-8 border-t border-line-card pt-5">
-          <Link href="/admin" className="tap text-sm font-bold text-honey-700">
-            Panel de administración →
+          <Link href="/admin" className="inline-flex items-center gap-1 tap text-sm font-bold text-honey-700">
+            Panel de administración <Icon name="chevron-right" size={10} />
           </Link>
         </div>
       )}

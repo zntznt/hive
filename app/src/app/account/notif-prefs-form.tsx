@@ -42,7 +42,7 @@ export default function NotifPrefsForm({
   const check = 'h-[17px] w-[17px] accent-honey-500'
 
   return (
-    <section className="mt-7">
+    <section className="mt-[26px]">
       <SectionHeader>Notificaciones</SectionHeader>
       <form action={submit} className="flex flex-col gap-2.5">
         <div className="grid items-center gap-x-2 gap-y-2.5" style={{ gridTemplateColumns: '1fr 52px 76px' }}>

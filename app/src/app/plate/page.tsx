@@ -75,7 +75,7 @@ export default async function PlatePage() {
           )}
 
           {board.toPay.length > 0 && (
-            <section className="mt-7">
+            <section className="mt-[26px]">
               <SectionHeader>Pagos · por hacer</SectionHeader>
               <div className="flex flex-col gap-2">
                 {board.toPay.map((item, i) => (
@@ -138,7 +138,7 @@ export default async function PlatePage() {
           )}
 
           {board.tasks.length > 0 && (
-            <section className="mt-7">
+            <section className="mt-[26px]">
               <SectionHeader>Tareas</SectionHeader>
               <div className="flex flex-col gap-2">
                 {board.tasks.map((item) => (
@@ -200,7 +200,7 @@ export default async function PlatePage() {
           because one netted transfer cannot be accepted or rejected per
           event. */}
       {standings.length > 0 && (
-        <section className="mt-7">
+        <section className="mt-[26px]">
           <SectionHeader>Cómo van las cuentas · por persona</SectionHeader>
           <div className="overflow-hidden rounded-lg border border-line-card bg-paper">
             {standings.map((s) => (

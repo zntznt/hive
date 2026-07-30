@@ -92,7 +92,7 @@ export default async function Expenses({
   }
 
   return (
-    <section className="mb-8">
+    <section className="mb-[26px]">
       <SectionHeader
         action={
           <span className="flex items-center gap-3">

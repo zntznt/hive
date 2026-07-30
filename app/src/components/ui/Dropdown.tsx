@@ -55,7 +55,7 @@ export function Dropdown({
         <ChevronDownIcon className={`flex-shrink-0 text-ink-300 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute inset-x-0 z-[60] mt-1.5 max-h-60 overflow-y-auto rounded-md border border-line-card bg-paper shadow-raised">
+        <div className="absolute inset-x-0 z-popover mt-1.5 max-h-60 overflow-y-auto rounded-md border border-line-card bg-paper shadow-raised">
           {options.map((o) => (
             <button
               key={o.value}

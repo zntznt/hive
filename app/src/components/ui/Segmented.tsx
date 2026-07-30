@@ -53,7 +53,7 @@ export function Segmented<T extends string | number>({
                 setValue(o.value)
                 onChange?.(o.value)
               }}
-              className={`min-h-11 flex-1 cursor-pointer rounded-[7px] px-2 text-[13px] font-extrabold leading-tight transition-colors ${
+              className={`h-10 flex-1 cursor-pointer rounded-[7px] px-2 text-[13px] font-extrabold leading-tight transition-colors ${
                 on ? 'bg-paper text-ink-900 shadow-card' : 'text-ink-500'
               }`}
             >

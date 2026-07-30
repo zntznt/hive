@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Icon } from '@/components/ui/Icon'
 import { CreateClubButton } from '../create-club-modal'
 import { Page, PageHeader } from '@/components/ui/Page'
+import { WhenPill } from '@/components/ui/WhenPill'
 
 // The Clubs tab. This used to be a section inside Home, one 68px row per club,
 // which made the two clubs you actually live in look like search results.
@@ -19,18 +20,6 @@ import { Page, PageHeader } from '@/components/ui/Page'
 // photo feature in the app yet, so that band is left out rather than faked.
 
 type Row = { club_id: string; role: string; clubs: { slug: string; name: string } | null }
-
-function whenLabel(iso: string | null) {
-  if (!iso) return 'buscando fecha'
-  const d = new Date(iso)
-  const today = new Date()
-  const days = Math.round((d.getTime() - today.setHours(0, 0, 0, 0)) / 86_400_000)
-  if (days === 0) return 'hoy'
-  if (days === 1) return 'mañana'
-  if (days > 1 && days < 7)
-    return new Intl.DateTimeFormat('es-MX', { weekday: 'long', timeZone: 'America/Mexico_City' }).format(d)
-  return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', timeZone: 'America/Mexico_City' }).format(d)
-}
 
 export default async function ClubsPage() {
   const { supabase, profile } = await requireProfile()
@@ -142,7 +131,7 @@ export default async function ClubsPage() {
                     <Icon name="calendar-day" size={13} className="text-honey-700" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[13.5px] font-bold text-ink-900">{next.title}</span>
-                      <span className="text-[12px] text-ink-500">{whenLabel(next.chosen_start)}</span>
+                      <WhenPill at={next.chosen_start} />
                     </span>
                     <Icon name="chevron-right" size={10} className="text-ink-300" />
                   </Link>
