@@ -34,6 +34,41 @@ export default async function PlatePage() {
         <EmptyState icon="jar" title="Todo en orden." hint="No tienes nada pendiente por ahora. A disfrutar el zumbido." />
       ) : (
         <>
+          {/* First, because these are the only items with a deadline someone
+              else is waiting on. They navigate and never open a modal: a
+              generic plate confirmation would offer "yes, I brought it" to a
+              row that is asking whether you are coming. */}
+          {board.toAnswer.length > 0 && (
+            <section className="mb-6">
+              <SectionHeader>Te están esperando · {board.toAnswer.length}</SectionHeader>
+              <div className="flex flex-col gap-2">
+                {board.toAnswer.map((item, i) => (
+                  <PlateItemRow
+                    key={`answer-${i}`}
+                    icon={
+                      item.asks === 'availability'
+                        ? 'calendar-plus'
+                        : item.asks === 'rsvp'
+                          ? 'circle-info'
+                          : 'square-poll-vertical'
+                    }
+                    tone="honey"
+                    title={
+                      item.asks === 'availability'
+                        ? 'Marca cuándo puedes'
+                        : item.asks === 'rsvp'
+                          ? '¿Vas a ir?'
+                          : (item.pollLabel ?? 'Falta tu voto')
+                    }
+                    eventTitle={item.eventTitle}
+                    eventHref={`/e/${item.eventSlug}`}
+                    note={item.clubName ?? undefined}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
           {board.toPay.length > 0 && (
             <section className="mb-6">
               <SectionHeader>Pagos · por hacer</SectionHeader>

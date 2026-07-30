@@ -48,6 +48,8 @@ function plateKey(item: PlateItem) {
       return `pay-${item.eventId}-${item.toUserId}`
     case 'confirm':
       return `confirm-${item.settlementId}`
+    case 'answer':
+      return `answer-${item.asks}-${item.eventId}-${item.pollLabel ?? ''}`
     default:
       return `${item.kind}-${item.contributionId}`
   }
@@ -62,6 +64,12 @@ function plateRowContent(item: PlateItem): { icon: IconName; tone: 'honey' | 'sa
       return { icon: 'money-bill-transfer', tone: 'danger', title: `Le debes ${peso(item.amountCents)} a ${item.toName}` }
     case 'confirm':
       return { icon: 'circle-check', tone: 'honey', title: `${item.fromName} dice que te pagó ${peso(item.amountCents)}` }
+    case 'answer':
+      return item.asks === 'availability'
+        ? { icon: 'calendar-plus', tone: 'honey', title: 'Marca cuándo puedes' }
+        : item.asks === 'rsvp'
+          ? { icon: 'circle-info', tone: 'honey', title: '¿Vas a ir?' }
+          : { icon: 'square-poll-vertical', tone: 'honey', title: item.pollLabel ?? 'Falta tu voto' }
     case 'task':
       return { icon: 'clipboard', tone: 'sage', title: item.qty ? `${item.title} · ${item.qty}` : item.title }
     case 'bring':
@@ -124,7 +132,7 @@ export default async function Home() {
   ])
 
   const total = plateCount(board)
-  const shownPlate = [...board.toPay, ...board.toConfirm, ...board.tasks, ...board.bringing].slice(0, 4)
+  const shownPlate = [...board.toAnswer, ...board.toPay, ...board.toConfirm, ...board.tasks, ...board.bringing].slice(0, 4)
   const payMethodTargets = [...new Set(shownPlate.filter((i) => i.kind === 'pay').map((i) => i.toUserId))]
   const { data: payMethodRows } = payMethodTargets.length
     ? await supabase.from('payment_methods').select('user_id, kind, value').in('user_id', payMethodTargets).order('sort')
@@ -224,6 +232,10 @@ export default async function Home() {
                   >
                     Confirmar
                   </ConfirmPaymentModal>
+                ) : item.kind === 'answer' ? (
+                  // nothing to mark done: the row is the question, and the
+                  // event is where it gets answered
+                  null
                 ) : (
                   <MarkDoneButton
                     contributionId={item.contributionId}

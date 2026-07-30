@@ -67,7 +67,22 @@ export type PlateItem =
       qty: string | null
     }
 
+  | {
+      // The most time-sensitive class, and the only one that expires on its
+      // own. Phase-derived: once a time is locked the availability item stops
+      // existing, and an open poll closes with it. Nothing to mark done, so
+      // these rows only ever navigate to the event.
+      kind: 'answer'
+      eventId: string
+      eventTitle: string
+      eventSlug: string
+      clubName: string | null
+      asks: 'availability' | 'rsvp' | 'poll'
+      pollLabel?: string
+    }
+
 export type PlateBoard = {
+  toAnswer: Extract<PlateItem, { kind: 'answer' }>[]
   toPay: Extract<PlateItem, { kind: 'pay' }>[]
   toConfirm: Extract<PlateItem, { kind: 'confirm' }>[]
   tasks: Extract<PlateItem, { kind: 'task' }>[]
@@ -100,7 +115,74 @@ async function eventContext(supabase: SupabaseClient, eventIds: string[]) {
 // pay, claimed payments to confirm, and open tasks/contributions. Shared by
 // Home's "on your plate" preview and the full /plate page.
 export async function getPlateItems(supabase: SupabaseClient, userId: string): Promise<PlateBoard> {
-  const board: PlateBoard = { toPay: [], toConfirm: [], tasks: [], bringing: [] }
+  const board: PlateBoard = { toAnswer: [], toPay: [], toConfirm: [], tasks: [], bringing: [] }
+
+  // 0) things people are waiting on you for. Read from the event's phase, so
+  // an item cannot outlive the question: painting is only owed while a time is
+  // being found, an RSVP only once one exists.
+  const { data: myClubs } = await supabase.from('club_members').select('club_id').eq('user_id', userId)
+  const clubIds = (myClubs ?? []).map((m) => m.club_id as string)
+  if (clubIds.length) {
+    const { data: liveEvents } = await supabase
+      .from('events')
+      .select('id, slug, title, club_id, status')
+      .in('club_id', clubIds)
+      .in('status', ['scheduling', 'scheduled'])
+
+    const live = (liveEvents ?? []) as (EventRow & { status: string })[]
+    if (live.length) {
+      const eventIds = live.map((e) => e.id)
+      const [{ data: myAvail }, { data: myRsvps }, { data: openPolls }, { data: myVotes }] = await Promise.all([
+        supabase.from('availability').select('event_id').eq('user_id', userId).in('event_id', eventIds),
+        supabase.from('rsvps').select('event_id').eq('user_id', userId).in('event_id', eventIds),
+        supabase.from('polls').select('id, event_id, question, closes_at').in('event_id', eventIds),
+        supabase.from('votes').select('option_id, user_id').eq('user_id', userId),
+      ])
+
+      const clubs = new Map<string, string>()
+      const { data: clubRows } = await supabase.from('clubs').select('id, name').in('id', clubIds)
+      for (const c of (clubRows ?? []) as { id: string; name: string }[]) clubs.set(c.id, c.name)
+
+      const painted = new Set((myAvail ?? []).map((r) => r.event_id as string))
+      const answered = new Set((myRsvps ?? []).map((r) => r.event_id as string))
+
+      // votes are per option, so resolve them back to their poll before asking
+      // whether this member has voted in it
+      const votedOptions = new Set((myVotes ?? []).map((v) => v.option_id as string))
+      const polls = (openPolls ?? []) as { id: string; event_id: string; question: string; closes_at: string | null }[]
+      const pollIds = polls.map((p) => p.id)
+      const { data: options } = pollIds.length
+        ? await supabase.from('poll_options').select('id, poll_id').in('poll_id', pollIds)
+        : { data: [] }
+      const votedPolls = new Set(
+        ((options ?? []) as { id: string; poll_id: string }[])
+          .filter((o) => votedOptions.has(o.id))
+          .map((o) => o.poll_id)
+      )
+
+      const base = (e: EventRow & { status: string }) => ({
+        eventId: e.id,
+        eventTitle: e.title,
+        eventSlug: e.slug,
+        clubName: e.club_id ? (clubs.get(e.club_id) ?? null) : null,
+      })
+
+      for (const e of live) {
+        if (e.status === 'scheduling' && !painted.has(e.id)) {
+          board.toAnswer.push({ kind: 'answer', ...base(e), asks: 'availability' })
+        }
+        if (e.status === 'scheduled' && !answered.has(e.id)) {
+          board.toAnswer.push({ kind: 'answer', ...base(e), asks: 'rsvp' })
+        }
+        for (const poll of polls.filter((p) => p.event_id === e.id)) {
+          const closed = !!poll.closes_at && new Date(poll.closes_at) <= new Date()
+          if (!closed && !votedPolls.has(poll.id)) {
+            board.toAnswer.push({ kind: 'answer', ...base(e), asks: 'poll', pollLabel: poll.question })
+          }
+        }
+      }
+    }
+  }
 
   // 1) debts to pay: events where my balance is negative, resolved to a
   // suggested transfer the same way the event page's Expenses panel does.
@@ -218,6 +300,14 @@ export async function getPlateItems(supabase: SupabaseClient, userId: string): P
   return board
 }
 
+// Home, /plate and the tab badge all count the same way, so no two surfaces
+// can disagree about how much you owe.
 export function plateCount(board: PlateBoard) {
-  return board.toPay.length + board.toConfirm.length + board.tasks.length + board.bringing.length
+  return (
+    board.toAnswer.length +
+    board.toPay.length +
+    board.toConfirm.length +
+    board.tasks.length +
+    board.bringing.length
+  )
 }
