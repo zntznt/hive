@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { suggestTransfers, type NetPosition } from './settle'
+import { suggestTransfers, netOfPending, type NetPosition } from './settle'
 
 type EventBalanceRow = { event_id: string; user_id: string; net_cents: number }
 type SettlementRow = {
@@ -244,15 +244,11 @@ export async function getPlateItems(supabase: SupabaseClient, userId: string): P
     const nameOf = new Map((users ?? []).map((u) => [u.id, u.display_name]))
 
     for (const eid of negEventIds) {
-      const adj = new Map<string, number>()
-      for (const s of pendingRows.filter((s) => s.event_id === eid)) {
-        adj.set(s.from_user, (adj.get(s.from_user) ?? 0) + s.amount_cents)
-        adj.set(s.to_user, (adj.get(s.to_user) ?? 0) - s.amount_cents)
-      }
-      const nets: NetPosition[] = balRows
-        .filter((b) => b.event_id === eid)
-        .map((b) => ({ user_id: b.user_id, name: nameOf.get(b.user_id) ?? '·', net_cents: b.net_cents + (adj.get(b.user_id) ?? 0) }))
-        .filter((n) => n.net_cents !== 0)
+      const nets = netOfPending(
+        balRows.filter((b) => b.event_id === eid),
+        pendingRows.filter((s) => s.event_id === eid),
+        (id) => nameOf.get(id) ?? '·'
+      )
       const transfers = suggestTransfers(nets).filter((t) => t.from.user_id === userId)
       for (const t of transfers) {
         board.toPay.push({
@@ -369,21 +365,33 @@ export async function getStandings(supabase: SupabaseClient, userId: string): Pr
   const eventIds = (mine ?? []).map((m) => m.event_id as string)
   if (!eventIds.length) return []
 
-  const { data: balances, error } = await supabase
-    .from('event_balances')
-    .select('event_id, user_id, net_cents')
-    .in('event_id', eventIds)
+  const [{ data: balances, error }, { data: pending }] = await Promise.all([
+    supabase.from('event_balances').select('event_id, user_id, net_cents').in('event_id', eventIds),
+    // this roll-up used to skip pending settlements while the event page and
+    // the plate list both netted them out, so after marking a payment sent the
+    // item vanished from your plate and the same debt was still printed under
+    // "por persona" three sections below it
+    supabase
+      .from('settlements')
+      .select('event_id, from_user, to_user, amount_cents')
+      .in('event_id', eventIds)
+      .eq('confirmed', false),
+  ])
   // money is the one place a swallowed error must not read as "nothing owed"
   if (error) throw new Error(error.message)
   const rows = (balances ?? []) as EventBalanceRow[]
   if (!rows.length) return []
 
+  const pendingRows = (pending ?? []) as { event_id: string; from_user: string; to_user: string; amount_cents: number }[]
   const byEvent = new Map<string, NetPosition[]>()
-  for (const r of rows) {
-    byEvent.set(r.event_id, [
-      ...(byEvent.get(r.event_id) ?? []),
-      { user_id: r.user_id, name: '', net_cents: r.net_cents },
-    ])
+  for (const eid of new Set(rows.map((r) => r.event_id))) {
+    byEvent.set(
+      eid,
+      netOfPending(
+        rows.filter((r) => r.event_id === eid),
+        pendingRows.filter((s) => s.event_id === eid)
+      )
+    )
   }
 
   const net = new Map<string, { cents: number; events: Set<string> }>()

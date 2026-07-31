@@ -985,6 +985,34 @@ export async function recordSettlement(
   proofPath: string | null = null
 ) {
   const supabase = await supabaseServer()
+
+  // The amount and both parties arrived from the browser. RLS proves the
+  // caller may write a settlement for this event, and the new trigger proves
+  // they cannot forge `confirmed`, but nothing checked that the transfer is
+  // one the books actually call for. So it is recomputed here from the same
+  // balances the screen was drawn from: a claim has to match a suggested
+  // transfer, and cannot exceed it.
+  const { suggestTransfers, netOfPending } = await import('@/lib/settle')
+  const [{ data: bal, error: balErr }, { data: pend }] = await Promise.all([
+    supabase.from('event_balances').select('user_id, net_cents').eq('event_id', eventId),
+    supabase
+      .from('settlements')
+      .select('from_user, to_user, amount_cents')
+      .eq('event_id', eventId)
+      .eq('confirmed', false),
+  ])
+  if (balErr) return { ok: false as const, error: 'No se pudieron leer los saldos.' }
+
+  const owed = suggestTransfers(netOfPending(bal ?? [], pend ?? [])).find(
+    (tr) => tr.from.user_id === fromUser && tr.to.user_id === toUser
+  )
+  if (!owed) {
+    return { ok: false as const, error: 'Ese pago ya no hace falta. Vuelve a abrir el evento para ver los saldos.' }
+  }
+  if (!Number.isInteger(amountCents) || amountCents <= 0 || amountCents > owed.amount_cents) {
+    return { ok: false as const, error: 'Esa cantidad no coincide con lo que falta por pagar.' }
+  }
+
   // from_user comes from the suggested transfer (the debtor), NOT the caller -
   // an organizer recording someone else's payment must not credit themselves.
   // RLS (settlements_insert) still rejects a non-organizer forging from_user.
@@ -996,7 +1024,12 @@ export async function recordSettlement(
     method,
     proof_path: proofPath,
   })
-  if (error) throw new Error(error.message)
+  // a second identical pending claim is the same payment submitted twice, and
+  // the recipient could confirm both, crediting it twice over
+  if (error?.code === '23505') {
+    return { ok: false as const, error: 'Ese pago ya estaba registrado, esperando confirmación.' }
+  }
+  if (error) return { ok: false as const, error: 'No se pudo registrar el pago.' }
 
   // "te pagaron" notification: the recipient hears a payment was claimed and
   // needs their confirmation (Account matrix topic: payments).
@@ -1019,6 +1052,7 @@ export async function recordSettlement(
   revalidatePath(`/e/${slug}`)
   revalidatePath('/plate')
   revalidatePath('/')
+  return { ok: true as const }
 }
 
 export async function confirmSettlement(id: string, slug: string) {

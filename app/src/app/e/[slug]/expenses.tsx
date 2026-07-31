@@ -1,7 +1,7 @@
 import { deleteSettlement } from '@/app/actions'
 import { supabaseServer } from '@/lib/supabase/server'
 import { fmtMoney } from '@/lib/money'
-import { suggestTransfers, type NetPosition } from '@/lib/settle'
+import { suggestTransfers, netOfPending } from '@/lib/settle'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Card } from '@/components/ui/Card'
 import { BalanceRow } from '@/components/ui/BalanceRow'
@@ -52,21 +52,7 @@ export default async function Expenses({
 }: Props) {
   const total = expenses.reduce((s, e) => s + e.amount_cents, 0)
   const pending = settlements.filter((s) => !s.confirmed)
-  // event_balances counts only confirmed settlements, so a freshly "marcado pagado"
-  // transfer would otherwise be re-suggested. Net out pending ones here so a paid
-  // debt drops off the list instead of inviting a duplicate transfer.
-  const adj = new Map<string, number>()
-  for (const s of pending) {
-    adj.set(s.from_user, (adj.get(s.from_user) ?? 0) + s.amount_cents)
-    adj.set(s.to_user, (adj.get(s.to_user) ?? 0) - s.amount_cents)
-  }
-  const nets: NetPosition[] = balances
-    .map((b) => ({
-      user_id: b.user_id,
-      name: nameOf.get(b.user_id) ?? '·',
-      net_cents: b.net_cents + (adj.get(b.user_id) ?? 0),
-    }))
-    .filter((n) => n.net_cents !== 0)
+  const nets = netOfPending(balances, settlements, (id) => nameOf.get(id) ?? '·')
   const suggestions = suggestTransfers(nets)
 
   const supabase = await supabaseServer()

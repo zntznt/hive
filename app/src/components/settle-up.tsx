@@ -72,7 +72,13 @@ export function SettleUpFlow({
           // organizer recording someone else's payment on their behalf.
           proofPath = await uploadPaymentProof('', blob)
         }
-        await recordSettlement(eventId, slug, fromUserId, toUserId, amountCents, method, proofPath)
+        // the action refuses rather than throwing when the books have moved
+        // under the modal, so a refusal must not land on the success step
+        const res = await recordSettlement(eventId, slug, fromUserId, toUserId, amountCents, method, proofPath)
+        if (res && !res.ok) {
+          setError(res.error)
+          return
+        }
         setStep('done')
         router.refresh()
       } catch (e) {
