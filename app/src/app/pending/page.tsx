@@ -27,7 +27,7 @@ export default async function PendingPage() {
   // non-admin to themselves plus their clubs, and someone waiting for approval
   // is in none), so they come from a definer function that returns those
   // facts and nothing else.
-  const { data: queue } = await supabase.rpc('pending_queue_status')
+  const { data: queue } = disabled ? { data: null } : await supabase.rpc('pending_queue_status')
   const status = (queue?.[0] ?? null) as {
     reviewers: string[] | null
     ahead: number | null
@@ -41,12 +41,18 @@ export default async function PendingPage() {
     <main className="flex min-h-[70vh] items-center justify-center p-6">
       <div className="w-full max-w-entry text-center">
         <div className="mb-4.5 flex justify-center">
-          <BugAvatar bug="bug" size={68} color="var(--honey-300)" />
+          {/* Two states share this screen and they are not the same news.
+              Waiting for approval is a queue: honey, and it moves. Desactivada
+              is not a place in line, so it does not get the queue's title, its
+              color, or its loader. */}
+          <BugAvatar bug="bug" size={68} color={disabled ? 'var(--cream-sunk)' : 'var(--honey-300)'} />
         </div>
-        <h1 className="font-display text-xl font-bold text-ink-900">Estás en la fila</h1>
+        <h1 className="font-display text-xl font-bold text-ink-900">
+          {disabled ? 'Tu cuenta está desactivada' : 'Estás en la fila'}
+        </h1>
         <p className="mt-2.5 text-sm text-ink-500">
           {disabled
-            ? 'Tu cuenta está desactivada. Contacta a quien administra Hive.'
+            ? 'Por ahora no puedes entrar a tus clubes ni a los eventos. Si crees que es un error, escríbele a quien administra Hive.'
             : 'Quien administra Hive tiene que aprobar tu cuenta. Te avisamos en cuanto esté lista; ya sabemos que llegaste.'}
         </p>
         {!disabled && (

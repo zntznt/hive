@@ -21,7 +21,12 @@ import { Badge } from '@/components/ui/Badge'
 // permission is refused it stops being an error message and becomes a repair
 // manual.
 
-type State = 'unsupported' | 'install' | 'default' | 'granted' | 'denied'
+// 'checking' is the state before the answer is known. Everything this row can
+// say depends on the browser, so none of it can be said until the effect has
+// looked, and the wrong answer for a beat is worse than no answer: starting at
+// 'unsupported' meant every visit flashed "Este navegador no admite avisos"
+// before correcting itself.
+type State = 'checking' | 'unsupported' | 'install' | 'default' | 'granted' | 'denied'
 
 function deviceLabel() {
   const ua = navigator.userAgent
@@ -63,7 +68,7 @@ function urlBase64ToUint8Array(base64: string) {
 }
 
 export function PushRow({ vapidPublicKey, devices }: { vapidPublicKey: string; devices: { endpoint: string; label: string | null }[] }) {
-  const [state, setState] = useState<State>('unsupported')
+  const [state, setState] = useState<State>('checking')
   const [endpoint, setEndpoint] = useState<string | null>(null)
   const [label, setLabel] = useState('este dispositivo')
   const [busy, setBusy] = useState(false)
@@ -77,6 +82,9 @@ export function PushRow({ vapidPublicKey, devices }: { vapidPublicKey: string; d
     async function look() {
       const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
       const ua = navigator.userAgent
+      // named before any of the early returns below, because every state says
+      // the device out loud and the "other devices" line is filtered by it
+      if (!cancelled) setLabel(deviceLabel())
       const isIos = /iPhone|iPad|iPod/.test(ua)
       const standalone =
         window.matchMedia('(display-mode: standalone)').matches ||
@@ -103,7 +111,6 @@ export function PushRow({ vapidPublicKey, devices }: { vapidPublicKey: string; d
       if (cancelled) return
       setState(perm === 'granted' ? (ep ? 'granted' : 'default') : perm === 'denied' ? 'denied' : 'default')
       setEndpoint(ep)
-      setLabel(deviceLabel())
     }
     look()
     return () => {
@@ -176,7 +183,16 @@ export function PushRow({ vapidPublicKey, devices }: { vapidPublicKey: string; d
     })
   }
 
-  const otherDevices = devices.filter((d) => d.endpoint !== endpoint)
+  // "También activado en" is for the person's other phones, so it has to
+  // exclude this one. Matching on endpoint alone is not enough: a browser can
+  // drop its subscription on its own (storage cleared, the push service
+  // rotating it) and leave the row on the server behind, and then this device
+  // has no endpoint to compare against and matches nothing. The result read as
+  // "Avisos en Chrome en este equipo / Activar" sitting directly above "También
+  // activado en: Chrome en este equipo". The label is what names a device to
+  // the person, so the label is what has to be unique here. The dead row gets
+  // cleaned up the next time something is sent to it, which is soon enough.
+  const otherDevices = devices.filter((d) => d.endpoint !== endpoint && d.label !== label)
 
   const pill =
     'tap inline-flex min-h-11 flex-shrink-0 items-center rounded-pill border-[1.5px] border-line-card bg-paper px-3.5 text-[12.5px] font-bold text-ink-900'
@@ -217,8 +233,12 @@ export function PushRow({ vapidPublicKey, devices }: { vapidPublicKey: string; d
           </>
         ) : state === 'denied' ? (
           <>Este navegador los tiene bloqueados. Sigue los pasos de abajo para desbloquearlos.</>
-        ) : (
+        ) : state === 'unsupported' ? (
           <>Este navegador no admite avisos. Te seguimos avisando por correo y WhatsApp.</>
+        ) : (
+          // 'checking': the line keeps its height so the rows under it do not
+          // jump when the answer arrives a frame later
+          <>&nbsp;</>
         )}
       </p>
 
