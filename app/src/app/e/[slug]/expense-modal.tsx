@@ -6,7 +6,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
-import { addExpense, updateExpense } from '@/app/actions'
+import { addExpense, updateExpense, removeExpense } from '@/app/actions'
 import { Icon } from '@/components/ui/Icon'
 
 type Member = { user_id: string; name: string; in: boolean }
@@ -151,6 +151,19 @@ export function EditExpenseButton({ id, slug, note, amount }: { id: string; slug
   const router = useRouter()
   const toast = useToast()
 
+  // Deleting a wrong expense had no path at all: the RLS policy existed and
+  // nothing called it, so a duplicate stayed on the event forever skewing
+  // every balance under it.
+  function remove() {
+    startTransition(async () => {
+      const res = await removeExpense(id, slug)
+      if (!res.ok) return setError(res.error)
+      setOpen(false)
+      toast('Gasto borrado.')
+      router.refresh()
+    })
+  }
+
   function submit() {
     const fd = new FormData()
     fd.set('note', n)
@@ -180,6 +193,10 @@ export function EditExpenseButton({ id, slug, note, amount }: { id: string; slug
           subtitle="Los pagos ya confirmados se quedan como están"
           footer={
             <>
+              <Button variant="danger" disabled={pending} onClick={remove}>
+                Borrar
+              </Button>
+              <span className="flex-1" />
               <Button variant="ghost" onClick={() => setOpen(false)}>
                 Cancelar
               </Button>

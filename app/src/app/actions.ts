@@ -946,6 +946,35 @@ export async function updateExpense(id: string, slug: string, formData: FormData
   revalidatePath(`/e/${slug}`)
 }
 
+// A wrong expense could be edited but never removed: expenses_delete existed
+// in RLS and nothing ever called it, so a duplicate or a mistyped one stayed
+// on the event forever, skewing every balance under it.
+//
+// Deleting one that has already been settled would rewrite history someone
+// paid against, so that is refused rather than done quietly.
+export async function removeExpense(id: string, slug: string) {
+  const supabase = await supabaseServer()
+  const { data: exp } = await supabase.from('expenses').select('event_id').eq('id', id).maybeSingle()
+  if (!exp) return { ok: false as const, error: 'Ese gasto ya no existe.' }
+
+  const { count } = await supabase
+    .from('settlements')
+    .select('id', { count: 'exact', head: true })
+    .eq('event_id', exp.event_id)
+    .eq('confirmed', true)
+  if (count && count > 0) {
+    return {
+      ok: false as const,
+      error: 'Ya hay pagos confirmados en este evento. Corrige la cantidad en vez de borrarlo.',
+    }
+  }
+
+  const { error } = await supabase.from('expenses').delete().eq('id', id)
+  if (error) return { ok: false as const, error: 'No se pudo borrar el gasto.' }
+  revalidatePath(`/e/${slug}`)
+  return { ok: true as const }
+}
+
 export async function recordSettlement(
   eventId: string,
   slug: string,
