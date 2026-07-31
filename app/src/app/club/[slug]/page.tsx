@@ -89,21 +89,32 @@ export default async function ClubPage({
   const isManager = isAdmin || isOrganizer
   const adminCount = (roster ?? []).filter((m) => m.role === 'admin').length
 
-  // upcoming-event RSVP counts (going/maybe) for each EvCard's footer row
+  // upcoming-event RSVP counts (going/maybe) for each EvCard's footer row.
+  // "van" counts people, so a guest counts too, and only while the member who
+  // brought them is seated. Same rule as the event page and as
+  // event_seats_taken in the database; a card that says 6 next to an event
+  // page that says 8 is the bug 0033 set out to remove.
   const rsvpCountsByEvent = new Map<string, { going: number; maybe: number }>()
   if (upcoming.length > 0) {
-    const { data: rsvpRows } = await supabase
-      .from('rsvps')
-      .select('event_id, status, waitlist_pos')
-      .in(
-        'event_id',
-        upcoming.map((e) => e.id)
-      )
+    const ids = upcoming.map((e) => e.id)
+    const [{ data: rsvpRows }, { data: guestRows }] = await Promise.all([
+      supabase.from('rsvps').select('event_id, user_id, status, waitlist_pos').in('event_id', ids),
+      supabase.from('guests').select('event_id, host_user_id').in('event_id', ids).is('promoted_to_user_id', null),
+    ])
+    const seated = new Set<string>()
     for (const r of rsvpRows ?? []) {
       const cur = rsvpCountsByEvent.get(r.event_id) ?? { going: 0, maybe: 0 }
-      if (r.status === 'in' && r.waitlist_pos == null) cur.going++
-      else if (r.status === 'maybe') cur.maybe++
+      if (r.status === 'in' && r.waitlist_pos == null) {
+        cur.going++
+        seated.add(`${r.event_id}:${r.user_id}`)
+      } else if (r.status === 'maybe') cur.maybe++
       rsvpCountsByEvent.set(r.event_id, cur)
+    }
+    for (const g of guestRows ?? []) {
+      if (!seated.has(`${g.event_id}:${g.host_user_id}`)) continue
+      const cur = rsvpCountsByEvent.get(g.event_id) ?? { going: 0, maybe: 0 }
+      cur.going++
+      rsvpCountsByEvent.set(g.event_id, cur)
     }
   }
 

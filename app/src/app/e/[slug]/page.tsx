@@ -106,7 +106,12 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     supabase.from('settlements').select('*').eq('event_id', event.id).order('created_at'),
     supabase
       .from('polls')
-      .select('*, poll_options(id, label, sort), votes(option_id, user_id)')
+      // the relationship has to be named. polls reaches poll_options three
+      // ways (the options of a poll, the applied_option_id back reference,
+      // and a many to many through votes), so the bare embed is ambiguous and
+      // PostgREST answers PGRST201 instead of rows. The whole section then
+      // renders "nadie ha preguntado nada todavía" over a poll that exists.
+      .select('*, poll_options!poll_options_poll_id_fkey(id, label, sort), votes(option_id, user_id)')
       .eq('event_id', event.id)
       .order('created_at'),
     event.category_id
@@ -386,7 +391,11 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         <div className="flex flex-wrap gap-x-4.5 gap-y-1.5 px-3.5 pb-3 text-[13px] text-ink-700">
           <span><Icon name="calendar-days" size={12} /> {event.status === 'scheduling' ? 'fecha no definida' : dateChip}</span>
           <span>
-            <Icon name="users" size={12} /> van {confirmed.length} · quizás {byStatus('maybe').length}
+            {/* seatsTaken, not confirmed.length: this pill sits above a
+                "Quién va" block that counts guests, and the two reading
+                different numbers for the same question is worse than either
+                number being wrong on its own. */}
+            <Icon name="users" size={12} /> van {seatsTaken} · quizás {byStatus('maybe').length}
           </span>
         </div>
         {event.location && !isToday && (
