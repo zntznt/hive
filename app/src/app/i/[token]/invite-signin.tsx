@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { supabaseBrowser } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
@@ -24,6 +25,9 @@ type Props = {
   declined: boolean
   expired: boolean
   signedIn: boolean
+  claimed: boolean
+  claimedByMe: boolean
+  goHref: string
 }
 
 function whenLabel(iso: string) {
@@ -65,6 +69,9 @@ export default function InviteSignIn({
   declined,
   expired,
   signedIn,
+  claimed,
+  claimedByMe,
+  goHref,
 }: Props) {
   const [email, setEmail] = useState(presetEmail ?? '')
   const [sent, setSent] = useState(false)
@@ -165,6 +172,28 @@ export default function InviteSignIn({
                 entras sin problema.
               </p>
             </div>
+          ) : claimedByMe ? (
+            /* your own invitation, reopened. Asking "¿te unes?" to someone who
+               joined a month ago is the app not knowing who it is talking to. */
+            <div className="flex flex-col gap-3.5">
+              <h2 className="font-display text-xl font-bold text-ink-900">Ya estás dentro</h2>
+              <p className="text-sm text-ink-500">
+                Usaste esta invitación{clubName ? ` y ya eres parte de «${clubName}»` : ''}.
+              </p>
+              <Link href={goHref} className="block">
+                <Button display block size="lg">
+                  {eventTitle ? 'Ir al evento' : 'Ir al club'}
+                </Button>
+              </Link>
+            </div>
+          ) : claimed ? (
+            <div className="flex flex-col gap-3.5">
+              <h2 className="font-display text-xl font-bold text-ink-900">Esta invitación ya se usó</h2>
+              <p className="text-sm text-ink-500">
+                Alguien más la abrió antes. {inviter ? `Pídele otra a ${inviter}` : 'Pide otra a quien te invitó'} si
+                era para ti.
+              </p>
+            </div>
           ) : signedIn ? (
             /* Opening the link is not the same as joining. This used to happen
                on page load, so anyone could add a signed-in stranger to their
@@ -181,16 +210,16 @@ export default function InviteSignIn({
                 {joining ? 'Un momento…' : 'Aceptar invitación'}
               </Button>
               {joinError && <p className="rounded-md bg-danger-bg p-3 text-xs text-danger">{joinError}</p>}
-              {!isDeclined && (
-                <button
-                  type="button"
-                  disabled={saying}
-                  onClick={() => say(true)}
-                  className="tap mx-auto text-[13px] font-bold text-ink-500 underline decoration-line-input underline-offset-4 disabled:opacity-50"
-                >
-                  {saying ? 'Avisando…' : 'No voy a poder'}
-                </button>
-              )}
+              {/* signed in and already said no: accepting is itself the undo,
+                  but the screen should not pretend the no never happened */}
+              <button
+                type="button"
+                disabled={saying}
+                onClick={() => say(!isDeclined)}
+                className="tap mx-auto text-[13px] font-bold text-ink-500 underline decoration-line-input underline-offset-4 disabled:opacity-50"
+              >
+                {saying ? 'Un momento…' : isDeclined ? 'Ya dijiste que no puedes. Deshacer' : 'No voy a poder'}
+              </button>
             </div>
           ) : isDeclined ? (
             <div className="flex flex-col gap-3.5">

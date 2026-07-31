@@ -10,6 +10,7 @@ type Preview = {
   phone: string | null
   inviter: string | null
   claimed: boolean
+  claimed_by_me: boolean
   expired: boolean
   event_when: string | null
   event_where: string | null
@@ -57,6 +58,9 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
       declined={inv.declined}
       expired={inv.expired}
       signedIn={signedIn}
+      claimed={inv.claimed}
+      claimedByMe={inv.claimed_by_me}
+      goHref={inv.event_slug ? `/e/${inv.event_slug}` : inv.club_slug ? `/club/${inv.club_slug}` : '/'}
     />
   )
 }
