@@ -19,7 +19,6 @@ import { sendWhatsapp } from './whatsapp'
 const TEMPLATE = 'codigo_acceso'
 const CODE_TTL_MINUTES = 10
 const MAX_ATTEMPTS = 5
-const THROTTLE_SECONDS = 60
 
 // The stored value is never the code. This table is readable by anything
 // holding the service key, and a plaintext code there is a standing account
@@ -41,21 +40,23 @@ export async function requestSigninCode(phone: string): Promise<CodeRequest> {
   const db = supabaseService()
   if (!db) return { ok: false, error: 'El inicio de sesión por WhatsApp no está configurado.' }
 
+  // The throttle is taken BEFORE the account lookup, and keyed by number
+  // rather than by user, for two reasons. It has to survive the signin_codes
+  // row (it used to be inferred from that row's existence, and verify deleted
+  // the row on the attempt cap, so burning six guesses reset the limiter and
+  // a six digit code fell in a couple of hours). And an unknown number has to
+  // cost the same as a real one, or the difference is an oracle for which
+  // numbers hold an account.
+  const { data: gate } = await db.rpc('signin_throttle_take', { p_phone: phone })
+  const allowed = (gate as { allowed?: boolean } | null)?.allowed === true
+  if (!allowed) return { ok: true }
+
   const { data: user } = await db
     .from('users')
     .select('id, display_name')
     .eq('phone_whatsapp', phone)
     .maybeSingle()
   if (!user) return { ok: true }
-
-  const { data: existing } = await db
-    .from('signin_codes')
-    .select('created_at')
-    .eq('user_id', user.id)
-    .maybeSingle()
-  if (existing && Date.now() - new Date(existing.created_at).getTime() < THROTTLE_SECONDS * 1000) {
-    return { ok: true }
-  }
 
   const code = String(randomInt(0, 1_000_000)).padStart(6, '0')
 
@@ -173,18 +174,23 @@ export async function verifySigninCode(phone: string, code: string, next?: strin
 
   if (new Date(row.expires_at) < new Date() || row.attempts >= MAX_ATTEMPTS) {
     await db.from('signin_codes').delete().eq('user_id', user.id)
+    // deleting the code must not also clear the limiter, which is the whole
+    // reason this counter lives in its own table
+    await db.rpc('signin_throttle_fail', { p_phone: phone })
     return wrong
   }
 
   if (row.code_hash !== hash(user.id, code.trim())) {
-    await db
-      .from('signin_codes')
-      .update({ attempts: row.attempts + 1 })
-      .eq('user_id', user.id)
+    // one guess costs exactly one attempt: this was a read-modify-write over
+    // the network, so parallel guesses all read the same number and all wrote
+    // the same increment
+    await db.rpc('signin_code_attempt', { p_user: user.id })
+    await db.rpc('signin_throttle_fail', { p_phone: phone })
     return wrong
   }
 
   await db.from('signin_codes').delete().eq('user_id', user.id)
+  await db.rpc('signin_throttle_ok', { p_phone: phone })
 
   // Mint a magic link for this account and consume it here. verifyOtp on the
   // cookie-bound server client is what actually writes the session, so the

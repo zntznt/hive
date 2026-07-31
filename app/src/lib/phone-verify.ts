@@ -36,6 +36,17 @@ export async function startPhoneChange(userId: string, phone: string): Promise<S
     .maybeSingle()
   if (taken) return { ok: false, error: 'Ese número ya está registrado en otra cuenta.' }
 
+  // This path had no throttle whatsoever, while the sign-in one at least had
+  // sixty seconds. Any signed-in account could loop it against ANY number on
+  // earth (the only guard above is that the number is not already registered
+  // here), sending real WhatsApp messages at the operator's expense. Same
+  // limiter as sign-in, keyed by the number being messaged rather than by who
+  // is asking, because the person being bothered is the one to protect.
+  const { data: gate } = await db.rpc('signin_throttle_take', { p_phone: phone })
+  if ((gate as { allowed?: boolean } | null)?.allowed !== true) {
+    return { ok: false, error: 'Ya mandamos un código a ese número hace poco. Espera un minuto.' }
+  }
+
   const code = String(randomInt(0, 1_000_000)).padStart(6, '0')
   const { error: saveErr } = await db.from('phone_verifications').upsert({
     user_id: userId,
@@ -118,11 +129,15 @@ export async function confirmPhoneChange(userId: string, code: string): Promise<
 
   if (new Date(row.expires_at) < new Date() || row.attempts >= MAX_ATTEMPTS) {
     await db.from('phone_verifications').delete().eq('user_id', userId)
+    await db.rpc('signin_throttle_fail', { p_phone: row.phone })
     return wrong
   }
 
   if (row.code_hash !== hash(userId, code.trim())) {
-    await db.from('phone_verifications').update({ attempts: row.attempts + 1 }).eq('user_id', userId)
+    // atomic, for the same reason as sign-in: this was a read-modify-write and
+    // parallel guesses all read the same number
+    await db.rpc('phone_verify_attempt', { p_user: userId })
+    await db.rpc('signin_throttle_fail', { p_phone: row.phone })
     return wrong
   }
 
