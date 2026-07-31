@@ -1,3 +1,5 @@
+import { fmtMonthYear } from './time'
+
 // "hace 4 días", the way the wireframes label a roster and a pending invite.
 // A calendar date is precise and useless for "is this stale", which is the
 // only question these two screens ask.
@@ -15,5 +17,5 @@ export function timeAgo(iso: string | null): string {
   if (days < 365) return `hace ${Math.floor(days / 30)} meses`
 
   // past a year the month is more informative than the count
-  return new Intl.DateTimeFormat('es-MX', { month: 'short', year: 'numeric' }).format(new Date(iso))
+  return fmtMonthYear(iso)
 }

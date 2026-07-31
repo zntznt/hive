@@ -7,6 +7,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Icon } from '@/components/ui/Icon'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { useToast } from '@/components/ui/Toast'
+import { mexicoInstant, mexicoDay, fmtWeekdayDay, fmtTime } from '@/lib/time'
 
 type Props = {
   eventId: string
@@ -71,8 +72,11 @@ export default function Grid({
   const toast = useToast()
 
   const idx = (day: number, row: number) => day * rows + row
-  const slotDate = (day: number, row: number) =>
-    new Date(`${days[day]}T${hhmm(timeMin + row * slotMinutes)}:00`)
+  // The instant this cell means in Mexico City. It used to be built from a
+  // bare "2026-08-06T20:00:00", which the language reads as the device's own
+  // local time, so an organizer whose phone was not on Mexico City time pinned
+  // a different hour than the one written on the grid they were dragging.
+  const slotDate = (day: number, row: number) => mexicoInstant(days[day], timeMin + row * slotMinutes)
 
   // Where the pointer is, whatever the input device. Reading the element under
   // the finger beats per-cell enter handlers, which touch does not fire.
@@ -226,7 +230,7 @@ export default function Grid({
         <div />
         {days.map((d) => (
           <div key={d} className="pb-1 font-bold">
-            {new Date(`${d}T00:00:00`).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' })}
+            {fmtWeekdayDay(mexicoDay(d))}
           </div>
         ))}
         {Array.from({ length: rows }).map((_, r) => {
@@ -338,12 +342,7 @@ export default function Grid({
                 className="flex items-center justify-between rounded-md border border-line-card bg-paper p-2 text-sm"
               >
                 <span className="text-ink-700">
-                  {slotDate(s.day, s.a).toLocaleString('es-MX', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {fmtWeekdayDay(slotDate(s.day, s.a))} {fmtTime(slotDate(s.day, s.a))}
                   {' a '}
                   {hhmm(timeMin + (s.b + 1) * slotMinutes)}
                   <span className="ml-2 text-ink-300">

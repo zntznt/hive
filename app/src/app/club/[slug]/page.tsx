@@ -23,6 +23,7 @@ import { updateClubJoinMode, decideChangeRequest, decideJoinRequest, revokeInvit
 import { AppBar } from '@/components/ui/AppBar'
 import { WhenPill, whenPill } from '@/components/ui/WhenPill'
 import { SummaryRow, DoorGroup } from '@/components/ui/Density'
+import { fmtDayMonth } from '@/lib/time'
 
 type Category = { id: string; name: string; emoji: string | null }
 type AttendanceRow = { user_id: string; category_id: string | null; events_attended: number; last_attended_at: string }
@@ -39,7 +40,7 @@ const CHANGE_KIND_LABEL: Record<string, string> = {
 }
 
 function fmt(d: string | null) {
-  return d ? new Date(d).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) : '·'
+  return d ? fmtDayMonth(d) : '·'
 }
 
 export default async function ClubPage({

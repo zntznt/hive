@@ -12,7 +12,11 @@ import { Icon } from '@/components/ui/Icon'
 // something it cannot know.
 
 function gcal(e: { title: string; start: string; end: string; details: string; location: string | null }) {
-  const fmt = (iso: string) => iso.replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+  // Normalise through Date first. Postgres returns microseconds
+  // ("2026-08-06T02:00:00.702832+00:00"), so stripping a fixed three digits
+  // left "20260806T020000832+0000" and Google opened the event with no time on
+  // it at all.
+  const fmt = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
   const p = new URLSearchParams({
     action: 'TEMPLATE',
     text: e.title,

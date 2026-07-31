@@ -26,6 +26,7 @@ import { Loud, QuietRow, OpenSection, SummaryRow, FoldedEmpties, DoorGroup, Face
 import { DetailsSheet } from '@/components/ui/DetailsSheet'
 import { AddExpenseButton } from './expense-modal'
 import { AddPollButton } from './poll-modal'
+import { fmtDateTime, fmtDayMonth, fmtTime } from '@/lib/time'
 
 function dayRange(start: string, end: string) {
   // walk in UTC so toISOString() reads the same date we stepped - parsing as
@@ -40,17 +41,6 @@ function dayRange(start: string, end: string) {
   return days
 }
 
-function timeOnly(iso: string) {
-  return new Intl.DateTimeFormat('es-MX', {
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone: 'America/Mexico_City',
-  }).format(new Date(iso))
-}
-
-function fmtDateTime(iso: string) {
-  return new Date(iso).toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-}
 
 export default async function EventPage({ params }: { params: Promise<{ slug: string }> }) {
   const { supabase, profile } = await requireProfile()
@@ -223,7 +213,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       : event.status === 'scheduled' && event.chosen_start
         ? fmtDateTime(event.chosen_start)
         : event.status === 'done'
-          ? `celebrado${event.chosen_start ? ' · ' + new Date(event.chosen_start).toLocaleDateString('es-ES') : ''}`
+          ? `celebrado${event.chosen_start ? ' · ' + fmtDayMonth(event.chosen_start) : ''}`
           : event.status === 'cancelled'
             ? 'cancelado'
             : 'borrador'
@@ -274,7 +264,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         <div className="mb-3.5">
           <DayBanner
             place={event.location}
-            note={event.chosen_start ? `Desde las ${timeOnly(event.chosen_start)}` : undefined}
+            note={event.chosen_start ? `Desde las ${fmtTime(event.chosen_start)}` : undefined}
             mapHref={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.location)}`}
           />
         </div>
