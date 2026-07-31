@@ -1794,3 +1794,42 @@ export async function rotateClubCalendarToken(clubId: string, clubSlug: string) 
   if (error) throw new Error(error.message)
   revalidatePath(`/club/${clubSlug}`)
 }
+
+// The album. The upload lands under <event_id>/<uploader_id>/ so the storage
+// policies can enforce "your own, or any if you organize" without a lookup,
+// and the row is what the grid actually reads: storage cannot say who added a
+// photo or be filtered by RLS the way the rest of the app is.
+export async function addEventPhoto(eventId: string, slug: string, formData: FormData) {
+  const file = formData.get('file')
+  if (!(file instanceof File)) throw new Error('Falta la imagen.')
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Tu sesión expiró. Vuelve a entrar.')
+
+  const { path } = await uploadToBucket('event-photos', `${eventId}/${user.id}/${Date.now()}.jpg`, file)
+  const { error } = await supabase
+    .from('event_photos')
+    .insert({ event_id: eventId, uploaded_by: user.id, path })
+  if (error) {
+    // the object is already up; leaving it there would be a file nothing points
+    // at, invisible to the grid and to the person who uploaded it
+    await supabase.storage.from('event-photos').remove([path])
+    throw new Error(error.message)
+  }
+  revalidatePath(`/e/${slug}`)
+}
+
+// Removing takes the row and the object. RLS decides whether this caller may:
+// the row policy and the object policy carry the same rule, so a refusal from
+// either is the same answer.
+export async function removeEventPhoto(photoId: string, slug: string) {
+  const supabase = await supabaseServer()
+  const { data: photo } = await supabase.from('event_photos').select('path').eq('id', photoId).maybeSingle()
+  if (!photo) return
+  const { error } = await supabase.from('event_photos').delete().eq('id', photoId)
+  if (error) throw new Error(error.message)
+  await supabase.storage.from('event-photos').remove([photo.path])
+  revalidatePath(`/e/${slug}`)
+}

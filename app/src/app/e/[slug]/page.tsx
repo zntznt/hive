@@ -19,6 +19,7 @@ import EventAppBar from './event-app-bar'
 import AddToCalendar from './add-to-calendar'
 import { siteUrl } from '@/lib/site-url'
 import Thread from './thread'
+import Photos, { type EventPhoto } from './photos'
 import { timeAgo } from '@/lib/relative-time'
 import { WhenPill, whenPill } from '@/components/ui/WhenPill'
 import { Button } from '@/components/ui/Button'
@@ -88,6 +89,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     { data: category },
     { data: clubMembers },
     { data: pendingJoinReq },
+    { data: photoRows },
   ] = await Promise.all([
     supabase
       .from('event_members')
@@ -127,6 +129,11 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     club
       ? supabase.from('club_join_requests').select('id').eq('club_id', club.id).eq('user_id', profile.id).eq('status', 'pending').maybeSingle()
       : Promise.resolve({ data: null as { id: string } | null }),
+    supabase
+      .from('event_photos')
+      .select('id, path, uploaded_by, created_at')
+      .eq('event_id', event.id)
+      .order('created_at', { ascending: false }),
   ])
 
   type MemberUser = AvatarUser
@@ -201,6 +208,34 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         present: g.attended !== false,
       })),
   ]
+
+  // The album. The bucket is private, like payment proofs and unlike avatars:
+  // a public bucket serves every object to anyone holding the URL and never
+  // consults the SELECT policy, which would make "people who can see this
+  // event" mean "anyone the link ever reaches". So the row keeps the path and
+  // the URL is signed here, per render, for as long as looking at the page
+  // plausibly takes. Removal is offered per photo: your own always, anybody's
+  // if you organize.
+  const photoPaths = (photoRows ?? []).map((p) => p.path as string)
+  const { data: signedPhotos } = photoPaths.length
+    ? await supabase.storage.from('event-photos').createSignedUrls(photoPaths, 3600)
+    : { data: [] as { path?: string | null; signedUrl: string }[] }
+  const signedByPath = new Map((signedPhotos ?? []).map((s) => [s.path ?? '', s.signedUrl]))
+
+  const photos: EventPhoto[] = (photoRows ?? [])
+    .map((p) => ({
+      id: p.id as string,
+      url: signedByPath.get(p.path as string) ?? '',
+      by: nameOf.get(p.uploaded_by as string) ?? '·',
+      byUser: (userOf.get(p.uploaded_by as string) ?? {
+        display_name: nameOf.get(p.uploaded_by as string) ?? '·',
+      }) as AvatarUser,
+      at: p.created_at as string,
+      canRemove: p.uploaded_by === profile.id || !!isOrganizer,
+    }))
+    // a row whose object is gone signs to nothing, and a broken tile says less
+    // than no tile
+    .filter((p) => p.url)
 
   const organizers = (members ?? []).filter((m) => m.role === 'organizer')
   const coOrganizerCandidates = (clubMembers ?? [])
@@ -733,6 +768,26 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           user: (c.users ?? { display_name: '·' }) as unknown as AvatarUser,
         }))}
       />
+
+      {/* Only once there is an evening to have photographed. Before that the
+          album is an empty promise taking up a section. */}
+      {(event.status === 'done' || photos.length > 0) && (
+        <section className="mb-[26px]">
+          <OpenSection label="Fotos" meta={photos.length ? String(photos.length) : undefined}>
+            <Photos
+              eventId={event.id}
+              slug={event.slug}
+              photos={photos}
+              canAdd={!!myMembership && !event.deleted_at}
+              reason={
+                event.deleted_at
+                  ? 'Este evento está en la papelera, no se pueden agregar fotos.'
+                  : 'Solo quien fue al evento puede agregar fotos.'
+              }
+            />
+          </OpenSection>
+        </section>
+      )}
 
       {/* Rule 7. These used to be sections of this page, each with its own
           header, sitting between things people actually came for. They are
