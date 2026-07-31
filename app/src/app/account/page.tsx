@@ -5,6 +5,7 @@ import { Page, PageHeader } from '@/components/ui/Page'
 import AvatarProfileForm from './avatar-profile-form'
 import NotifPrefsForm from './notif-prefs-form'
 import WhatsappForm from './whatsapp-form'
+import { PushRow } from './push-row'
 import PaymentMethodsForm, { type PaymentMethod } from './payment-methods-form'
 import { SavedPlaces } from './saved-places'
 import DangerZone from './danger-zone'
@@ -35,7 +36,7 @@ function GroupHeader({ children }: { children: React.ReactNode }) {
 export default async function AccountPage() {
   const { supabase, profile } = await requireProfile()
 
-  const [{ data: extra }, { data: methods }, { data: places }] = await Promise.all([
+  const [{ data: extra }, { data: methods }, { data: places }, { data: pushDevices }] = await Promise.all([
     supabase
       .from('users')
       .select('avatar_kind, avatar_bug, avatar_photo_url, notif_email, notif_whatsapp, notif_prefs, phone_verified_at')
@@ -47,6 +48,7 @@ export default async function AccountPage() {
       .eq('user_id', profile.id)
       .order('sort'),
     supabase.from('saved_places').select('id, name, addr, query').eq('user_id', profile.id).order('created_at'),
+    supabase.from('push_subscriptions').select('endpoint, device_label').eq('user_id', profile.id),
   ])
 
   const account = extra as AccountExtra | null
@@ -92,6 +94,15 @@ export default async function AccountPage() {
             <Badge tone="success">verificado</Badge>
           </div>
           <WhatsappForm phone={profile.phone_whatsapp} verifiedAt={account?.phone_verified_at ?? null} />
+          {/* Directly under WhatsApp and shaped like it, because it answers the
+              same question. It is the one channel that is per browser rather
+              than per person, which is what the copy has to keep saying. */}
+          <div className="overflow-hidden rounded-md border border-line-card bg-paper">
+            <PushRow
+              vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''}
+              devices={(pushDevices ?? []).map((d) => ({ endpoint: d.endpoint, label: d.device_label }))}
+            />
+          </div>
         </div>
         <p className="mt-2.5 text-xs text-ink-300">
           Entras con un enlace a tu correo o con un código por WhatsApp. No hay contraseñas.

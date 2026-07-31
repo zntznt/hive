@@ -1833,3 +1833,72 @@ export async function removeEventPhoto(photoId: string, slug: string) {
   await supabase.storage.from('event-photos').remove([photo.path])
   revalidatePath(`/e/${slug}`)
 }
+
+// Push subscriptions. One per browser per machine, so this is an upsert on the
+// endpoint: re-subscribing the same browser must refresh the row rather than
+// collect duplicates that all ring at once.
+export async function savePushSubscription(sub: {
+  endpoint: string
+  p256dh: string
+  auth: string
+  deviceLabel: string
+}) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Tu sesión expiró. Vuelve a entrar.')
+  const { error } = await supabase.from('push_subscriptions').upsert(
+    {
+      user_id: user.id,
+      endpoint: sub.endpoint,
+      p256dh: sub.p256dh,
+      auth: sub.auth,
+      device_label: sub.deviceLabel,
+      last_seen_at: new Date().toISOString(),
+    },
+    { onConflict: 'endpoint' }
+  )
+  if (error) throw new Error(error.message)
+  revalidatePath('/account')
+}
+
+// Turning it off on this device. The browser's own unsubscribe happens client
+// side; this drops the row so nothing is sent to an endpoint nobody is
+// listening on.
+export async function removePushSubscription(endpoint: string) {
+  const supabase = await supabaseServer()
+  const { error } = await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint)
+  if (error) throw new Error(error.message)
+  revalidatePath('/account')
+}
+
+// "Send one to this device", from the account screen. The only way to answer
+// "is this actually working" without waiting for somebody to create an event.
+export async function sendTestPush(endpoint: string) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Tu sesión expiró. Vuelve a entrar.')
+  const { data: sub } = await supabase
+    .from('push_subscriptions')
+    .select('endpoint, p256dh, auth')
+    .eq('endpoint', endpoint)
+    .maybeSingle()
+  if (!sub) return { ok: false as const, error: 'Este dispositivo ya no está registrado.' }
+
+  const { sendPush } = await import('@/lib/push')
+  const result = await sendPush(sub, {
+    title: 'Hive',
+    body: 'Listo, así se van a ver los avisos en este dispositivo.',
+    url: '/account',
+    tag: 'test',
+  })
+  if (result.ok) return { ok: true as const }
+  if (result.gone) {
+    await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint)
+    return { ok: false as const, error: 'Este navegador ya no acepta avisos. Vuelve a activarlos.' }
+  }
+  return { ok: false as const, error: result.error }
+}

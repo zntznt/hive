@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendEmail } from './email'
 import { sendWhatsapp, checkBroadcast } from './whatsapp'
 import { supabaseService } from './supabase/service'
+import { sendPush } from './push'
 import { after } from 'next/server'
 
 // Every function here reads rows that belong to other people: the recipient's
@@ -94,14 +95,29 @@ export async function queueNotification(
   const whatsappOn = pref?.whatsapp ?? user?.notif_whatsapp ?? false
   if (!emailOn && !whatsappOn) return
 
-  const channels: ('email' | 'whatsapp')[] = []
+  const channels: ('email' | 'whatsapp' | 'push')[] = []
   if (emailOn && user?.email) channels.push('email')
   if (whatsappOn && user?.phone_whatsapp) channels.push('whatsapp')
   if (!channels.length) {
     if (user?.email) channels.push('email')
     else if (user?.phone_whatsapp) channels.push('whatsapp')
-    else return
   }
+
+  // Push rides along rather than competing. The matrix on the account screen
+  // has a column per address, and push is not an address: it is whichever
+  // browsers this person told to ring, so it has no column and no fallback.
+  // The topic guard above still applies, so muting a topic silences push too,
+  // which is the only reading of "mute" that is not a surprise.
+  //
+  // Only queued when a subscription exists and a push version of the template
+  // does, since the outbox has a foreign key on (channel, template).
+  const [{ count: subCount }, { data: pushTpl }] = await Promise.all([
+    db.from('push_subscriptions').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+    db.from('notification_templates').select('key').eq('channel', 'push').eq('key', template).maybeSingle(),
+  ])
+  if (subCount && pushTpl) channels.push('push')
+
+  if (!channels.length) return
 
   await db
     .from('notification_outbox')
@@ -187,6 +203,77 @@ export async function sendTemplatedWhatsapp(
   return result
 }
 
+// Push is the one channel that fans out: a member can have a subscription per
+// browser, and each one can have died since it was stored. One outbox row
+// covers the whole batch, and is settled by the best outcome in it, because
+// "sent" on a row that reached the phone in their pocket and failed on a
+// laptop they wiped months ago is the honest reading.
+//
+// A dead endpoint is deleted rather than reported. The browser threw the
+// subscription away (cleared data, reinstalled, revoked permission) and
+// keeping the row would mean failing against it forever.
+async function deliverPush(
+  db: SupabaseClient,
+  row: { id: string; user_id: string; template: string; payload: unknown },
+  tpl: { subject: string | null; body: string } | null,
+  user: { display_name?: string | null } | null
+) {
+  if (!tpl || !user) {
+    await db.from('notification_outbox').update({ status: 'logged', error: 'sin plantilla' }).eq('id', row.id)
+    return
+  }
+
+  const { data: subs } = await db
+    .from('push_subscriptions')
+    .select('id, endpoint, p256dh, auth')
+    .eq('user_id', row.user_id)
+
+  if (!subs?.length) {
+    await db.from('notification_outbox').update({ status: 'logged', error: 'sin dispositivos' }).eq('id', row.id)
+    return
+  }
+
+  const vars: Record<string, string> = {
+    name: user.display_name ?? '',
+    ...((row.payload ?? {}) as Record<string, string>),
+  }
+  const payload = {
+    title: renderTemplate(tpl.subject ?? 'Hive', vars),
+    body: renderTemplate(tpl.body, vars),
+    // where tapping it lands. The template's own link when it has one, so a
+    // notification about an event opens that event rather than the home screen.
+    url: vars.link || '/',
+    // one line per thing, rather than forty about the same event
+    tag: `${row.template}:${vars.event_id ?? row.id}`,
+  }
+
+  let anySent = false
+  let lastError = 'no se pudo enviar'
+  let skipped = false
+  for (const sub of subs) {
+    const result = await sendPush(sub, payload)
+    if (result.ok) {
+      anySent = true
+      continue
+    }
+    if (result.gone) {
+      await db.from('push_subscriptions').delete().eq('id', sub.id)
+      continue
+    }
+    lastError = result.error
+    skipped = result.skipped
+  }
+
+  await db
+    .from('notification_outbox')
+    .update(
+      anySent
+        ? { status: 'sent', sent_at: new Date().toISOString(), error: null }
+        : { status: skipped ? 'logged' : 'failed', error: lastError }
+    )
+    .eq('id', row.id)
+}
+
 // Pulls queued rows (small table at this app's scale, no worker needed) and
 // sends each one on its own channel: Resend for email, Zernio for WhatsApp.
 // Either provider being unconfigured marks the row 'logged' rather than
@@ -203,11 +290,18 @@ export async function dispatchQueuedNotifications(supabase: SupabaseClient, limi
   if (!rows?.length) return
 
   for (const row of rows) {
-    const channel = row.channel as 'email' | 'whatsapp'
+    const channel = row.channel as 'email' | 'whatsapp' | 'push'
     const [{ data: tpl }, { data: user }] = await Promise.all([
       db.from('notification_templates').select('*').eq('channel', channel).eq('key', row.template).maybeSingle(),
       db.from('users').select('email, phone_whatsapp, display_name, notif_prefs').eq('id', row.user_id).maybeSingle(),
     ])
+
+    // Push has no single destination: it fans out to every browser this person
+    // subscribed, and the row is settled by how that batch went.
+    if (channel === 'push') {
+      await deliverPush(db, row, tpl, user)
+      continue
+    }
 
     const destination = channel === 'email' ? user?.email : user?.phone_whatsapp
     if (!tpl || !user || !destination) {

@@ -69,7 +69,7 @@ export default function OutboxLog({ rows }: { rows: OutboxRow[] }) {
             <li key={r.id} className="px-3 py-2.5 text-[12.5px]">
               <div className="flex items-center justify-between gap-2">
                 <span className="flex min-w-0 items-center gap-1.5">
-                  <Icon name={r.channel === 'whatsapp' ? 'link' : 'envelope'} size={11} />
+                  <Icon name={r.channel === 'whatsapp' ? 'link' : r.channel === 'push' ? 'bell' : 'envelope'} size={11} />
                   <span className="truncate font-bold text-ink-900">{r.recipient}</span>
                 </span>
                 <Badge tone={TONE[r.status] ?? 'neutral'}>{LABEL[r.status] ?? r.status}</Badge>

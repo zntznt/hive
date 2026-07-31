@@ -1,0 +1,248 @@
+'use client'
+
+import { useEffect, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { savePushSubscription, removePushSubscription, sendTestPush } from '@/app/actions'
+import { useToast } from '@/components/ui/Toast'
+import { Badge } from '@/components/ui/Badge'
+
+// Avisos en este dispositivo.
+//
+// Sits under the WhatsApp row and copies its shape on purpose: label, badge,
+// bordered action. The action is a bordered pill and never a hover underline,
+// because an affordance that only exists on hover does not exist on a phone.
+//
+// Every state names the device. Correo and WhatsApp belong to a person; push
+// belongs to one browser on one machine, so a row that just said "activado"
+// would be wrong on the same person's other phone.
+//
+// The one state worth designing for is `denied`. A browser asks once and
+// remembers forever, so this never opens the native prompt on load, and when
+// permission is refused it stops being an error message and becomes a repair
+// manual.
+
+type State = 'unsupported' | 'install' | 'default' | 'granted' | 'denied'
+
+function deviceLabel() {
+  const ua = navigator.userAgent
+  const browser = /EdgiOS|Edg/.test(ua)
+    ? 'Edge'
+    : /CriOS|Chrome/.test(ua)
+      ? 'Chrome'
+      : /FxiOS|Firefox/.test(ua)
+        ? 'Firefox'
+        : /Safari/.test(ua)
+          ? 'Safari'
+          : 'este navegador'
+  const os = /iPhone|iPad|iPod/.test(ua)
+    ? 'iPhone'
+    : /Android/.test(ua)
+      ? 'Android'
+      : /Macintosh/.test(ua)
+        ? 'Mac'
+        : /Windows/.test(ua)
+          ? 'Windows'
+          : 'este equipo'
+  return `${browser} en ${os}`
+}
+
+// The push service hands back the keys as ArrayBuffers; the server stores them
+// base64url, which is what the encryption expects on the way out.
+function b64(buf: ArrayBuffer | null) {
+  if (!buf) return ''
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
+}
+
+function urlBase64ToUint8Array(base64: string) {
+  const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=')
+  const raw = atob(padded.replace(/-/g, '+').replace(/_/g, '/'))
+  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)))
+}
+
+export function PushRow({ vapidPublicKey, devices }: { vapidPublicKey: string; devices: { endpoint: string; label: string | null }[] }) {
+  const [state, setState] = useState<State>('unsupported')
+  const [endpoint, setEndpoint] = useState<string | null>(null)
+  const [label, setLabel] = useState('este dispositivo')
+  const [busy, setBusy] = useState(false)
+  const [pending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
+  const toast = useToast()
+
+  useEffect(() => {
+    let cancelled = false
+    async function look() {
+      const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
+      const ua = navigator.userAgent
+      const isIos = /iPhone|iPad|iPod/.test(ua)
+      const standalone =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as unknown as { standalone?: boolean }).standalone === true
+
+      // iOS gives a site no push at all until it is on the home screen. Saying
+      // "no compatible" there would be wrong: it is one step away.
+      if (isIos && !standalone) {
+        if (!cancelled) setState('install')
+        return
+      }
+      if (!supported || !vapidPublicKey) {
+        if (!cancelled) setState('unsupported')
+        return
+      }
+
+      const perm = Notification.permission
+      let ep: string | null = null
+      if (perm === 'granted') {
+        const reg = await navigator.serviceWorker.getRegistration('/sw.js')
+        const existing = await reg?.pushManager.getSubscription()
+        ep = existing?.endpoint ?? null
+      }
+      if (cancelled) return
+      setState(perm === 'granted' ? (ep ? 'granted' : 'default') : perm === 'denied' ? 'denied' : 'default')
+      setEndpoint(ep)
+      setLabel(deviceLabel())
+    }
+    look()
+    return () => {
+      cancelled = true
+    }
+  }, [vapidPublicKey])
+
+  async function enable() {
+    setBusy(true)
+    setError(null)
+    try {
+      const reg = await navigator.serviceWorker.register('/sw.js')
+      await navigator.serviceWorker.ready
+      // asked only on a tap, never on load: a browser asks once and remembers
+      // the answer forever, so a prompt nobody was expecting loses the channel
+      const perm = await Notification.requestPermission()
+      if (perm !== 'granted') {
+        setState(perm === 'denied' ? 'denied' : 'default')
+        return
+      }
+      const sub =
+        (await reg.pushManager.getSubscription()) ??
+        (await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+        }))
+      await savePushSubscription({
+        endpoint: sub.endpoint,
+        p256dh: b64(sub.getKey('p256dh')),
+        auth: b64(sub.getKey('auth')),
+        deviceLabel: deviceLabel(),
+      })
+      setEndpoint(sub.endpoint)
+      setState('granted')
+      toast('Avisos activados en este dispositivo.')
+      router.refresh()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudieron activar los avisos.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function disable() {
+    if (!endpoint) return
+    setBusy(true)
+    setError(null)
+    try {
+      const reg = await navigator.serviceWorker.getRegistration('/sw.js')
+      const sub = await reg?.pushManager.getSubscription()
+      await sub?.unsubscribe()
+      await removePushSubscription(endpoint)
+      setEndpoint(null)
+      setState('default')
+      toast('Avisos apagados en este dispositivo.')
+      router.refresh()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudieron apagar los avisos.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function test() {
+    if (!endpoint) return
+    startTransition(async () => {
+      const res = await sendTestPush(endpoint)
+      if (res.ok) toast('Va en camino.')
+      else setError(res.error)
+    })
+  }
+
+  const otherDevices = devices.filter((d) => d.endpoint !== endpoint)
+
+  const pill =
+    'tap inline-flex min-h-11 flex-shrink-0 items-center rounded-pill border-[1.5px] border-line-card bg-paper px-3.5 text-[12.5px] font-bold text-ink-900'
+
+  return (
+    <div className="border-t border-line-divider px-[13px] py-[11px]">
+      <div className="flex items-center justify-between gap-2.5">
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-sm text-ink-900">Avisos en {label}</span>
+          {state === 'granted' && <Badge tone="success">activado</Badge>}
+          {state === 'denied' && <Badge tone="danger">bloqueado</Badge>}
+        </span>
+        {state === 'granted' ? (
+          <span className="flex flex-shrink-0 gap-2">
+            <button type="button" onClick={test} disabled={pending} className={pill}>
+              {pending ? 'Enviando…' : 'Probar'}
+            </button>
+            <button type="button" onClick={disable} disabled={busy} className={pill}>
+              Apagar
+            </button>
+          </span>
+        ) : state === 'default' ? (
+          <button type="button" onClick={enable} disabled={busy} className={pill}>
+            {busy ? 'Activando…' : 'Activar'}
+          </button>
+        ) : null}
+      </div>
+
+      <p className="mt-1.5 text-[11.5px] leading-relaxed text-ink-300">
+        {state === 'granted' ? (
+          <>Los avisos llegan a este navegador. Es por dispositivo: en tu otro teléfono hay que activarlos aparte.</>
+        ) : state === 'default' ? (
+          <>Un aviso en la pantalla cuando pasa algo, sin abrir la app. Solo en este navegador.</>
+        ) : state === 'install' ? (
+          <>
+            En iPhone hay que agregar Hive a la pantalla de inicio antes de poder activar los avisos. Toca Compartir y
+            luego &quot;Agregar a inicio&quot;.
+          </>
+        ) : state === 'denied' ? (
+          <>Este navegador los tiene bloqueados. Sigue los pasos de abajo para desbloquearlos.</>
+        ) : (
+          <>Este navegador no admite avisos. Te seguimos avisando por correo y WhatsApp.</>
+        )}
+      </p>
+
+      {/* Not an error message, a repair manual. The browser will not ask
+          again, so the only way back is through its own settings, and the
+          steps differ per browser. */}
+      {state === 'denied' && (
+        <ol className="mt-2.5 flex flex-col gap-1.5 rounded-md bg-cream-sunk px-3.5 py-3 text-xs leading-relaxed text-ink-700">
+          <li>1. Toca el candado o los tres puntos junto a la dirección.</li>
+          <li>2. Busca Notificaciones y cámbialo a Permitir.</li>
+          <li>3. Vuelve aquí y recarga la página.</li>
+          <li className="text-ink-300">
+            Mientras tanto no se pierde nada: los avisos te siguen llegando por correo y WhatsApp.
+          </li>
+        </ol>
+      )}
+
+      {otherDevices.length > 0 && (
+        <p className="mt-2 text-[11.5px] text-ink-300">
+          También activado en: {otherDevices.map((d) => d.label ?? 'otro dispositivo').join(', ')}.
+        </p>
+      )}
+
+      {error && <p className="mt-2 rounded-md bg-danger-bg p-2.5 text-xs text-danger">{error}</p>}
+    </div>
+  )
+}
