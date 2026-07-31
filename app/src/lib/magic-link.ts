@@ -20,9 +20,11 @@ import { siteUrl } from './site-url'
 // pager, loose enough that a member who fumbles the first tap can retry.
 const THROTTLE_SECONDS = 60
 
-// Only ever redirect inside the app.
+// Only ever redirect inside the app. The backslash matters: browsers
+// normalize "/\evil.com" to "//evil.com", so testing for a leading "//" alone
+// lets an absolute URL through.
 function safeNext(raw?: string | null) {
-  return raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : null
+  return raw && /^\/[^/\\]/.test(raw) ? raw : null
 }
 
 export type MagicLinkResult =
@@ -36,10 +38,13 @@ export async function sendWhatsappMagicLink(phone: string, next?: string | null)
   const db = supabaseService()
   if (!db) return { ok: false, error: 'El inicio de sesión por WhatsApp no está configurado.' }
 
+  // Disabled covers both an account an admin shut off and one whose owner
+  // asked us to delete it. Neither gets a link.
   const { data: user } = await db
     .from('users')
     .select('id, email, display_name')
     .eq('phone_whatsapp', phone)
+    .neq('status', 'disabled')
     .maybeSingle()
   if (!user?.email) return { ok: true }
 

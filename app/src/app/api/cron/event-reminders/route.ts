@@ -36,14 +36,19 @@ function timeInMexico(iso: string) {
 
 export async function GET(request: Request) {
   // Vercel attaches "Authorization: Bearer $CRON_SECRET" when that variable
-  // exists, so we enforce it when it does. When it does not, we still run:
-  // requiring it would mean the reminders silently never send until someone
-  // remembers to set it, and the job is a poor target anyway. It returns
-  // counts rather than data, it only ever touches events happening today,
-  // and the dedupe below caps it at one message per person per event, so an
-  // extra caller changes nothing.
+  // exists. This used to run anyway when it did not, on the reasoning that the
+  // dedupe caps the damage at one message per person per event. That reasoning
+  // was wrong twice: the endpoint also drives dispatchQueuedNotifications and
+  // reconcileHandoffs, so an anonymous caller could flush the whole outbox on
+  // demand and hammer the WhatsApp provider, and "we forgot to set the secret"
+  // is exactly the state in which nobody is watching. Failing closed makes a
+  // missing secret loud (reminders stop, the response says why) instead of
+  // quietly leaving the job open to the internet.
   const secret = process.env.CRON_SECRET
-  if (secret && request.headers.get('authorization') !== `Bearer ${secret}`) {
+  if (!secret) {
+    return NextResponse.json({ error: 'CRON_SECRET no está configurado' }, { status: 503 })
+  }
+  if (request.headers.get('authorization') !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 

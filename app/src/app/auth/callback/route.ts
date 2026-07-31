@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase/server'
 
-// only internal, single-slash-prefixed paths may be used as post-auth targets
+// Only internal paths may be used as post-auth targets. The second character
+// has to be checked for a backslash as well as a slash: browsers normalize
+// "/\evil.com" to "//evil.com", so a startsWith('//') test alone lets an
+// absolute URL through and turns sign-in into an open redirect.
 function safeNext(raw: string | null) {
-  return raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : '/'
+  return raw && /^\/[^/\\]/.test(raw) ? raw : '/'
 }
 
 export async function GET(request: Request) {

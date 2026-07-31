@@ -27,8 +27,10 @@ function hash(userId: string, code: string) {
   return createHash('sha256').update(`${userId}:${code}`).digest('hex')
 }
 
+// Browsers normalize "/\evil.com" to "//evil.com", so a leading-"//" test
+// alone would let an absolute URL through here.
 function safeNext(raw?: string | null) {
-  return raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : null
+  return raw && /^\/[^/\\]/.test(raw) ? raw : null
 }
 
 export type CodeRequest = { ok: true } | { ok: false; error: string }
@@ -51,10 +53,14 @@ export async function requestSigninCode(phone: string): Promise<CodeRequest> {
   const allowed = (gate as { allowed?: boolean } | null)?.allowed === true
   if (!allowed) return { ok: true }
 
+  // A disabled account is one an admin shut off or one whose owner asked us to
+  // delete it, and neither should be handed a way back in. Deletion clears the
+  // number as well, so this is the belt to that braces.
   const { data: user } = await db
     .from('users')
     .select('id, display_name')
     .eq('phone_whatsapp', phone)
+    .neq('status', 'disabled')
     .maybeSingle()
   if (!user) return { ok: true }
 
@@ -159,6 +165,7 @@ export async function verifySigninCode(phone: string, code: string, next?: strin
     .from('users')
     .select('id, email')
     .eq('phone_whatsapp', phone)
+    .neq('status', 'disabled')
     .maybeSingle()
   // Same wording for "no account", "no code" and "wrong code": a distinct
   // message for each would let someone map which numbers are registered.

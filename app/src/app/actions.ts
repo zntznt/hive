@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
+import { supabaseService } from '@/lib/supabase/service'
 import type { RsvpStatus } from '@/lib/types'
 import { queueNotification, dispatchAfterResponse, sendTemplatedEmail, sendTemplatedWhatsapp } from '@/lib/notify'
 import { siteUrl } from '@/lib/site-url'
@@ -37,19 +38,52 @@ const CHANGE_REQUEST_SUMMARY: Record<string, string> = {
 // reading the auth cookie from document.cookie, which proved unreliable in
 // the wild (uploads went out as anon and RLS rejected them). Server actions
 // accept File blobs in FormData, and here the cookie session always works.
+// What may be stored, and how much of it. The buckets enforce the same two
+// rules (0032), but file.type came straight from the browser and was passed
+// through as contentType, so without this the stored object could claim to be
+// anything: on a public bucket served from our own origin, "text/html" is a
+// page members' browsers will trust.
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const MAX_UPLOAD_BYTES = 2 * 1024 * 1024
+
 async function uploadToBucket(bucket: string, path: string, file: File) {
   const supabase = await supabaseServer()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) throw new Error('Tu sesión expiró. Vuelve a entrar.')
+
+  const contentType = IMAGE_TYPES.includes(file.type) ? file.type : 'image/jpeg'
+  if (file.type && !IMAGE_TYPES.includes(file.type)) {
+    throw new Error('Solo aceptamos imágenes JPG, PNG o WebP.')
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    throw new Error('Esa imagen pesa más de 2 MB. Recórtala o usa una más ligera.')
+  }
+
   const bytes = new Uint8Array(await file.arrayBuffer())
   const { error } = await supabase.storage.from(bucket).upload(path, bytes, {
-    contentType: file.type || 'image/jpeg',
+    contentType,
     upsert: true,
   })
   if (error) throw new Error(error.message)
   return { path, userId: user.id }
+}
+
+// avatar_photo_url and banner_url are ordinary text columns, and PostgREST
+// takes the UPDATE directly, so uploading through the app was never the only
+// way to fill them. A banner renders to every member of a club, which makes
+// "any address on the internet" a per member request log and an image that can
+// change after someone approved it. The database refuses anything else too
+// (0032); this is here so the member sees Spanish rather than a constraint
+// name.
+function ourStorageUrl(url: string | null, bucket: 'avatars' | 'banners') {
+  if (!url) return null
+  const ok = new RegExp(
+    `^https://[a-z0-9-]+\\.supabase\\.co/storage/v1/object/public/${bucket}/[A-Za-z0-9/._-]+$`
+  ).test(url)
+  if (!ok) throw new Error('Esa imagen no viene de Hive. Súbela desde aquí.')
+  return url
 }
 
 export async function uploadAvatarPhotoAction(formData: FormData): Promise<string> {
@@ -418,15 +452,19 @@ export async function updateClubBanner(clubId: string, clubSlug: string, bannerU
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) throw new Error('not signed in')
+  // checked here as well as on the column, because the organizer branch parks
+  // it in a change_request payload where no constraint can see it until an
+  // admin approves and it lands on clubs.banner_url
+  const banner_url = ourStorageUrl(bannerUrl?.trim() || null, 'banners')
   const perm = await clubPermission(supabase, user.id, clubId)
   if (perm.isAdmin) {
-    const { error } = await supabase.from('clubs').update({ banner_url: bannerUrl }).eq('id', clubId)
+    const { error } = await supabase.from('clubs').update({ banner_url }).eq('id', clubId)
     if (error) throw new Error(error.message)
   } else {
     const { error } = await supabase.from('change_requests').insert({
       club_id: clubId,
       kind: 'banner',
-      payload: { banner_url: bannerUrl },
+      payload: { banner_url },
       requested_by: user.id,
     })
     if (error) throw new Error(error.message)
@@ -1215,7 +1253,10 @@ export async function updateProfile(formData: FormData) {
   const avatar_kind = formData.get('avatar_kind') === 'photo' ? 'photo' : 'bug'
   const avatar_bug = String(formData.get('avatar_bug') ?? 'bug')
   const avatar_color = String(formData.get('avatar_color') ?? '').trim() || null
-  const avatar_photo_url = String(formData.get('avatar_photo_url') ?? '').trim() || null
+  const avatar_photo_url = ourStorageUrl(
+    String(formData.get('avatar_photo_url') ?? '').trim() || null,
+    'avatars'
+  )
   const { error } = await supabase
     .from('users')
     .update({ display_name, avatar_kind, avatar_bug, avatar_color, avatar_photo_url })
@@ -1330,13 +1371,34 @@ export async function savePaymentMethods(formData: FormData) {
   return { ok: true as const }
 }
 
+// "Eliminar cuenta" used to mean "set status to disabled", and disabled meant
+// nothing at all: the account kept every club it ran, its number still signed
+// it in, and its email, payment details and saved addresses stayed in the
+// table. The RPC does the scrubbing now (0031); this closes the auth side.
+//
+// The auth user is banned rather than deleted. public.users.id references
+// auth.users on delete cascade, so deleting it would take the profile row with
+// it, and every RSVP, expense and settlement hanging off that row: other
+// people's records, and the money history of events that already happened. A
+// ban stops sessions being issued without rewriting anyone's past.
 export async function requestAccountDeletion(formData: FormData) {
   if (String(formData.get('confirm') ?? '') !== 'DELETE') {
     throw new Error('Escribe DELETE para confirmar.')
   }
   const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Tu sesión expiró. Vuelve a entrar.')
+
   const { error } = await supabase.rpc('request_account_deletion')
   if (error) throw new Error(error.message)
+
+  // A hundred years. Supabase has no "forever", and a duration that outlives
+  // the app is the same thing in practice.
+  const admin = supabaseService()
+  if (admin) await admin.auth.admin.updateUserById(user.id, { ban_duration: '876000h' })
+
   await supabase.auth.signOut()
   redirect('/')
 }
