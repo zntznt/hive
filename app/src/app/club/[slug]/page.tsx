@@ -19,11 +19,13 @@ import { AddCategoryButton, EditCategoryButton } from './category-editor'
 import { MemberRow } from './member-row'
 import { InviteModal } from './invite-modal'
 import { DangerZone } from './danger-zone'
+import { CalendarSubscribe } from './calendar-subscribe'
 import { updateClubJoinMode, decideChangeRequest, decideJoinRequest, revokeInvitation } from '@/app/actions'
 import { AppBar } from '@/components/ui/AppBar'
 import { WhenPill, whenPill } from '@/components/ui/WhenPill'
 import { SummaryRow, DoorGroup } from '@/components/ui/Density'
 import { fmtDayMonth } from '@/lib/time'
+import { siteUrl } from '@/lib/site-url'
 
 type Category = { id: string; name: string; emoji: string | null }
 type AttendanceRow = {
@@ -486,6 +488,18 @@ export default async function ClubPage({
           </p>
         </section>
       )}
+
+      {/* Above the history on purpose: it is the one thing on this page that
+          keeps working after you close the app. */}
+      <section className="mb-[26px]">
+        <CalendarSubscribe
+          clubName={club.name}
+          clubId={club.id}
+          slug={slug}
+          feedUrl={`${siteUrl()}/c/${club.calendar_token}/calendar.ics`}
+          isAdmin={isAdmin}
+        />
+      </section>
 
       {/* Rule 7. The club's own history and its settings were sections of this
           page, indistinguishable from the things people come here for. They

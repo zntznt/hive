@@ -1785,3 +1785,12 @@ export async function nudgeAdmins() {
   revalidatePath('/pending')
   return { ok: true as const, already: queued === 0 }
 }
+
+// Rotating the club's calendar link. The RPC checks club admin; this only
+// carries the result back to the page so the new URL is on screen at once.
+export async function rotateClubCalendarToken(clubId: string, clubSlug: string) {
+  const supabase = await supabaseServer()
+  const { error } = await supabase.rpc('rotate_club_calendar_token', { cid: clubId })
+  if (error) throw new Error(error.message)
+  revalidatePath(`/club/${clubSlug}`)
+}
