@@ -123,14 +123,21 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
                         <Badge tone="active">aceptada</Badge>
                       ) : inv.declined_at ? (
                         <Badge tone="disabled">no puede</Badge>
+                      ) : inv.expires_at && new Date(inv.expires_at) < new Date() ? (
+                        <Badge tone="neutral">venció</Badge>
                       ) : (
                         <Badge tone="pending">pendiente</Badge>
                       )}
                     </span>
                     <span className="text-[11.5px] text-ink-300">
-                      {inv.declined_at ? `respondió ${timeAgo(inv.declined_at)}` : timeAgo(inv.created_at)}
+                      {inv.declined_at
+                        ? `respondió ${timeAgo(inv.declined_at)}`
+                        : inv.expires_at && new Date(inv.expires_at) < new Date()
+                          ? `venció ${timeAgo(inv.expires_at)}, reenvíala para revivirla`
+                          : timeAgo(inv.created_at)}
                     </span>
                   </span>
+                  {/* a dead link can still be resent: that is what revives it */}
                   {!inv.claimed_by_user_id && !inv.declined_at && (
                     <span className="flex flex-shrink-0 items-center gap-1.5">
                       <CopyButton path={`/i/${inv.token}`} label="Copiar" />

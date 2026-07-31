@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
 import InviteSignIn from './invite-signin'
 
@@ -11,6 +10,7 @@ type Preview = {
   phone: string | null
   inviter: string | null
   claimed: boolean
+  expired: boolean
   event_when: string | null
   event_where: string | null
   going: number | null
@@ -35,23 +35,12 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
     )
   }
 
+  // Deliberately does NOT claim here. Opening a link is not consent to join a
+  // group of people, and a GET carries none of a server action's CSRF
+  // protection, so this used to mean anyone could add a signed-in stranger to
+  // their club just by getting them to follow a URL. The button does it.
   const { data: claimsData } = await supabase.auth.getClaims()
-
-  if (claimsData?.claims?.sub) {
-    const { data: target, error } = await supabase.rpc('claim_invitation', {
-      invite_token: token,
-    })
-    if (error) {
-      return (
-        <main className="mx-auto flex min-h-screen max-w-entry flex-col justify-center px-4 pb-10 pt-6 text-center">
-          <h1 className="mb-2 font-display text-xl font-bold text-ink-900">No se pudo usar la invitación</h1>
-          <p className="text-ink-500">{error.message}</p>
-        </main>
-      )
-    }
-    const t = target as { event_slug: string | null; club_slug: string | null }
-    redirect(t.event_slug ? `/e/${t.event_slug}` : t.club_slug ? `/club/${t.club_slug}` : '/')
-  }
+  const signedIn = !!claimsData?.claims?.sub
 
   return (
     <InviteSignIn
@@ -66,6 +55,8 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
       going={inv.going}
       capacity={inv.capacity}
       declined={inv.declined}
+      expired={inv.expired}
+      signedIn={signedIn}
     />
   )
 }

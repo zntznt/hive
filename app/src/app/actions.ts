@@ -1483,6 +1483,16 @@ export async function resendInvitation(invitationId: string, path: string) {
     ? await sendTemplatedEmail(supabase, { to: inv.email, template: 'invitation', vars })
     : await sendTemplatedWhatsapp(supabase, { to: inv.phone as string, template: 'invitation', vars })
 
+  // Resending revives the link. The token is the same one, so anything already
+  // forwarded keeps working, which is what "resend" means to the person doing
+  // it; killing the old one is what "revocar" is for.
+  if (result.ok) {
+    await supabase
+      .from('invitations')
+      .update({ last_sent_at: new Date().toISOString(), expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString() })
+      .eq('id', invitationId)
+  }
+
   revalidatePath(path)
   if (!result.ok) return { ok: false as const, error: result.error ?? 'No se pudo reenviar.' }
   return { ok: true as const }

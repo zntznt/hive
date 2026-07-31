@@ -8,7 +8,7 @@ import { Icon, type IconName } from '@/components/ui/Icon'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { BeeLoader } from '@/components/ui/BeeLoader'
 import { authOrigin } from '@/lib/site-url'
-import { declineInvitation } from './actions'
+import { declineInvitation, acceptInvitation } from './actions'
 
 type Props = {
   token: string
@@ -22,6 +22,8 @@ type Props = {
   going: number | null
   capacity: number | null
   declined: boolean
+  expired: boolean
+  signedIn: boolean
 }
 
 function whenLabel(iso: string) {
@@ -61,6 +63,8 @@ export default function InviteSignIn({
   going,
   capacity,
   declined,
+  expired,
+  signedIn,
 }: Props) {
   const [email, setEmail] = useState(presetEmail ?? '')
   const [sent, setSent] = useState(false)
@@ -68,6 +72,8 @@ export default function InviteSignIn({
   const [error, setError] = useState<string | null>(null)
   const [isDeclined, setDeclined] = useState(declined)
   const [saying, startSaying] = useTransition()
+  const [joining, startJoining] = useTransition()
+  const [joinError, setJoinError] = useState<string | null>(null)
 
   async function send(e: React.FormEvent) {
     e.preventDefault()
@@ -90,6 +96,13 @@ export default function InviteSignIn({
     startSaying(async () => {
       await declineInvitation(token, !no)
       setDeclined(no)
+    })
+
+  const join = () =>
+    startJoining(async () => {
+      const res = await acceptInvitation(token)
+      // a successful accept redirects, so anything returned here is a refusal
+      if (res && !res.ok) setJoinError(res.error)
     })
 
   const headerTitle = eventTitle ?? clubName ?? 'Hive'
@@ -122,7 +135,7 @@ export default function InviteSignIn({
             )}
           </p>
 
-          {eventTitle && (
+          {eventTitle && !expired && (
             <ul className="mt-4 flex flex-col gap-2 border-t border-line-divider pt-3.5">
               <Fact icon="calendar-day">
                 {when ? whenLabel(when) : 'Todavía están buscando fecha entre todos.'}
@@ -144,7 +157,42 @@ export default function InviteSignIn({
         </div>
 
         <div className="bg-paper px-[26px] py-[26px]">
-          {isDeclined ? (
+          {expired ? (
+            <div className="flex flex-col gap-3.5">
+              <h2 className="font-display text-xl font-bold text-ink-900">Esta invitación ya venció</h2>
+              <p className="text-sm text-ink-500">
+                Los enlaces duran 30 días. {inviter ? `Pídele otro a ${inviter}` : 'Pide otro a quien te invitó'} y
+                entras sin problema.
+              </p>
+            </div>
+          ) : signedIn ? (
+            /* Opening the link is not the same as joining. This used to happen
+               on page load, so anyone could add a signed-in stranger to their
+               club by getting them to follow a URL. */
+            <div className="flex flex-col gap-3.5">
+              <h2 className="font-display text-xl font-bold text-ink-900">
+                {clubName ? `¿Te unes a ${clubName}?` : '¿Aceptas la invitación?'}
+              </h2>
+              <p className="text-sm text-ink-500">
+                Ya tienes sesión iniciada. Al aceptar{clubName ? ` te unes a «${clubName}»` : ' quedas dentro'} y quien
+                organiza va a ver tu nombre.
+              </p>
+              <Button display block size="lg" disabled={joining} onClick={join}>
+                {joining ? 'Un momento…' : 'Aceptar invitación'}
+              </Button>
+              {joinError && <p className="rounded-md bg-danger-bg p-3 text-xs text-danger">{joinError}</p>}
+              {!isDeclined && (
+                <button
+                  type="button"
+                  disabled={saying}
+                  onClick={() => say(true)}
+                  className="tap mx-auto text-[13px] font-bold text-ink-500 underline decoration-line-input underline-offset-4 disabled:opacity-50"
+                >
+                  {saying ? 'Avisando…' : 'No voy a poder'}
+                </button>
+              )}
+            </div>
+          ) : isDeclined ? (
             <div className="flex flex-col gap-3.5">
               <h2 className="font-display text-xl font-bold text-ink-900">Quedamos avisados</h2>
               <p className="text-sm text-ink-500">
