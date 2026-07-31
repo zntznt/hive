@@ -30,11 +30,20 @@ export default async function AdminPage() {
 
   const { data: managed } = await supabase
     .from('club_members')
-    .select('club_id')
+    .select('club_id, role')
     .eq('user_id', profile.id)
     .in('role', ['admin', 'organizer'])
   const managesAnyClub = (managed ?? []).length > 0
   if (!profile.is_app_admin && !managesAnyClub) redirect('/')
+
+  // An organizer can SEE the queue (the select policies use is_club_manager)
+  // but approve_join_request and approve_change_request both raise 'club admin
+  // only'. Without this the page hands them buttons that throw into the error
+  // boundary, which is every button on the screen.
+  const canDecide = profile.is_app_admin || (managed ?? []).some((m) => m.role === 'admin')
+  const notYours = (
+    <span className="text-[12.5px] font-bold text-ink-500">Lo decide la administración del club</span>
+  )
 
   const [{ data: changeReqs }, { data: joinReqs }] = await Promise.all([
     supabase
@@ -72,7 +81,19 @@ export default async function AdminPage() {
       supabase.from('notification_templates').select('*').order('key'),
     ])
     users = (userRows ?? []) as Profile[]
-    for (const row of outbox ?? []) counts[row.status] = (counts[row.status] ?? 0) + 1
+    // Counted across the whole outbox, not over the 40 rows the log renders.
+    // It used to tally that slice and print it as a total, so an admin
+    // checking for delivery failures read "fallos 0" while older failed rows
+    // sat in the table unseen.
+    await Promise.all(
+      Object.keys(counts).map(async (status) => {
+        const { count } = await supabase
+          .from('notification_outbox')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', status)
+        counts[status] = count ?? 0
+      })
+    )
     outboxRows = (outbox ?? []).map((row) => {
       const u = row.users as unknown as { display_name?: string; email?: string; phone_whatsapp?: string } | null
       return {
@@ -131,18 +152,22 @@ export default async function AdminPage() {
                 body={`Lo pidió ${timeAgo(loudJoin.created_at as string)}.`}
                 faces={requester ? [requester] : undefined}
               >
-                <div className="grid grid-cols-2 gap-2">
-                  <form action={decideJoinRequest.bind(null, loudJoin.id, club?.slug ?? '', true)}>
-                    <Button block display>
-                      Aprobar
-                    </Button>
-                  </form>
-                  <form action={decideJoinRequest.bind(null, loudJoin.id, club?.slug ?? '', false)}>
-                    <Button block variant="secondary">
-                      Rechazar
-                    </Button>
-                  </form>
-                </div>
+                {canDecide ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <form action={decideJoinRequest.bind(null, loudJoin.id, club?.slug ?? '', true)}>
+                      <Button block display>
+                        Aprobar
+                      </Button>
+                    </form>
+                    <form action={decideJoinRequest.bind(null, loudJoin.id, club?.slug ?? '', false)}>
+                      <Button block variant="secondary">
+                        Rechazar
+                      </Button>
+                    </form>
+                  </div>
+                ) : (
+                  notYours
+                )}
               </Loud>
             </div>
           )
@@ -161,18 +186,22 @@ export default async function AdminPage() {
                 title={`${requester?.display_name ?? 'Alguien'} propone un cambio${club ? ` en ${club.name}` : ''}`}
                 body={`${CHANGE_KIND_LABEL[loudChange.kind] ?? loudChange.kind} · ${summary}`}
               >
-                <div className="grid grid-cols-2 gap-2">
-                  <form action={decideChangeRequest.bind(null, loudChange.id, club?.slug ?? '', true)}>
-                    <Button block display>
-                      Aprobar
-                    </Button>
-                  </form>
-                  <form action={decideChangeRequest.bind(null, loudChange.id, club?.slug ?? '', false)}>
-                    <Button block variant="secondary">
-                      Rechazar
-                    </Button>
-                  </form>
-                </div>
+                {canDecide ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <form action={decideChangeRequest.bind(null, loudChange.id, club?.slug ?? '', true)}>
+                      <Button block display>
+                        Aprobar
+                      </Button>
+                    </form>
+                    <form action={decideChangeRequest.bind(null, loudChange.id, club?.slug ?? '', false)}>
+                      <Button block variant="secondary">
+                        Rechazar
+                      </Button>
+                    </form>
+                  </div>
+                ) : (
+                  notYours
+                )}
               </Loud>
             </div>
           )
@@ -209,16 +238,20 @@ export default async function AdminPage() {
                       <div className="mt-0.5 text-xs text-ink-500">{summary}</div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <form action={decideChangeRequest.bind(null, r.id, club?.slug ?? '', false)}>
-                      <Button variant="secondary" size="sm">
-                        Rechazar
-                      </Button>
-                    </form>
-                    <form action={decideChangeRequest.bind(null, r.id, club?.slug ?? '', true)}>
-                      <Button size="sm">Aprobar</Button>
-                    </form>
-                  </div>
+                  {canDecide ? (
+                    <div className="flex gap-2">
+                      <form action={decideChangeRequest.bind(null, r.id, club?.slug ?? '', false)}>
+                        <Button variant="secondary" size="sm">
+                          Rechazar
+                        </Button>
+                      </form>
+                      <form action={decideChangeRequest.bind(null, r.id, club?.slug ?? '', true)}>
+                        <Button size="sm">Aprobar</Button>
+                      </form>
+                    </div>
+                  ) : (
+                    notYours
+                  )}
                 </Card>
               )
             })}
@@ -242,16 +275,20 @@ export default async function AdminPage() {
                       <div className="mt-0.5 text-xs text-ink-500">quiere unirse al club</div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <form action={decideJoinRequest.bind(null, r.id, club?.slug ?? '', false)}>
-                      <Button variant="secondary" size="sm">
-                        Rechazar
-                      </Button>
-                    </form>
-                    <form action={decideJoinRequest.bind(null, r.id, club?.slug ?? '', true)}>
-                      <Button size="sm">Aprobar</Button>
-                    </form>
-                  </div>
+                  {canDecide ? (
+                    <div className="flex gap-2">
+                      <form action={decideJoinRequest.bind(null, r.id, club?.slug ?? '', false)}>
+                        <Button variant="secondary" size="sm">
+                          Rechazar
+                        </Button>
+                      </form>
+                      <form action={decideJoinRequest.bind(null, r.id, club?.slug ?? '', true)}>
+                        <Button size="sm">Aprobar</Button>
+                      </form>
+                    </div>
+                  ) : (
+                    notYours
+                  )}
                 </Card>
               )
             })}
@@ -327,6 +364,9 @@ export default async function AdminPage() {
               en cola {counts.queued} · esperando confirmación {counts.pending} · enviados {counts.sent} ·{' '}
               registrados {counts.logged} ·{' '}
               <span className={counts.failed ? 'font-bold text-danger' : ''}>fallos {counts.failed}</span>
+            </p>
+            <p className="mb-2 text-[11.5px] text-ink-300">
+              Los totales son de toda la bandeja. Abajo, los 40 más recientes.
             </p>
             <OutboxLog rows={outboxRows} />
           </section>

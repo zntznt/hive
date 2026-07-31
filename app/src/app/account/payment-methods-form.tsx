@@ -44,8 +44,11 @@ export default function PaymentMethodsForm({ methods }: { methods: PaymentMethod
     setSaving(true)
     setError(null)
     try {
-      await savePaymentMethods(formData)
-      toast('Formas de pago guardadas')
+      const res = await savePaymentMethods(formData)
+      // the action returns a refusal rather than throwing, so a failed save
+      // must not toast success at someone whose methods did not change
+      if (res && !res.ok) setError(res.error)
+      else toast('Formas de pago guardadas')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar.')
     } finally {

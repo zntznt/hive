@@ -87,5 +87,5 @@ export default async function SearchPage() {
     }
   }
 
-  return <SearchClient clubs={clubs} events={searchEvents} people={[...seen.values()]} />
+  return <SearchClient myId={profile.id} clubs={clubs} events={searchEvents} people={[...seen.values()]} />
 }

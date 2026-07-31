@@ -61,6 +61,7 @@ export default function Grid({
 }: Props) {
   const rows = Math.max(1, Math.floor((timeMax - timeMin) / slotMinutes))
   const [selected, setSelected] = useState<Set<number>>(new Set(initialSlots))
+  const [failed, setFailed] = useState(false)
   const [drag, setDrag] = useState<Drag | null>(null)
   const [mode, setMode] = useState<'paint' | 'pick'>('paint')
   const [pick, setPick] = useState<{ day: number; a: number; b: number } | null>(null)
@@ -70,6 +71,22 @@ export default function Grid({
   const surface = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const toast = useToast()
+
+  // The server is the truth about what is saved. This used to be seeded once
+  // at mount and never again, so after router.refresh() the grid kept drawing
+  // the client's own set no matter what had actually landed, and a second tab
+  // (or a second device) would overwrite the first on its next save.
+  //
+  // Adjusted during render rather than in an effect, which is the pattern for
+  // state that follows a prop: an effect would paint the stale set once first.
+  // Skipped mid-gesture and mid-save so it cannot yank cells from under a
+  // finger or undo a write still in flight.
+  const serverSlots = initialSlots.join(',')
+  const [seenSlots, setSeenSlots] = useState(serverSlots)
+  if (serverSlots !== seenSlots && !drag && !pending) {
+    setSeenSlots(serverSlots)
+    setSelected(new Set(initialSlots))
+  }
 
   const idx = (day: number, row: number) => day * rows + row
   // The instant this cell means in Mexico City. It used to be built from a
@@ -87,6 +104,10 @@ export default function Grid({
   }
 
   function onDown(e: React.PointerEvent) {
+    // left button or a first finger only. A right-click on one of your own
+    // marks used to erase it and save, and a second finger overwrote the
+    // first gesture's start cell.
+    if (e.button !== 0 || !e.isPrimary || drag) return
     const at = cellAt(e.clientX, e.clientY)
     if (!at) return
     surface.current?.setPointerCapture(e.pointerId)
@@ -127,10 +148,19 @@ export default function Grid({
     }
     setDrag(null)
     setSelected(next)
+    setFailed(false)
     startTransition(async () => {
-      await saveAvailability(eventId, slug, [...next].sort((x, y) => x - y))
-      setSaved(true)
-      router.refresh()
+      try {
+        await saveAvailability(eventId, slug, [...next].sort((x, y) => x - y))
+        setSaved(true)
+        router.refresh()
+      } catch {
+        // the cells are already painted, so silence here reads exactly like a
+        // successful save. Put the marks back and say so.
+        setFailed(true)
+        setSaved(false)
+        setSelected(new Set(initialSlots))
+      }
     })
   }
 
@@ -142,11 +172,15 @@ export default function Grid({
   useEffect(() => {
     if (!drag) return
     const end = () => onUp()
+    // pointercancel means the system took the gesture away (an edge swipe, a
+    // long-press menu, an incoming call). That is abandon, not release, and
+    // committing it wrote a half-finished run to the server.
+    const abandon = () => setDrag(null)
     window.addEventListener('pointerup', end)
-    window.addEventListener('pointercancel', end)
+    window.addEventListener('pointercancel', abandon)
     return () => {
       window.removeEventListener('pointerup', end)
-      window.removeEventListener('pointercancel', end)
+      window.removeEventListener('pointercancel', abandon)
     }
   })
 
@@ -185,8 +219,12 @@ export default function Grid({
     const start = slotDate(day, a)
     const end = new Date(slotDate(day, b).getTime() + slotMinutes * 60_000)
     startTransition(async () => {
-      await pickSlot(eventId, slug, start.toISOString(), end.toISOString())
-      router.refresh()
+      try {
+        await pickSlot(eventId, slug, start.toISOString(), end.toISOString())
+        router.refresh()
+      } catch {
+        setFailed(true)
+      }
     })
   }
 
@@ -271,15 +309,24 @@ export default function Grid({
         })}
       </div>
 
-      <p className="mt-2.5 text-[11.5px] text-ink-300">
-        {mode === 'pick'
-          ? pick
-            ? `${days[pick.day]} · ${hhmm(timeMin + pick.a * slotMinutes)} a ${hhmm(timeMin + (pick.b + 1) * slotMinutes)}`
-            : 'Nada elegido todavía.'
-          : `${marked} ${marked === 1 ? 'hueco marcado' : 'huecos marcados'}${
-              pending ? ' · guardando…' : saved ? ' · guardado' : ''
-            }`}
-      </p>
+      {/* a save that failed used to read exactly like one that worked: the
+          cells stayed painted and the caption just dropped the word
+          "guardando". Failure gets its own colour and its own sentence. */}
+      {failed ? (
+        <p className="mt-2.5 text-[11.5px] font-bold text-danger">
+          No se pudo guardar. Revisa tu conexión y vuelve a marcar.
+        </p>
+      ) : (
+        <p className="mt-2.5 text-[11.5px] text-ink-300">
+          {mode === 'pick'
+            ? pick
+              ? `${days[pick.day]} · ${hhmm(timeMin + pick.a * slotMinutes)} a ${hhmm(timeMin + (pick.b + 1) * slotMinutes)}`
+              : 'Nada elegido todavía.'
+            : `${marked} ${marked === 1 ? 'hueco marcado' : 'huecos marcados'}${
+                pending ? ' · guardando…' : saved ? ' · guardado' : ''
+              }`}
+        </p>
+      )}
 
       {mode === 'pick' && pick && (
         <button

@@ -1248,12 +1248,23 @@ export async function savePaymentMethods(formData: FormData) {
     .map((kind, i) => ({ user_id: user.id, kind, value: (values[i] ?? '').trim(), sort: i }))
     .filter((r) => r.value)
 
-  await supabase.from('payment_methods').delete().eq('user_id', user.id)
-  if (rows.length) {
-    const { error } = await supabase.from('payment_methods').insert(rows)
-    if (error) throw new Error(error.message)
+  // One transaction. This used to delete every row and then insert, with the
+  // delete unchecked, so any insert failure (kind comes from the form against
+  // a CHECK constraint) left you with no payment methods at all.
+  const { error } = await supabase.rpc('replace_payment_methods', {
+    rows: rows.map((r) => ({ kind: r.kind, value: r.value })),
+  })
+  if (error) {
+    return {
+      ok: false as const,
+      error:
+        error.code === '23514'
+          ? 'Alguna forma de pago tiene un tipo que no reconocemos.'
+          : 'No se pudieron guardar tus formas de pago.',
+    }
   }
   revalidatePath('/account')
+  return { ok: true as const }
 }
 
 export async function requestAccountDeletion(formData: FormData) {

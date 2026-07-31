@@ -17,10 +17,12 @@ export type SearchPerson = { id: string; name: string; shared: number; user: Ava
 // which at club scale is small, and a keystroke should not cost a round trip.
 // If a club ever gets big enough for that to hurt, this becomes a query.
 export default function SearchClient({
+  myId,
   clubs,
   events,
   people,
 }: {
+  myId: string
   clubs: SearchClub[]
   events: SearchEvent[]
   people: SearchPerson[]
@@ -115,7 +117,7 @@ export default function SearchClient({
           <div className="mb-[26px] flex flex-wrap gap-2">
             {[
               ['Dinero pendiente', '/events?owed=true'],
-              ['Tu historial', `/events?person=me`],
+              ['Tu historial', `/events?person=${myId}&when=past`],
               ['Esta semana', '/events?when=upcoming'],
               ['Eventos pasados', '/events?when=past'],
             ].map(([label, href]) => (
