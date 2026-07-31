@@ -38,7 +38,7 @@ export function PlateItemRow({
         <span className="block truncate text-sm font-bold text-ink-900">{title}</span>
         <span className="text-[12.5px] text-ink-500">
           {eventTitle && eventHref ? (
-            <Link href={eventHref} className="tap font-bold text-honey-700">
+            <Link href={eventHref} className="font-bold text-honey-700">
               {eventTitle}
             </Link>
           ) : (

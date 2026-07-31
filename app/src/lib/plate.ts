@@ -79,6 +79,8 @@ export type PlateItem =
       clubName: string | null
       asks: 'availability' | 'rsvp' | 'poll'
       pollLabel?: string
+      // when this stops being answerable, for the surfaces that rank items
+      dueAt: string | null
     }
 
 // One identity per row, agreed by every surface that draws it, so a snooze
@@ -146,18 +148,28 @@ export async function getPlateItems(supabase: SupabaseClient, userId: string): P
   if (clubIds.length) {
     const { data: liveEvents } = await supabase
       .from('events')
-      .select('id, slug, title, club_id, status')
+      .select('id, slug, title, club_id, status, chosen_start, confirm_deadline')
       .in('club_id', clubIds)
       .in('status', ['scheduling', 'scheduled'])
+      .is('deleted_at', null)
 
-    const live = (liveEvents ?? []) as (EventRow & { status: string })[]
+    type LiveEvent = {
+      id: string
+      slug: string
+      title: string
+      club_id: string | null
+      status: string
+      chosen_start: string | null
+      confirm_deadline: string | null
+    }
+    const live = (liveEvents ?? []) as LiveEvent[]
     if (live.length) {
       const eventIds = live.map((e) => e.id)
       const [{ data: myAvail }, { data: myRsvps }, { data: openPolls }, { data: myVotes }] = await Promise.all([
         supabase.from('availability').select('event_id').eq('user_id', userId).in('event_id', eventIds),
         supabase.from('rsvps').select('event_id').eq('user_id', userId).in('event_id', eventIds),
         supabase.from('polls').select('id, event_id, question, closes_at').in('event_id', eventIds),
-        supabase.from('votes').select('option_id, user_id').eq('user_id', userId),
+        supabase.from('votes').select('option_id').eq('user_id', userId),
       ])
 
       const clubs = new Map<string, string>()
@@ -181,11 +193,14 @@ export async function getPlateItems(supabase: SupabaseClient, userId: string): P
           .map((o) => o.poll_id)
       )
 
-      const base = (e: EventRow & { status: string }) => ({
+      const base = (e: LiveEvent) => ({
         eventId: e.id,
         eventTitle: e.title,
         eventSlug: e.slug,
         clubName: e.club_id ? (clubs.get(e.club_id) ?? null) : null,
+        // what makes one of these more urgent than another. The confirm
+        // deadline if the organizer set one, else the event itself.
+        dueAt: e.confirm_deadline ?? e.chosen_start ?? null,
       })
 
       for (const e of live) {
@@ -342,7 +357,24 @@ export async function getPlateItems(supabase: SupabaseClient, userId: string): P
 // Built from the same per-event transfer suggestions the event page shows, so
 // the roll-up can never disagree with the screens it summarises.
 export async function getStandings(supabase: SupabaseClient, userId: string): Promise<StandingRow[]> {
-  const { data: balances } = await supabase.from('event_balances').select('event_id, user_id, net_cents')
+  // Scoped to the events this person is actually in. It used to select the
+  // whole view with no filter, which is a 4-way union over expenses, shares
+  // and settlements materialized on every Home render. RLS kept it honest, but
+  // two things could still go wrong with real data: the 8s statement timeout
+  // would return null and getStandings swallows that, so a real debt renders
+  // as "nothing pending"; and PostgREST truncating at 1000 rows would cut a
+  // single event in half, so suggestTransfers would net a position set that no
+  // longer sums to zero and invent a transfer for the wrong amount.
+  const { data: mine } = await supabase.from('event_members').select('event_id').eq('user_id', userId)
+  const eventIds = (mine ?? []).map((m) => m.event_id as string)
+  if (!eventIds.length) return []
+
+  const { data: balances, error } = await supabase
+    .from('event_balances')
+    .select('event_id, user_id, net_cents')
+    .in('event_id', eventIds)
+  // money is the one place a swallowed error must not read as "nothing owed"
+  if (error) throw new Error(error.message)
   const rows = (balances ?? []) as EventBalanceRow[]
   if (!rows.length) return []
 

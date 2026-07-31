@@ -187,7 +187,7 @@ export default async function EventsPage({
         title="Eventos"
         lede="Todos los eventos de tus clubs. Filtra, ordena y toca uno para abrirlo."
         action={
-          <Link href="/" className="tap text-sm text-ink-500 underline">
+          <Link href="/" className="tap inline-flex items-center text-sm text-ink-500 underline">
             inicio
           </Link>
         }
@@ -303,7 +303,7 @@ export default async function EventsPage({
                     {clubInfo ? (
                       <Link
                         href={`/club/${clubInfo.slug}`}
-                        className="tap relative z-10 font-bold text-honey-700 hover:underline"
+                        className="relative z-10 font-bold text-honey-700 hover:underline"
                       >
                         {clubInfo.name}
                       </Link>

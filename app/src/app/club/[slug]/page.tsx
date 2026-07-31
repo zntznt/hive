@@ -436,7 +436,7 @@ export default async function ClubPage({
                   <span className="text-sm text-ink-900">{o.user.display_name}</span>
                 </span>
                 <span className="text-[13px] font-extrabold text-danger">
-                  {fmtMoney(o.cents)} <span className="font-semibold text-ink-300">· {o.eventCount} evento{o.eventCount > 1 ? 's' : ''} </span>
+                  {fmtMoney(o.cents)} <span className="font-semibold text-ink-300">· {o.eventCount} evento{o.eventCount > 1 ? 's' : ''}</span>
                 </span>
               </Link>
             ))}
@@ -457,15 +457,6 @@ export default async function ClubPage({
           meta={past.length ? String(past.length) : 'ninguno todavía'}
           href={`/events?club=${club.id}&when=past`}
         />
-        {past.some((e) => (owedByEvent.get(e.id) ?? 0) > 0) && (
-          <SummaryRow
-            icon="hand-holding-dollar"
-            label="Eventos con dinero pendiente"
-            meta={fmtMoney(past.reduce((s, e) => s + (owedByEvent.get(e.id) ?? 0), 0))}
-            tone="hot"
-            href={`/events?club=${club.id}&owed=true`}
-          />
-        )}
       </DoorGroup>
 
       <SectionHeader>Ajustes del club</SectionHeader>

@@ -60,7 +60,7 @@ export default async function AccountPage() {
       <PageHeader
         title="Mi cuenta"
         action={
-          <Link href="/" className="tap shrink-0 text-sm font-semibold text-honey-700 underline">
+          <Link href="/" className="tap inline-flex items-center shrink-0 text-sm font-semibold text-honey-700 underline">
             inicio
           </Link>
         }

@@ -326,10 +326,28 @@ export async function createCategoryInline(clubId: string, clubSlug: string, nam
       .insert({ club_id: clubId, name: clean, emoji: null })
       .select('id, name, emoji')
       .single()
-    if (error) return { ok: false as const, error: error.message }
+    // (club_id, name) is unique, and "duplicate key value violates unique
+    // constraint" is not a sentence to show someone naming a category
+    if (error) {
+      return {
+        ok: false as const,
+        error: error.code === '23505' ? 'Ya existe una categoría con ese nombre.' : 'No se pudo crear la categoría.',
+      }
+    }
     revalidatePath(`/club/${clubSlug}`)
     return { ok: true as const, category: data as { id: string; name: string; emoji: string | null } }
   }
+
+  // a proposal for a name that already exists can never be approved:
+  // approve_change_request does a bare insert and the unique constraint aborts
+  // the whole transaction, leaving the request stuck at pending forever
+  const { data: dupe } = await supabase
+    .from('event_categories')
+    .select('id')
+    .eq('club_id', clubId)
+    .ilike('name', clean)
+    .maybeSingle()
+  if (dupe) return { ok: false as const, error: 'Ya existe una categoría con ese nombre.' }
 
   const { error } = await supabase.from('change_requests').insert({
     club_id: clubId,
@@ -337,7 +355,7 @@ export async function createCategoryInline(clubId: string, clubSlug: string, nam
     payload: { name: clean, emoji: null },
     requested_by: user.id,
   })
-  if (error) return { ok: false as const, error: error.message }
+  if (error) return { ok: false as const, error: 'No se pudo mandar la propuesta.' }
   revalidatePath(`/club/${clubSlug}`)
   return { ok: true as const, proposed: true as const }
 }
@@ -712,6 +730,15 @@ export async function refreshWhatsappTemplates() {
 
 // returns an error string for the form to show inline, or redirects on success.
 // (throwing would crash the page to a 500 and lose what the user typed.)
+// A datetime-local input has no timezone, and this app is in one. new Date()
+// parses it in the SERVER's zone, which is UTC on Vercel, so "6 ago, 9:00"
+// meant to be 9am in Mexico City was stored as 09:00Z, six hours early. The
+// deadline then fired a whole day before the organizer asked for it.
+function mexicoLocalToIso(local: string) {
+  // Mexico has not observed DST since 2022, so the offset is a constant.
+  return local.length ? `${local}${local.length === 16 ? ':00' : ''}-06:00` : ''
+}
+
 export async function createEvent(
   clubId: string,
   clubSlug: string,
@@ -749,7 +776,7 @@ export async function createEvent(
     allow_guests: formData.get('allow_guests') === 'on',
     capacity: capacityRaw ? Number(capacityRaw) : null,
     waitlist_enabled: formData.get('waitlist_enabled') === 'on' && !!capacityRaw,
-    confirm_deadline: deadlineRaw ? new Date(deadlineRaw).toISOString() : null,
+    confirm_deadline: deadlineRaw ? new Date(mexicoLocalToIso(deadlineRaw)).toISOString() : null,
     sched_start_date: startDate,
     sched_end_date: endDate,
     sched_time_min: Number(formData.get('time_min') ?? 1140),
@@ -798,7 +825,7 @@ export async function updateEvent(eventId: string, slug: string, _prev: string |
     allow_guests: formData.get('allow_guests') === 'on',
     capacity: capacityRaw ? Number(capacityRaw) : null,
     waitlist_enabled: formData.get('waitlist_enabled') === 'on' && !!capacityRaw,
-    confirm_deadline: deadlineRaw ? new Date(deadlineRaw).toISOString() : null,
+    confirm_deadline: deadlineRaw ? new Date(mexicoLocalToIso(deadlineRaw)).toISOString() : null,
   }
 
   if (formData.has('sched_start_date')) {
@@ -1574,32 +1601,18 @@ export async function snoozePlateItem(itemKey: string) {
 // "Ya casi": someone stuck in the waiting room asking the admins to look.
 //
 // Once a day, at most. The screen already told them we know they arrived, so
-// the value here is agency rather than volume, and a queue of one person
-// hitting a button repeatedly is exactly what would make admins stop reading
-// the notification.
+// the value is agency rather than volume, and a queue of one person hitting a
+// button repeatedly is what would make admins stop reading the notification.
+//
+// The whole thing is one RPC because the limit has to be atomic. It used to be
+// a read-only check here plus inserts over the network, so two taps inside the
+// round trip both passed and every admin got the message twice.
 export async function nudgeAdmins() {
   const supabase = await supabaseServer()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('not signed in')
-
-  // The rate limit and the admin roster both live in rows this account cannot
-  // read, so claim_admin_nudge does both under its own credentials: it hands
-  // back the admins to notify, or an empty set if we already nudged today.
-  const { data: admins } = await supabase.rpc('claim_admin_nudge')
-  const ids = (admins ?? []) as unknown as string[]
-  if (!ids.length) return { ok: true as const, already: true }
-
-  const { data: me } = await supabase.from('users').select('display_name').eq('id', user.id).maybeSingle()
-  for (const id of ids) {
-    await queueNotification(supabase, {
-      userId: id,
-      template: 'admin_pending_user',
-      vars: { pending_user: me?.display_name ?? 'Alguien', pending_user_id: user.id },
-    })
-  }
-  dispatchAfterResponse(supabase)
+  const { data, error } = await supabase.rpc('nudge_admins')
+  if (error) throw new Error(error.message)
+  const queued = (data as number | null) ?? 0
+  if (queued > 0) dispatchAfterResponse(supabase)
   revalidatePath('/pending')
-  return { ok: true as const, already: false }
+  return { ok: true as const, already: queued === 0 }
 }

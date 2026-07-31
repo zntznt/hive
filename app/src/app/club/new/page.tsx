@@ -11,7 +11,7 @@ export default async function NewClubPage() {
     <main className="mx-auto w-full max-w-col px-4 pb-6 pt-5">
       <header className="mb-6 flex items-baseline justify-between">
         <h1 className="font-display text-xl font-bold text-ink-900">Nuevo club</h1>
-        <Link href="/" className="tap text-sm text-ink-500 underline">
+        <Link href="/" className="tap inline-flex items-center text-sm text-ink-500 underline">
           inicio
         </Link>
       </header>

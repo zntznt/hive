@@ -285,7 +285,7 @@ export default async function Home() {
               )
             })}
             {total > shownPlate.length && (
-              <Link href="/plate" className="inline-flex items-center gap-1 tap text-[12.5px] font-bold text-ink-500">
+              <Link href="/plate" className="tap inline-flex w-fit items-center gap-1 text-[12.5px] font-bold text-ink-500">
                 +{total - shownPlate.length} más en tu plato <Icon name="chevron-right" size={10} />
               </Link>
             )}

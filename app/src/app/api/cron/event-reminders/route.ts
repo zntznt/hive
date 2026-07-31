@@ -56,6 +56,7 @@ export async function GET(request: Request) {
     .from('events')
     .select('id, slug, title, chosen_start')
     .eq('status', 'scheduled')
+    .is('deleted_at', null)
     .gte('chosen_start', start.toISOString())
     .lt('chosen_start', end.toISOString())
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -109,6 +110,7 @@ export async function GET(request: Request) {
     .from('events')
     .select('id')
     .eq('status', 'scheduled')
+    .is('deleted_at', null)
     .gte('chosen_start', soon.start.toISOString())
     .lt('chosen_start', soon.end.toISOString())
 
@@ -116,27 +118,38 @@ export async function GET(request: Request) {
   for (const ev of upcoming ?? []) nudged += await nudgeNonResponders(db, ev.id)
 
   // The confirm deadline, honored. It was a column an organizer could fill in
-  // and nothing ever read it, so the field was a promise the app did not keep.
-  // Now the people who never answered hear about it once the moment passes,
-  // and what they owe depends on the phase: a painted grid while a time is
-  // still being found, a yes or no once there is one. Both nudges are
-  // idempotent per member per event, so a deadline that stays in the past
-  // does not turn into a daily drip.
+  // and nothing ever read, so the field was a promise the app did not keep.
+  // The people who never answered hear about it once the moment passes, and
+  // what they owe depends on the phase: a painted grid while a time is still
+  // being found, a yes or no once there is one.
+  //
+  // The window matters. Both nudges dedupe per member per event forever, so a
+  // deadline sitting in the past is not a drip for anyone already on the
+  // roster. But the roster is read live, so without a window a member who
+  // joined today would wake up to one mail for every abandoned event the club
+  // ever left open. Seven days is long enough to survive a few failed runs and
+  // short enough that nobody is chased about last spring.
+  const DEADLINE_WINDOW_DAYS = 7
+  const windowStart = new Date(now.getTime() - DEADLINE_WINDOW_DAYS * 86_400_000)
   const { data: pastDeadline } = await db
     .from('events')
     .select('id, status')
     .in('status', ['scheduling', 'scheduled'])
     .is('deleted_at', null)
-    .not('confirm_deadline', 'is', null)
+    .gte('confirm_deadline', windowStart.toISOString())
     .lte('confirm_deadline', now.toISOString())
+    .order('confirm_deadline', { ascending: false })
+    .limit(50)
 
   for (const ev of pastDeadline ?? []) {
     nudged +=
       ev.status === 'scheduling' ? await nudgeMissingAvailability(db, ev.id) : await nudgeNonResponders(db, ev.id)
   }
 
-  // the daily backstop: resolve anything still waiting on a verdict, then
-  // send today's reminders and the nudges queued above
+  // the daily backstop: resolve anything still waiting on a verdict, then send
+  // today's reminders and the nudges queued above. This is the only part of
+  // the job that actually delivers anything, so if the loops above ever run
+  // long it is the part that must not be skipped.
   await reconcileHandoffs(db, 100)
   await dispatchQueuedNotifications(db, 100)
   return NextResponse.json({

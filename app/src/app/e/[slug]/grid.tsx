@@ -197,7 +197,7 @@ export default function Grid({
               key={m}
               type="button"
               onClick={() => setMode(m)}
-              className={`h-11 flex-1 rounded-pill text-[12.5px] font-bold ${
+              className={`h-10 flex-1 rounded-pill text-[12.5px] font-bold ${
                 mode === m ? 'bg-paper text-ink-900 shadow-card' : 'text-ink-500'
               }`}
             >

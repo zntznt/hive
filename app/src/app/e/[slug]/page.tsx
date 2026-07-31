@@ -24,6 +24,8 @@ import { WhenPill, whenPill } from '@/components/ui/WhenPill'
 import { Button } from '@/components/ui/Button'
 import { Loud, QuietRow, OpenSection, SummaryRow, FoldedEmpties, DoorGroup, FaceStack, DayBanner } from '@/components/ui/Density'
 import { DetailsSheet } from '@/components/ui/DetailsSheet'
+import { AddExpenseButton } from './expense-modal'
+import { AddPollButton } from './poll-modal'
 
 function dayRange(start: string, end: string) {
   // walk in UTC so toISOString() reads the same date we stepped - parsing as
@@ -209,8 +211,11 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     !!event.chosen_start &&
     whenPill(event.chosen_start, event.status)?.label === 'Hoy'
 
-  const nothingLive =
-    (expenses ?? []).length === 0 && (polls ?? []).length === 0 && (commentRows ?? []).length === 0
+  // Expenses and polls are record-keeping: when both are empty they are two
+  // headers and two sentences saying nothing, so they fold to one line that
+  // keeps both add affordances. The thread is not folded, because it is the
+  // only one of the three whose empty state is a composer you can type in.
+  const nothingLive = (expenses ?? []).length === 0 && (polls ?? []).length === 0
 
   const dateChip =
     event.status === 'scheduling'
@@ -291,15 +296,24 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             }
             faces={confirmed.map((r) => userOf.get(r.user_id) ?? { display_name: nameOf.get(r.user_id) ?? '·' })}
           >
-            <div className="grid grid-cols-2 gap-2">
-              <form action={setRsvp.bind(null, event.id, event.slug, 'in')}>
-                <Button block display>
-                  Voy
-                </Button>
-              </form>
-              <form action={setRsvp.bind(null, event.id, event.slug, 'out')}>
-                <Button block variant="secondary">
-                  No puedo
+            {/* three answers, not two: "quizás" is a state this event can
+                display and count, so it has to be one you can enter */}
+            <div className="flex flex-col gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <form action={setRsvp.bind(null, event.id, event.slug, 'in')}>
+                  <Button block display>
+                    Voy
+                  </Button>
+                </form>
+                <form action={setRsvp.bind(null, event.id, event.slug, 'out')}>
+                  <Button block variant="secondary">
+                    No puedo
+                  </Button>
+                </form>
+              </div>
+              <form action={setRsvp.bind(null, event.id, event.slug, 'maybe')}>
+                <Button block variant="ghost" size="sm">
+                  Todavía no sé
                 </Button>
               </form>
             </div>
@@ -349,7 +363,9 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           <span className="font-display text-[22px] font-bold leading-tight text-ink-900">{event.title}</span>
           {category && <Chip variant="sage">{category.emoji ? `${category.emoji} ` : ''}{category.name}</Chip>}
         </div>
-        {event.location && (
+        {/* the banner above already carries the address, the hour and the
+            route on the day, so repeating them here is noise */}
+        {event.location && !isToday && (
           <iframe
             title="mapa"
             src={`https://www.google.com/maps?q=${encodeURIComponent(event.location)}&z=15&output=embed`}
@@ -375,7 +391,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             <Icon name="users" size={12} /> van {confirmed.length} · quizás {byStatus('maybe').length}
           </span>
         </div>
-        {event.location && (
+        {event.location && !isToday && (
           <a
             href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.location)}`}
             target="_blank"
@@ -396,7 +412,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             <div className="min-w-0 flex-1">
               <div className="text-sm font-extrabold text-ink-900">
                 Estás aquí como invitado de{' '}
-                <Link href={`/club/${club!.slug}`} className="tap text-honey-700">
+                <Link href={`/club/${club!.slug}`} className="text-honey-700">
                   {club!.name}
                 </Link>
               </div>
@@ -602,15 +618,35 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       </ul>
       </div>
 
-      {/* Rule 6. Three sections each drawing a header and an empty state is
-          three rows saying nothing; one line says it once, and the way to
-          start any of them is still right there. */}
-      {nothingLive && (
+      {/* Rule 6. Two sections each drawing a header and a sentence saying
+          nothing become one line saying it once, with both ways to start still
+          on the row. */}
+      {nothingLive ? (
         <div className="mb-[26px]">
-          <FoldedEmpties>Todavía no hay gastos, encuestas ni mensajes en este evento.</FoldedEmpties>
+          <FoldedEmpties
+            action={
+              <span className="flex flex-shrink-0 items-center gap-3">
+                <AddExpenseButton
+                  eventId={event.id}
+                  slug={event.slug}
+                  myId={profile.id}
+                  members={(members ?? []).map((m) => ({
+                    user_id: m.user_id,
+                    in: confirmed.some((r) => r.user_id === m.user_id),
+                    name: nameOf.get(m.user_id) ?? '·',
+                  }))}
+                  guests={guests ?? []}
+                  nameOf={nameOf}
+                />
+                <AddPollButton eventId={event.id} slug={event.slug} />
+              </span>
+            }
+          >
+            Todavía no hay gastos ni encuestas.
+          </FoldedEmpties>
         </div>
-      )}
-
+      ) : (
+        <>
       <Expenses
         eventId={event.id}
         slug={event.slug}
@@ -628,6 +664,8 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       />
 
       <Polls eventId={event.id} slug={event.slug} myId={profile.id} isOrganizer={!!isOrganizer} nameOf={nameOf} polls={(polls ?? []) as never} />
+        </>
+      )}
 
       <Thread
         eventId={event.id}
@@ -648,11 +686,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           doors, so they say so, once, under a line. */}
       <DoorGroup label="En otra parte">
         {club && <SummaryRow icon="hashtag" label={club.name} meta="el club" href={`/club/${club.slug}`} />}
-        <SummaryRow
-          icon="clock-rotate-left"
-          label="Otros eventos de este club"
-          href={club ? `/events?club=${club.id}` : '/events'}
-        />
+        {club && <SummaryRow icon="clock-rotate-left" label="Otros eventos de este club" href={`/events?club=${club.id}`} />}
         <DetailsSheet>
           <div className="flex flex-col gap-2">
             <span className="eyebrow">Organizadores</span>

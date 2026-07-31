@@ -24,11 +24,17 @@ export default async function PlatePage() {
     : { data: [] as { user_id: string; kind: string; value: string }[] }
   const methodsFor = (uid: string) => (methodRows ?? []).filter((m) => m.user_id === uid)
 
-  // Rule 4: one auto-open thing and it is deterministic. Availability first,
-  // because nothing else on that event can happen until it is answered; then
-  // an RSVP; a poll last, because a poll with no vote still has a result.
+  // Rule 4: one auto-open thing, and it is deterministic. Nearest deadline
+  // first, which is what the rule actually says. Sorting by kind alone meant a
+  // grid for an event three weeks out beat an RSVP for tomorrow night, and
+  // among equals the winner was whatever row Postgres happened to return
+  // first. Kind only breaks a tie: nothing else on an event can happen until
+  // its availability is in, and a poll with no vote still has a result.
   const RANK = { availability: 0, rsvp: 1, poll: 2 }
-  const answers = [...board.toAnswer].sort((a, b) => RANK[a.asks] - RANK[b.asks])
+  const due = (v: string | null) => (v ? new Date(v).getTime() : Number.POSITIVE_INFINITY)
+  const answers = [...board.toAnswer].sort(
+    (a, b) => due(a.dueAt) - due(b.dueAt) || RANK[a.asks] - RANK[b.asks] || a.eventId.localeCompare(b.eventId)
+  )
   const loudest = answers[0] ?? null
   const restAnswers = answers.slice(1)
 
@@ -38,7 +44,7 @@ export default async function PlatePage() {
         title="En tu plato"
         lede="Todo lo pendiente antes de que cierre cada evento. Actúa aquí, o toca el nombre del evento para abrirlo."
         action={
-          <Link href="/" className="tap text-[13px] text-ink-500">
+          <Link href="/" className="tap inline-flex items-center text-[13px] text-ink-500">
             inicio
           </Link>
         }
@@ -75,11 +81,18 @@ export default async function PlatePage() {
                   </>
                 }
               >
-                <Link href={`/e/${loudest.eventSlug}`} className="block">
-                  <Button block display>
-                    {loudest.asks === 'availability' ? 'Marcar mi disponibilidad' : 'Responder'}
-                  </Button>
-                </Link>
+                <div className="flex items-center gap-3">
+                  <Link href={`/e/${loudest.eventSlug}`} className="block flex-1">
+                    <Button block display>
+                      {loudest.asks === 'availability' ? 'Marcar mi disponibilidad' : 'Responder'}
+                    </Button>
+                  </Link>
+                  {/* the loud slot is the one item you are most likely to be
+                      unable to answer right now, so it keeps the way to put it
+                      down. Without this a grid you never intend to paint pins
+                      the top of this page permanently. */}
+                  <SnoozeButton itemKey={plateItemKey(loudest)} />
+                </div>
               </Loud>
             </div>
           )}
@@ -256,7 +269,7 @@ export default async function PlatePage() {
               >
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-bold text-ink-900">{s.name}</span>
-                  <Link href={`/events?person=${s.userId}`} className="tap text-[12px] font-semibold text-honey-700">
+                  <Link href={`/events?person=${s.userId}`} className="text-[12px] font-semibold text-honey-700">
                     {s.events} {s.events === 1 ? 'evento' : 'eventos'}
                   </Link>
                 </span>

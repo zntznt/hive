@@ -178,7 +178,7 @@ export default async function AdminPage() {
           )
         })()}
 
-      <section className="mb-[26px]">
+      <section className={approvalsCount === 0 || restCount > 0 ? 'mb-[26px]' : undefined}>
         {approvalsCount === 0 ? (
           <>
             <SectionHeader>Aprobaciones</SectionHeader>

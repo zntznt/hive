@@ -9,11 +9,22 @@ import { Dropdown } from '@/components/ui/Dropdown'
 import { Segmented } from '@/components/ui/Segmented'
 import { LocationPicker, type Place } from '@/components/ui/LocationPicker'
 
+// Read back in Mexico City, to match how the value was stored. getHours() runs
+// in UTC while this renders on the server and in the visitor's zone after it
+// hydrates, so the same input showed two different times.
 function toDatetimeLocal(iso: string | null) {
   if (!iso) return ''
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Mexico_City',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date(iso))
+  const g = (k: string) => parts.find((p) => p.type === k)?.value ?? '00'
+  return `${g('year')}-${g('month')}-${g('day')}T${g('hour')}:${g('minute')}`
 }
 
 function Fieldset({ legend, hint, children }: { legend: string; hint?: string; children: React.ReactNode }) {
