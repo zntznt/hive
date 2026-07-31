@@ -8,6 +8,7 @@ import { Select } from './ui/Input'
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_OPTIONS } from '@/lib/payment-method-labels'
 import { fmtMoney } from '@/lib/money'
 import { dataUrlToBlob, uploadPaymentProof } from '@/lib/upload'
+import { downscaleToDataUrl } from '@/lib/downscale'
 import { recordSettlement, confirmSettlement, deleteSettlement } from '@/app/actions'
 import { Icon } from '@/components/ui/Icon'
 
@@ -52,12 +53,19 @@ export function SettleUpFlow({
     setError(null)
   }
 
-  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]
     if (!f) return
-    const reader = new FileReader()
-    reader.onload = () => setProofDataUrl(reader.result as string)
-    reader.readAsDataURL(f)
+    setError(null)
+    try {
+      // straight off the camera this is three to five megabytes and the bucket
+      // stops at two, so shrink it here rather than let the upload fail after
+      // the member has already picked their method
+      setProofDataUrl(await downscaleToDataUrl(f))
+    } catch (err) {
+      setProofDataUrl(null)
+      setError(err instanceof Error ? err.message : 'No pudimos leer esa imagen.')
+    }
   }
 
   function submit() {
@@ -187,9 +195,13 @@ export function SettleUpFlow({
                 <span className="text-ink-500">Método</span>
                 <span className="font-semibold">{PAYMENT_METHOD_LABELS[method]}</span>
               </div>
-              {error && <p className="rounded-md bg-danger-bg px-3 py-2 text-xs text-danger">{error}</p>}
             </div>
           )}
+
+          {/* outside the step 3 block on purpose: picking the proof can fail
+              on step 2, and an error that only renders on the last step is an
+              error nobody reads */}
+          {error && <p className="mt-3 rounded-md bg-danger-bg px-3 py-2 text-xs text-danger">{error}</p>}
         </Modal>
       )}
     </>
