@@ -26,7 +26,16 @@ import { SummaryRow, DoorGroup } from '@/components/ui/Density'
 import { fmtDayMonth } from '@/lib/time'
 
 type Category = { id: string; name: string; emoji: string | null }
-type AttendanceRow = { user_id: string; category_id: string | null; events_attended: number; last_attended_at: string }
+type AttendanceRow = {
+  user_id: string
+  category_id: string | null
+  events_attended: number
+  last_attended_at: string
+  // how the count was arrived at: recorded by an organizer, or inferred from
+  // RSVPs on events that finished before roll call existed
+  recorded_events: number
+  estimated_events: number
+}
 type Link_ = { label: string; url: string }
 
 const CHANGE_KIND_LABEL: Record<string, string> = {
@@ -404,6 +413,8 @@ export default async function ClubPage({
             isSelf={m.user_id === profile.id}
             lastAttendedAt={attFor(m.user_id)?.last_attended_at ?? null}
             eventsAttended={attFor(m.user_id)?.events_attended ?? 0}
+            recordedEvents={attFor(m.user_id)?.recorded_events ?? 0}
+            estimatedEvents={attFor(m.user_id)?.estimated_events ?? 0}
           />
         ))}
         {isAdmin &&

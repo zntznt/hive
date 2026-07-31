@@ -26,6 +26,7 @@ import { Loud, QuietRow, OpenSection, SummaryRow, FoldedEmpties, DoorGroup, Face
 import { DetailsSheet } from '@/components/ui/DetailsSheet'
 import { AddExpenseButton } from './expense-modal'
 import { AddPollButton } from './poll-modal'
+import { AttendanceSheet, type RollCallPerson } from './attendance-sheet'
 import { fmtDateTime, fmtDayMonth, fmtTime } from '@/lib/time'
 
 function dayRange(start: string, end: string) {
@@ -178,6 +179,28 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   // database uses to decide who fits (event_seats_taken).
   const seatedGuests = confirmed.reduce((n, r) => n + (guestCountByHost.get(r.user_id) ?? 0), 0)
   const seatsTaken = confirmed.length + seatedGuests
+
+  // The roll call list, for a done event. Everyone who said "voy" and every
+  // guest they brought, each pre-marked present unless a previous roll call
+  // said otherwise, because "everybody came" is the common answer and it
+  // should cost the fewest taps.
+  const rollCall: RollCallPerson[] = [
+    ...confirmed.map((r) => ({
+      key: r.user_id as string,
+      name: nameOf.get(r.user_id) ?? '·',
+      user: (userOf.get(r.user_id) ?? { display_name: nameOf.get(r.user_id) ?? '·' }) as AvatarUser,
+      present: r.attended !== false,
+    })),
+    ...(guests ?? [])
+      .filter((g) => !g.promoted_to_user_id && confirmed.some((r) => r.user_id === g.host_user_id))
+      .map((g) => ({
+        key: g.id as string,
+        name: g.name as string,
+        user: { display_name: g.name as string } as AvatarUser,
+        guestOf: nameOf.get(g.host_user_id) ?? '·',
+        present: g.attended !== false,
+      })),
+  ]
 
   const organizers = (members ?? []).filter((m) => m.role === 'organizer')
   const coOrganizerCandidates = (clubMembers ?? [])
@@ -470,6 +493,22 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               waitingOn={waitingOn}
             />
           </Card>
+        </section>
+      )}
+
+      {/* Rule 1 again, for the one phase that has its own single job: once the
+          event is over, the only thing left that only the organizer can do is
+          say who actually turned up. It sits above "Quién va" because it is
+          the same question, answered after the fact. */}
+      {event.status === 'done' && isOrganizer && (
+        <section className="mb-[26px]">
+          <AttendanceSheet
+            eventId={event.id}
+            slug={event.slug}
+            people={rollCall}
+            takenAt={event.attendance_taken_at}
+            takenBy={event.attendance_taken_at ? nameOf.get(event.organizer_user_id) ?? null : null}
+          />
         </section>
       )}
 

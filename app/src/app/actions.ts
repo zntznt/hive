@@ -1450,11 +1450,21 @@ export async function requestWhatsappLink(rawPhone: string, next?: string | null
 // Post-event roll call. Writes through mark_attendance (SECURITY DEFINER)
 // rather than a widened RLS policy, so an organizer can record who came
 // without gaining the ability to rewrite what people answered.
-export async function markAttendance(eventId: string, slug: string, presentUserIds: string[]) {
+export async function markAttendance(
+  eventId: string,
+  slug: string,
+  presentUserIds: string[],
+  presentGuestIds: string[] = []
+) {
   const supabase = await supabaseServer()
-  const { error } = await supabase.rpc('mark_attendance', { eid: eventId, present: presentUserIds })
+  const { error } = await supabase.rpc('mark_attendance', {
+    eid: eventId,
+    present: presentUserIds,
+    present_guests: presentGuestIds,
+  })
   if (error) throw new Error(error.message)
   revalidatePath(`/e/${slug}`)
+  revalidatePath('/plate')
 }
 
 // The organizer's own "faltan 4 por confirmar" button. The cron sends this
