@@ -199,6 +199,9 @@ export async function addGuest(eventId: string, slug: string, formData: FormData
   const name = String(formData.get('name') ?? '').trim()
   if (!name) return
   const { error } = await supabase.from('guests').insert({ event_id: eventId, host_user_id: user.id, name })
+  // guests_fit (0033) refuses a guest who does not fit: "+1" used to be an
+  // unlimited door next to a capped one, so the cap meant nothing on any event
+  // that allowed guests. The trigger message is already the one to show.
   if (error) throw new Error(error.message)
   revalidatePath(`/e/${slug}`)
 }
@@ -569,10 +572,20 @@ export async function requestMemberRemoval(clubId: string, clubSlug: string, use
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) throw new Error('not signed in')
+  // The name goes in the payload because the approvals screen had only a uuid
+  // to work with and so showed "Quitar miembro" and the proposer's name and
+  // nothing else. Admins were approving a removal without being told who was
+  // being removed. Snapshotted at proposal time, so the request says who was
+  // meant even if that person later changes their display name.
+  const { data: target } = await supabase
+    .from('users')
+    .select('display_name')
+    .eq('id', userId)
+    .maybeSingle()
   const { error } = await supabase.from('change_requests').insert({
     club_id: clubId,
     kind: 'member_removal',
-    payload: { user_id: userId },
+    payload: { user_id: userId, display_name: target?.display_name ?? null },
     requested_by: user.id,
   })
   if (error) throw new Error(error.message)

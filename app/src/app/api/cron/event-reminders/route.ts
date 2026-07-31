@@ -157,10 +157,18 @@ export async function GET(request: Request) {
   // long it is the part that must not be skipped.
   await reconcileHandoffs(db, 100)
   await dispatchQueuedNotifications(db, 100)
+
+  // "Se borra solo a los 30 días", which the bin banner has been telling
+  // people since the bin shipped and nothing was doing. Deleting an event
+  // takes its RSVPs, contributions, expenses and settlements by cascade, so
+  // this runs after the dispatch above rather than before it.
+  const { data: purged } = await db.rpc('purge_deleted_events', { older_than_days: 30 })
+
   return NextResponse.json({
     events: (events ?? []).length,
     queued,
     skipped: skipped.length,
     nudged,
+    purged: purged ?? 0,
   })
 }

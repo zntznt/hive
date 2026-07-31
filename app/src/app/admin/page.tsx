@@ -25,6 +25,23 @@ const CHANGE_KIND_LABEL: Record<string, string> = {
   member_removal: 'Quitar miembro',
 }
 
+// What the request is actually about, in one line. member_removal used to fall
+// through to the kind label, so an admin was asked to approve "Quitar miembro"
+// with no idea who: the payload holds a uuid, and nothing resolved it. New
+// requests carry the name (requestMemberRemoval); older ones are looked up.
+function changeSummary(
+  kind: string,
+  payload: Record<string, string> | null,
+  names: Map<string, string>,
+  max: number
+) {
+  if (kind === 'member_removal') {
+    const who = payload?.display_name || names.get(payload?.user_id ?? '') || 'alguien sin nombre'
+    return `a ${who}`
+  }
+  return payload?.name || payload?.description?.slice(0, max) || CHANGE_KIND_LABEL[kind] || kind
+}
+
 export default async function AdminPage() {
   const { supabase, profile } = await requireProfile()
 
@@ -57,6 +74,22 @@ export default async function AdminPage() {
       .eq('status', 'pending')
       .order('created_at'),
   ])
+
+  // names for member_removal requests filed before the name was stored on the
+  // payload. Scoped to the ids those requests actually name, so this reads no
+  // more than the screen is about to show.
+  const removalIds = (changeReqs ?? [])
+    .filter((r) => r.kind === 'member_removal')
+    .map((r) => (r.payload as Record<string, string> | null)?.user_id)
+    .filter((id): id is string => !!id)
+  const removalNames = new Map<string, string>()
+  if (removalIds.length > 0) {
+    const { data: named } = await supabase
+      .from('users')
+      .select('id, display_name')
+      .in('id', removalIds)
+    for (const u of named ?? []) removalNames.set(u.id, u.display_name)
+  }
 
   let users: Profile[] = []
   const counts: Record<string, number> = { queued: 0, pending: 0, sent: 0, failed: 0, logged: 0 }
@@ -178,8 +211,7 @@ export default async function AdminPage() {
           const club = loudChange.clubs as unknown as { name: string; slug: string } | null
           const requester = loudChange.users as unknown as { display_name: string } | null
           const payload = loudChange.payload as Record<string, string>
-          const summary =
-            payload?.name || payload?.description?.slice(0, 60) || CHANGE_KIND_LABEL[loudChange.kind] || loudChange.kind
+          const summary = changeSummary(loudChange.kind, payload, removalNames, 60)
           return (
             <div className="mb-[26px]">
               <Loud
@@ -221,7 +253,7 @@ export default async function AdminPage() {
               const club = r.clubs as unknown as { name: string; slug: string } | null
               const requester = r.users as unknown as { display_name: string } | null
               const payload = r.payload as Record<string, string>
-              const summary = payload?.name || payload?.description?.slice(0, 40) || CHANGE_KIND_LABEL[r.kind] || r.kind
+              const summary = changeSummary(r.kind, payload, removalNames, 40)
               return (
                 <Card key={r.id} pad="sm" className="border-honey-200 bg-honey-50">
                   <div className="mb-2 flex items-start justify-between gap-2">

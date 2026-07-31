@@ -166,6 +166,14 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     if (!g.promoted_to_user_id) guestCountByHost.set(g.host_user_id, (guestCountByHost.get(g.host_user_id) ?? 0) + 1)
   }
 
+  // A guest is a person in the room, so they hold a place. This screen used to
+  // count only members against capacity and then print the guests next to that
+  // number, so ten seats read "van 6 de 10" with twelve people going. Guests
+  // count while the member who brought them is seated, the same rule the
+  // database uses to decide who fits (event_seats_taken).
+  const seatedGuests = confirmed.reduce((n, r) => n + (guestCountByHost.get(r.user_id) ?? 0), 0)
+  const seatsTaken = confirmed.length + seatedGuests
+
   const organizers = (members ?? []).filter((m) => m.role === 'organizer')
   const coOrganizerCandidates = (clubMembers ?? [])
     .filter((m) => !organizers.some((o) => o.user_id === m.user_id))
@@ -460,7 +468,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         <section className="mb-[26px]">
           <OpenSection
             label="Quién va"
-            meta={`${confirmed.length}${event.capacity != null ? ` de ${event.capacity}` : ''}`}
+            meta={`${seatsTaken}${event.capacity != null ? ` de ${event.capacity}` : ''}`}
           >
           {/* Faces before names before counts. "6 van" tells you how many;
               seeing that Marta is one of them tells you whether to go. */}
@@ -498,7 +506,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           )}
 
           <p className="text-[12.5px] text-ink-500">
-            van {confirmed.length}
+            van {seatsTaken}
             {event.capacity != null && `/${event.capacity}`} · no van {byStatus('out').length} · quizás {byStatus('maybe').length}
           </p>
 
@@ -511,10 +519,17 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                   <button className="tap text-xs font-bold text-ink-500">quitar</button>
                 </form>
               ))}
-              <form action={addGuest.bind(null, event.id, event.slug)} className="flex gap-2">
-                <input name="name" placeholder="Nombre de quien traes" className="flex-1 rounded-md border border-line-input bg-paper p-2 text-sm text-ink-900" />
-                <button className="tap rounded-md bg-honey-500 px-3 py-2 text-xs font-bold text-charcoal">Traer a alguien (+1)</button>
-              </form>
+              {/* the form is hidden rather than left to fail: guests_fit
+                  refuses one that does not fit, and a button that always
+                  throws is worse than a button that is not there */}
+              {event.capacity == null || seatsTaken < event.capacity ? (
+                <form action={addGuest.bind(null, event.id, event.slug)} className="flex gap-2">
+                  <input name="name" placeholder="Nombre de quien traes" className="flex-1 rounded-md border border-line-input bg-paper p-2 text-sm text-ink-900" />
+                  <button className="tap rounded-md bg-honey-500 px-3 py-2 text-xs font-bold text-charcoal">Traer a alguien (+1)</button>
+                </form>
+              ) : (
+                <p className="text-[12.5px] text-ink-500">Ya no hay lugar para traer a alguien más.</p>
+              )}
             </div>
           )}
 

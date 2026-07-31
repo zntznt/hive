@@ -87,7 +87,10 @@ export function MemberRow({
                 Quitar
               </button>
             </>
-          ) : isOrganizer ? (
+          ) : /* only plain members: approve_change_request refuses a removal
+                 aimed at an organizer or an admin, so offering it here would
+                 be a button whose request can never be approved */
+          isOrganizer && role === 'member' ? (
             <button
               disabled={requestedRemoval || pending}
               onClick={() =>

@@ -160,6 +160,14 @@ export default async function ClubPage({
       .sort((a, b) => b.cents - a.cents)
   }
 
+  // for member_removal requests filed before the name was stored on the payload
+  const memberName = new Map(
+    (roster ?? []).map((m) => [
+      m.user_id as string,
+      (m.users as unknown as { display_name?: string } | null)?.display_name ?? '',
+    ])
+  )
+
   const links = (club.links ?? []) as Link_[]
 
   return (
@@ -271,7 +279,16 @@ export default async function ClubPage({
             {(changeReqs ?? []).map((r) => {
               const requester = r.users as unknown as { display_name: string } | null
               const payload = r.payload as Record<string, string>
-              const summary = payload?.name ? `"${payload.name}"` : payload?.description ? 'editar descripción y enlaces' : CHANGE_KIND_LABEL[r.kind] ?? r.kind
+              // member_removal carries only a uuid, so without the name on the
+              // payload this row read "Quitar miembro" and named nobody
+              const summary =
+                r.kind === 'member_removal'
+                  ? `a ${payload?.display_name || memberName.get(payload?.user_id ?? '') || 'alguien sin nombre'}`
+                  : payload?.name
+                    ? `"${payload.name}"`
+                    : payload?.description
+                      ? 'editar descripción y enlaces'
+                      : CHANGE_KIND_LABEL[r.kind] ?? r.kind
               return (
                 <Card key={r.id} pad="sm" className="border-honey-200 bg-honey-50">
                   <div className="mb-2 flex items-center justify-between gap-2">
