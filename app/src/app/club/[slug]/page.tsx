@@ -19,14 +19,25 @@ import { AddCategoryButton, EditCategoryButton } from './category-editor'
 import { MemberRow } from './member-row'
 import { InviteModal } from './invite-modal'
 import { DangerZone } from './danger-zone'
+import { CalendarSubscribe } from './calendar-subscribe'
 import { updateClubJoinMode, decideChangeRequest, decideJoinRequest, revokeInvitation } from '@/app/actions'
 import { AppBar } from '@/components/ui/AppBar'
 import { WhenPill, whenPill } from '@/components/ui/WhenPill'
 import { SummaryRow, DoorGroup } from '@/components/ui/Density'
 import { fmtDayMonth } from '@/lib/time'
+import { siteUrl } from '@/lib/site-url'
 
 type Category = { id: string; name: string; emoji: string | null }
-type AttendanceRow = { user_id: string; category_id: string | null; events_attended: number; last_attended_at: string }
+type AttendanceRow = {
+  user_id: string
+  category_id: string | null
+  events_attended: number
+  last_attended_at: string
+  // how the count was arrived at: recorded by an organizer, or inferred from
+  // RSVPs on events that finished before roll call existed
+  recorded_events: number
+  estimated_events: number
+}
 type Link_ = { label: string; url: string }
 
 const CHANGE_KIND_LABEL: Record<string, string> = {
@@ -89,21 +100,32 @@ export default async function ClubPage({
   const isManager = isAdmin || isOrganizer
   const adminCount = (roster ?? []).filter((m) => m.role === 'admin').length
 
-  // upcoming-event RSVP counts (going/maybe) for each EvCard's footer row
+  // upcoming-event RSVP counts (going/maybe) for each EvCard's footer row.
+  // "van" counts people, so a guest counts too, and only while the member who
+  // brought them is seated. Same rule as the event page and as
+  // event_seats_taken in the database; a card that says 6 next to an event
+  // page that says 8 is the bug 0033 set out to remove.
   const rsvpCountsByEvent = new Map<string, { going: number; maybe: number }>()
   if (upcoming.length > 0) {
-    const { data: rsvpRows } = await supabase
-      .from('rsvps')
-      .select('event_id, status, waitlist_pos')
-      .in(
-        'event_id',
-        upcoming.map((e) => e.id)
-      )
+    const ids = upcoming.map((e) => e.id)
+    const [{ data: rsvpRows }, { data: guestRows }] = await Promise.all([
+      supabase.from('rsvps').select('event_id, user_id, status, waitlist_pos').in('event_id', ids),
+      supabase.from('guests').select('event_id, host_user_id').in('event_id', ids).is('promoted_to_user_id', null),
+    ])
+    const seated = new Set<string>()
     for (const r of rsvpRows ?? []) {
       const cur = rsvpCountsByEvent.get(r.event_id) ?? { going: 0, maybe: 0 }
-      if (r.status === 'in' && r.waitlist_pos == null) cur.going++
-      else if (r.status === 'maybe') cur.maybe++
+      if (r.status === 'in' && r.waitlist_pos == null) {
+        cur.going++
+        seated.add(`${r.event_id}:${r.user_id}`)
+      } else if (r.status === 'maybe') cur.maybe++
       rsvpCountsByEvent.set(r.event_id, cur)
+    }
+    for (const g of guestRows ?? []) {
+      if (!seated.has(`${g.event_id}:${g.host_user_id}`)) continue
+      const cur = rsvpCountsByEvent.get(g.event_id) ?? { going: 0, maybe: 0 }
+      cur.going++
+      rsvpCountsByEvent.set(g.event_id, cur)
     }
   }
 
@@ -393,6 +415,8 @@ export default async function ClubPage({
             isSelf={m.user_id === profile.id}
             lastAttendedAt={attFor(m.user_id)?.last_attended_at ?? null}
             eventsAttended={attFor(m.user_id)?.events_attended ?? 0}
+            recordedEvents={attFor(m.user_id)?.recorded_events ?? 0}
+            estimatedEvents={attFor(m.user_id)?.estimated_events ?? 0}
           />
         ))}
         {isAdmin &&
@@ -464,6 +488,18 @@ export default async function ClubPage({
           </p>
         </section>
       )}
+
+      {/* Above the history on purpose: it is the one thing on this page that
+          keeps working after you close the app. */}
+      <section className="mb-[26px]">
+        <CalendarSubscribe
+          clubName={club.name}
+          clubId={club.id}
+          slug={slug}
+          feedUrl={`${siteUrl()}/c/${club.calendar_token}/calendar.ics`}
+          isAdmin={isAdmin}
+        />
+      </section>
 
       {/* Rule 7. The club's own history and its settings were sections of this
           page, indistinguishable from the things people come here for. They

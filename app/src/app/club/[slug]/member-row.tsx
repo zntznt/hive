@@ -22,6 +22,8 @@ export function MemberRow({
   isSelf,
   lastAttendedAt,
   eventsAttended,
+  recordedEvents,
+  estimatedEvents,
 }: {
   clubId: string
   slug: string
@@ -36,12 +38,31 @@ export function MemberRow({
   // the role select and a phone has no room for both.
   lastAttendedAt?: string | null
   eventsAttended?: number
+  // how that count was arrived at. Recorded means an organizer passed the roll
+  // call; estimated means the event finished before roll call existed and the
+  // count is really "said they were coming".
+  recordedEvents?: number
+  estimatedEvents?: number
 }) {
   const name = user.display_name
   const [pending, startTransition] = useTransition()
   const [confirmRemove, setConfirmRemove] = useState(false)
   const [requestedRemoval, setRequestedRemoval] = useState(false)
+  const [explaining, setExplaining] = useState(false)
   const router = useRouter()
+
+  // A count with any inferred events in it gets a "~" and a dotted underline,
+  // and that is all. A badge or a warning colour here would put a scarlet
+  // letter on every event that happened before the feature shipped. A fully
+  // recorded count gets no marker at all: the clean case has to stay silent or
+  // the marker stops meaning anything.
+  const estimated = (estimatedEvents ?? 0) > 0
+  const mixed = estimated && (recordedEvents ?? 0) > 0
+  const countNote = !estimated
+    ? 'Cada una la registró quien organizó, después del evento.'
+    : mixed
+      ? 'Una parte se cuenta desde los RSVP: eventos que terminaron antes de que se pasara lista.'
+      : 'Se cuenta desde los RSVP. En esos eventos nadie pasó lista, así que es quien dijo que iba.'
 
   function changeRole(next: Role) {
     startTransition(async () => {
@@ -62,10 +83,34 @@ export function MemberRow({
             )}
           </span>
           <span className="text-[11.5px] text-ink-300">
-            {eventsAttended
-              ? `${timeAgo(lastAttendedAt ?? null)} · ${eventsAttended} ev.`
-              : 'sin asistencias todavía'}
+            {eventsAttended ? (
+              <>
+                {timeAgo(lastAttendedAt ?? null)} ·{' '}
+                {/* a real 44px target, with the extra height cancelled by
+                    negative margin so it clears the hit floor without
+                    changing the line it sits on */}
+                <button
+                  type="button"
+                  onClick={() => setExplaining((v) => !v)}
+                  aria-label={`${eventsAttended} ev. · cómo se cuenta`}
+                  aria-expanded={explaining}
+                  className="-my-[13px] inline-flex min-h-11 items-center px-1 font-inherit text-inherit"
+                >
+                  <span className={estimated ? 'border-b border-dotted border-ink-300' : ''}>
+                    {estimated ? '~' : ''}
+                    {eventsAttended} ev.
+                  </span>
+                </button>
+              </>
+            ) : (
+              'sin asistencias todavía'
+            )}
           </span>
+          {explaining && (
+            <span className="mt-1.5 block rounded-md bg-cream-sunk px-3.5 py-3 text-xs leading-relaxed text-ink-700">
+              {countNote}
+            </span>
+          )}
         </span>
       </span>
       {!isSelf && (

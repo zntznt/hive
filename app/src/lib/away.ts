@@ -34,10 +34,15 @@ export async function getAwayItems(supabase: SupabaseClient, userId: string): Pr
     // that closes rather than opens something
     supabase
       .from('settlements')
-      .select('id, event_id, amount_cents, confirmed, updated_at, from_user, to_user, events(slug, title)')
+      // settlements never had an updated_at, so this whole query answered
+      // 42703 and the recap silently lost the one money item it carries.
+      // created_at is the only timestamp on the row: a settlement is recorded
+      // and confirmed within the same conversation often enough that it is a
+      // fair stand in, and a slightly early item beats no item at all.
+      .select('id, event_id, amount_cents, confirmed, created_at, from_user, to_user, events(slug, title)')
       .eq('from_user', userId)
       .eq('confirmed', true)
-      .gte('updated_at', since),
+      .gte('created_at', since),
   ])
 
   const items: AwayItem[] = []
@@ -70,7 +75,7 @@ export async function getAwayItems(supabase: SupabaseClient, userId: string): Pr
 
   for (const s of (settled ?? []) as unknown as {
     id: string
-    updated_at: string
+    created_at: string
     events: { slug: string; title: string } | null
   }[]) {
     if (!s.events) continue
@@ -79,7 +84,7 @@ export async function getAwayItems(supabase: SupabaseClient, userId: string): Pr
       kind: 'settled',
       text: `Tu pago de "${s.events.title}" quedó confirmado`,
       href: `/e/${s.events.slug}`,
-      at: s.updated_at,
+      at: s.created_at,
     })
   }
 

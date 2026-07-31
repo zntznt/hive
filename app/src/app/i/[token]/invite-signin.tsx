@@ -154,8 +154,10 @@ export default function InviteSignIn({
                   <span className="text-ink-500">
                     {' · '}
                     {spots! > 0
-                      ? `quedan ${spots} de ${capacity} lugares`
-                      : `${capacity} lugares y ya está lleno, entrarías a la lista de espera`}
+                      ? spots === 1
+                        ? `queda 1 lugar de ${capacity}`
+                        : `quedan ${spots} de ${capacity} lugares`
+                      : `${capacity === 1 ? 'Un lugar' : `${capacity} lugares`} y ya está lleno, entrarías a la lista de espera`}
                   </span>
                 )}
               </Fact>

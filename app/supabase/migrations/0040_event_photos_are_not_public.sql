@@ -1,0 +1,12 @@
+-- The album bucket was created public, which quietly undoes the policies
+-- around it: a public bucket serves every object to anyone holding the URL,
+-- and the SELECT policy on storage.objects is not consulted at all. So an
+-- album scoped to "people who can see this event" was in practice scoped to
+-- "anyone the URL ever reaches", permanently, with no way to take it back.
+--
+-- Avatars and banners are public on purpose, because they are the club's face
+-- and get rendered to people who are not members yet. Photographs of somebody's
+-- living room are the other thing, and the app already has the pattern for it:
+-- payment-proofs is private and the page mints a short lived signed URL where
+-- the image is actually shown.
+update storage.buckets set public = false where id = 'event-photos';

@@ -1,0 +1,21 @@
+-- 0040 flipped event-photos to private with a plain UPDATE, which is right in
+-- the database and not enough at the edge.
+--
+-- While a bucket is public, Storage serves it through the Smart CDN, and every
+-- URL that gets fetched leaves a cached copy behind. Flipping the column stops
+-- the origin from serving new requests (verified: every object in the bucket
+-- answers 400 through /object/public/), but it does not purge what the edge is
+-- already holding. One album photo kept answering 200 with
+-- "cf-cache-status: HIT" and "x-smart-cdn: true" for hours after 0040 ran,
+-- while its sibling in the same folder, uploaded six minutes later and never
+-- fetched while the bucket was public, answered 400 the whole time.
+--
+-- So the rule is: making a bucket private closes the door for everything that
+-- has not been through it yet, and does nothing about the copies already
+-- outside. Anything fetched while the bucket was public has to be purged by
+-- hand, and deleting the object does it (the edge entry goes with it). In this
+-- database that was one photo from a smoke test, since removed.
+--
+-- Re-asserting the flag here so a fresh environment replaying the migrations in
+-- order lands private even if 0039 and 0040 get squashed one day.
+update storage.buckets set public = false where id = 'event-photos';

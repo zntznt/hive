@@ -142,9 +142,15 @@ export default async function AdminPage() {
         // destination is where it actually went, which survives a member
         // later changing their number; the user lookup is the fallback for
         // rows written before that column existed
+        // push has no address: it fans out to whichever browsers the member
+        // subscribed, so the person is the only honest label for it
         recipient:
           row.destination ??
-          (row.channel === 'whatsapp' ? u?.phone_whatsapp : u?.email) ??
+          (row.channel === 'push'
+            ? u?.display_name
+            : row.channel === 'whatsapp'
+              ? u?.phone_whatsapp
+              : u?.email) ??
           u?.display_name ??
           'sin destinatario',
       }
