@@ -8,9 +8,7 @@ import Polls from './polls'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Chip } from '@/components/ui/Chip'
-import { SectionHeader } from '@/components/ui/SectionHeader'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
-import { EmptyState } from '@/components/ui/EmptyState'
 import { Icon, MapPinIcon } from '@/components/ui/Icon'
 import { rsvpButtonClass, RSVP_OPTIONS } from '@/components/ui/RsvpToggle'
 import { AddContributionButton, EditContributionButton } from './contribution-modal'
@@ -22,7 +20,10 @@ import AddToCalendar from './add-to-calendar'
 import { siteUrl } from '@/lib/site-url'
 import Thread from './thread'
 import { timeAgo } from '@/lib/relative-time'
-import { WhenPill } from '@/components/ui/WhenPill'
+import { WhenPill, whenPill } from '@/components/ui/WhenPill'
+import { Button } from '@/components/ui/Button'
+import { Loud, QuietRow, OpenSection, SummaryRow, FoldedEmpties, DoorGroup, FaceStack, DayBanner } from '@/components/ui/Density'
+import { DetailsSheet } from '@/components/ui/DetailsSheet'
 
 function dayRange(start: string, end: string) {
   // walk in UTC so toISOString() reads the same date we stepped - parsing as
@@ -35,6 +36,14 @@ function dayRange(start: string, end: string) {
     d.setUTCDate(d.getUTCDate() + 1)
   }
   return days
+}
+
+function timeOnly(iso: string) {
+  return new Intl.DateTimeFormat('es-MX', {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'America/Mexico_City',
+  }).format(new Date(iso))
 }
 
 function fmtDateTime(iso: string) {
@@ -170,6 +179,39 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     .filter((m) => !organizers.some((o) => o.user_id === m.user_id))
     .map((m) => ({ user_id: m.user_id, user: (m.users as unknown as AvatarUser | null) ?? { display_name: '·' } }))
 
+  // --- the eight density rules need to know three things ---------------------
+  //
+  // What the page is FOR right now (rule 1, one loud block), whether it is
+  // happening today (rule 8, the address comes out of the sheet), and which
+  // sections are genuinely empty (rule 6, four rows saying nothing become one
+  // line saying it once).
+
+  const iPainted = painted.has(profile.id)
+  const unclaimed = contributions.filter((c) => !c.assigned_to)
+
+  // Rule 4: one auto-open thing, nearest deadline only, and it never re-arms.
+  // Deterministic beats clever, so this is a fixed order rather than a score.
+  const loud: 'availability' | 'rsvp' | 'none' =
+    event.status === 'cancelled' || event.deleted_at
+      ? 'none'
+      : event.status === 'scheduling'
+        ? iPainted
+          ? 'none'
+          : 'availability'
+        : event.status === 'scheduled' && !myRsvp
+          ? 'rsvp'
+          : 'none'
+
+  // Rule 8: on the day, and only on the day. The window opens when the event
+  // is today in Mexico City and closes when it is over.
+  const isToday =
+    event.status === 'scheduled' &&
+    !!event.chosen_start &&
+    whenPill(event.chosen_start, event.status)?.label === 'Hoy'
+
+  const nothingLive =
+    (expenses ?? []).length === 0 && (polls ?? []).length === 0 && (commentRows ?? []).length === 0
+
   const dateChip =
     event.status === 'scheduling'
       ? 'Fecha por definir'
@@ -217,6 +259,88 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             Este evento se canceló. RSVPs y aportaciones están cerrados, todo lo demás se queda como historial. Se avisó a todos por
             correo y WhatsApp. Los balances abiertos siguen pendientes de liquidar.
           </span>
+        </div>
+      )}
+
+      {/* Rule 8. For the hours when the only thing you need from this screen
+          is how to get there, the address comes out of the details sheet and
+          sits at the top at full weight. Nothing is added, it is promoted. */}
+      {isToday && event.location && (
+        <div className="mb-3.5">
+          <DayBanner
+            place={event.location}
+            note={event.chosen_start ? `Desde las ${timeOnly(event.chosen_start)}` : undefined}
+            mapHref={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.location)}`}
+          />
+        </div>
+      )}
+
+      {/* Rule 1. One loud block, answering "what do I do here" before you read
+          anything. Rule 4 picks it: nearest deadline, fixed order, and once
+          you have answered it goes quiet instead of re-arming. */}
+      {loud === 'rsvp' && (
+        <div className="mb-3.5">
+          <Loud
+            title={`${nameOf.get(event.organizer_user_id) ?? 'Quien organiza'} está esperando tu respuesta`}
+            body={
+              <>
+                {event.title}
+                {event.chosen_start ? `, ${dateChip}` : ''}. {confirmed.length}{' '}
+                {confirmed.length === 1 ? 'persona ya dijo que va' : 'personas ya dijeron que van'}.
+              </>
+            }
+            faces={confirmed.map((r) => userOf.get(r.user_id) ?? { display_name: nameOf.get(r.user_id) ?? '·' })}
+          >
+            <div className="grid grid-cols-2 gap-2">
+              <form action={setRsvp.bind(null, event.id, event.slug, 'in')}>
+                <Button block display>
+                  Voy
+                </Button>
+              </form>
+              <form action={setRsvp.bind(null, event.id, event.slug, 'out')}>
+                <Button block variant="secondary">
+                  No puedo
+                </Button>
+              </form>
+            </div>
+          </Loud>
+        </div>
+      )}
+
+      {loud === 'availability' && (
+        <div className="mb-3.5">
+          <Loud
+            title="Falta que marques cuándo puedes"
+            body={
+              <>
+                Nadie puede fijar la fecha hasta que respondan todos. Faltan {waitingOn.length} de{' '}
+                {(members ?? []).length}, y la cuadrícula está abajo.
+              </>
+            }
+            faces={waitingOn.map((w) => w.user)}
+          />
+        </div>
+      )}
+
+      {/* the loud block, after you have answered it. A decision you already
+          made should not keep shouting. */}
+      {loud === 'none' && event.status === 'scheduled' && myRsvp && !event.deleted_at && (
+        <div className="mb-3.5">
+          <QuietRow
+            action={
+              <form action={setRsvp.bind(null, event.id, event.slug, myRsvp.status === 'in' ? 'out' : 'in')}>
+                <button className="tap text-[12.5px] font-bold text-honey-700">cambiar</button>
+              </form>
+            }
+          >
+            {myRsvp.status === 'in'
+              ? myWaitPos >= 0
+                ? `Estás en la lista de espera, puesto ${myWaitPos + 1}`
+                : `Vas${event.chosen_start ? `, ${dateChip}` : ''}`
+              : myRsvp.status === 'maybe'
+                ? 'Dijiste que quizás'
+                : 'Dijiste que no puedes'}
+          </QuietRow>
         </div>
       )}
 
@@ -305,20 +429,6 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         </p>
       )}
 
-      {event.status === 'scheduled' && event.chosen_start && (
-        <div className="mb-[26px]">
-          <AddToCalendar
-            slug={event.slug}
-            title={event.title}
-            startIso={event.chosen_start}
-            endIso={event.chosen_end}
-            location={event.location}
-            clubName={club?.name ?? null}
-            eventUrl={`${siteUrl()}/e/${event.slug}`}
-          />
-        </div>
-      )}
-
       {event.status === 'scheduling' && event.sched_start_date && event.sched_end_date && (
         <section className="mb-[26px]">
           <p className="mb-2.5 text-sm text-ink-500">Seguimos buscando fecha. Marca cuándo puedes abajo.</p>
@@ -342,45 +452,50 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
       {event.status !== 'scheduling' && event.status !== 'cancelled' && (
         <section className="mb-[26px]">
-          <div className="mb-3 flex gap-2">
-            {RSVP_OPTIONS.map((o) => (
-              <form key={o.v} action={setRsvp.bind(null, event.id, event.slug, o.v)} className="flex-1">
-                <button className={rsvpButtonClass(myRsvp?.status === o.v)}>{o.l}</button>
-              </form>
-            ))}
-          </div>
-
-          {myRsvp?.status === 'in' && myWaitPos < 0 && (
-            <p className="mb-2 text-[13px] text-ink-500">Vas. ¡Nos vemos ahí!</p>
+          <OpenSection
+            label="Quién va"
+            meta={`${confirmed.length}${event.capacity != null ? ` de ${event.capacity}` : ''}`}
+          >
+          {/* Faces before names before counts. "6 van" tells you how many;
+              seeing that Marta is one of them tells you whether to go. */}
+          {confirmed.length > 0 && (
+            <div className="flex flex-col gap-2.5 rounded-md border border-line-card bg-paper px-3.5 py-3">
+              <FaceStack
+                faces={confirmed.map((r) => userOf.get(r.user_id) ?? { display_name: nameOf.get(r.user_id) ?? '·' })}
+                size={30}
+                max={7}
+              />
+              <span className="text-[13px] leading-snug text-ink-700">
+                {confirmed.map((r) => nameOf.get(r.user_id)).join(', ')}
+                {(guests ?? []).filter((g) => !g.promoted_to_user_id).length > 0 &&
+                  ` y ${(guests ?? []).filter((g) => !g.promoted_to_user_id).length} invitado${(guests ?? []).filter((g) => !g.promoted_to_user_id).length === 1 ? '' : 's'}`}
+              </span>
+              {(members ?? []).length - (rsvps ?? []).length > 0 && (
+                <span className="text-[12.5px] font-bold text-honey-800">
+                  {(members ?? []).length - (rsvps ?? []).length}{' '}
+                  {(members ?? []).length - (rsvps ?? []).length === 1 ? 'persona no ha dicho' : 'personas no han dicho'}
+                </span>
+              )}
+            </div>
           )}
 
-          <p className="text-sm text-ink-500">
+          {/* the answer buttons stay for anyone who already answered and wants
+              to change it; the loud block above carries the first answer */}
+          {loud === 'none' && (
+            <div className="flex gap-2">
+              {RSVP_OPTIONS.map((o) => (
+                <form key={o.v} action={setRsvp.bind(null, event.id, event.slug, o.v)} className="flex-1">
+                  <button className={rsvpButtonClass(myRsvp?.status === o.v)}>{o.l}</button>
+                </form>
+              ))}
+            </div>
+          )}
+
+          <p className="text-[12.5px] text-ink-500">
             van {confirmed.length}
             {event.capacity != null && `/${event.capacity}`} · no van {byStatus('out').length} · quizás {byStatus('maybe').length}
           </p>
 
-          {confirmed.length > 0 && (
-            <div className="mt-2.5 flex flex-wrap gap-2">
-              {confirmed.map((r) => {
-                const u = userOf.get(r.user_id)
-                const plus = guestCountByHost.get(r.user_id) ?? 0
-                return (
-                  <Link
-                    key={r.user_id}
-                    href={`/events?person=${r.user_id}`}
-                    title={`Ver eventos de ${nameOf.get(r.user_id)}`}
-                    className="tap inline-flex items-center gap-1.5 rounded-pill border border-line-card bg-paper py-[3px] pl-[3px] pr-2.5 text-[12.5px] font-bold text-ink-900"
-                  >
-                    <UserAvatar user={u ?? { display_name: nameOf.get(r.user_id) ?? '·' }} size={22} />
-                    {nameOf.get(r.user_id)}
-                    {plus > 0 && (
-                      <span className="rounded-full bg-honey-100 px-[7px] py-px text-[10.5px] text-honey-800">+{plus}</span>
-                    )}
-                  </Link>
-                )
-              })}
-            </div>
-          )}
 
           {event.allow_guests && myRsvp?.status === 'in' && (
             <div className="mt-3 rounded-md bg-cream-sunk px-3 py-2.5">
@@ -425,39 +540,29 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               <p className="mt-2 text-[11.5px] text-ink-300">Cuando se libera una plaza, el primero en la fila entra solo y le avisamos por correo y WhatsApp.</p>
             </div>
           )}
+          </OpenSection>
         </section>
       )}
 
-      <SectionHeader action={isOrganizer ? <CoOrganizerButton eventId={event.id} slug={event.slug} candidates={coOrganizerCandidates} /> : null}>
-        Organizadores
-      </SectionHeader>
-      <div className="mb-[26px] flex flex-wrap gap-2">
-        {organizers.map((o) => {
-          const u = userOf.get(o.user_id)
-          return (
-            <span key={o.user_id} className="inline-flex items-center gap-1.5 rounded-pill border border-line-card bg-paper py-[3px] pl-[3px] pr-2.5 text-[12.5px] font-bold text-ink-900">
-              <UserAvatar user={u ?? { display_name: nameOf.get(o.user_id) ?? '·' }} size={22} />
-              {nameOf.get(o.user_id)}
-              {o.user_id === event.organizer_user_id && <Badge tone="admin">host</Badge>}
-            </span>
-          )
-        })}
-      </div>
-
-      <SectionHeader
-        action={
+      <div className="mb-[26px] flex flex-col gap-2">
+      <div className="flex items-baseline gap-2.5 px-0.5">
+        <span className="eyebrow">Aportaciones</span>
+        {/* the count that matters is what is still unclaimed, and it belongs
+            in the header rather than in an empty state under the list */}
+        {unclaimed.length > 0 && (
+          <span className="text-[11.5px] font-bold text-honey-800">faltan {unclaimed.length}</span>
+        )}
+        <span className="ml-auto">
           <AddContributionButton
             eventId={event.id}
             slug={event.slug}
             isOrganizer={!!isOrganizer}
             members={(members ?? []).filter((m) => m.user_id !== profile.id).map((m) => ({ user_id: m.user_id, name: nameOf.get(m.user_id) ?? '·' }))}
           />
-        }
-      >
-        Aportaciones
-      </SectionHeader>
-      {contributions.length === 0 && <p className="mb-2 text-sm text-ink-500">Nadie trae nada todavía. Estrena la lista.</p>}
-      <ul className="mb-3 flex flex-col gap-2">
+        </span>
+      </div>
+      {contributions.length === 0 && <p className="text-sm text-ink-500">Nadie trae nada todavía. Estrena la lista.</p>}
+      <ul className="flex flex-col gap-2">
         {contributions.map((c) => (
           <li key={c.id}>
             <Card pad="sm" className="flex items-center justify-between text-sm">
@@ -495,13 +600,14 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           </li>
         ))}
       </ul>
-      {contributions.some((c) => !c.assigned_to) && (
+      </div>
+
+      {/* Rule 6. Three sections each drawing a header and an empty state is
+          three rows saying nothing; one line says it once, and the way to
+          start any of them is still right there. */}
+      {nothingLive && (
         <div className="mb-[26px]">
-          <EmptyState
-            icon="jar"
-            title="Casi cubierto."
-            hint={`${contributions.filter((c) => !c.assigned_to).length} cosa${contributions.filter((c) => !c.assigned_to).length === 1 ? '' : 's'} sin pedir todavía. Agarra una arriba.`}
-          />
+          <FoldedEmpties>Todavía no hay gastos, encuestas ni mensajes en este evento.</FoldedEmpties>
         </div>
       )}
 
@@ -536,6 +642,80 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           user: (c.users ?? { display_name: '·' }) as unknown as AvatarUser,
         }))}
       />
+
+      {/* Rule 7. These used to be sections of this page, each with its own
+          header, sitting between things people actually came for. They are
+          doors, so they say so, once, under a line. */}
+      <DoorGroup label="En otra parte">
+        {club && <SummaryRow icon="hashtag" label={club.name} meta="el club" href={`/club/${club.slug}`} />}
+        <SummaryRow
+          icon="clock-rotate-left"
+          label="Otros eventos de este club"
+          href={club ? `/events?club=${club.id}` : '/events'}
+        />
+        <DetailsSheet>
+          <div className="flex flex-col gap-2">
+            <span className="eyebrow">Organizadores</span>
+            <div className="flex flex-wrap gap-2">
+              {organizers.map((o) => (
+                <span
+                  key={o.user_id}
+                  className="inline-flex items-center gap-1.5 rounded-pill border border-line-card bg-paper py-[3px] pl-[3px] pr-2.5 text-[12.5px] font-bold text-ink-900"
+                >
+                  <UserAvatar user={userOf.get(o.user_id) ?? { display_name: nameOf.get(o.user_id) ?? '·' }} size={22} />
+                  {nameOf.get(o.user_id)}
+                  {o.user_id === event.organizer_user_id && <Badge tone="mine">host</Badge>}
+                </span>
+              ))}
+            </div>
+            {isOrganizer && (
+              <CoOrganizerButton eventId={event.id} slug={event.slug} candidates={coOrganizerCandidates} />
+            )}
+          </div>
+
+          {event.status === 'scheduled' && event.chosen_start && (
+            <div className="flex flex-col gap-2">
+              <span className="eyebrow">Calendario</span>
+              <AddToCalendar
+                slug={event.slug}
+                title={event.title}
+                startIso={event.chosen_start}
+                endIso={event.chosen_end}
+                location={event.location}
+                clubName={club?.name ?? null}
+                eventUrl={`${siteUrl()}/e/${event.slug}`}
+              />
+            </div>
+          )}
+
+          <div className="flex flex-col gap-1.5 text-[12.5px] text-ink-500">
+            <span className="eyebrow text-ink-500">Ficha</span>
+            <span>
+              <Icon name="globe" size={11} /> Las horas se muestran en Ciudad de México (GMT-6).
+            </span>
+            <span>
+              <Icon name="lock" size={11} />{' '}
+              {event.join_policy === 'anyone_with_link'
+                ? 'Cualquiera con el enlace puede entrar.'
+                : event.join_policy === 'invite_only'
+                  ? 'Solo con invitación.'
+                  : 'Solo miembros del club.'}
+            </span>
+            {event.capacity != null && (
+              <span>
+                <Icon name="users" size={11} /> {event.capacity} lugares
+                {event.waitlist_enabled ? ', con lista de espera' : ''}.
+              </span>
+            )}
+            {event.scheduled_at && (
+              <span>
+                <Icon name="calendar-check" size={11} />{' '}
+                {nameOf.get(event.organizer_user_id) ?? 'Quien organiza'} fijó la hora {timeAgo(event.scheduled_at)}.
+              </span>
+            )}
+          </div>
+        </DetailsSheet>
+      </DoorGroup>
     </main>
     </>
   )

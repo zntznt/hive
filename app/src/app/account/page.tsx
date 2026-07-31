@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { requireProfile } from '@/lib/gate'
 import { Badge } from '@/components/ui/Badge'
-import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Page, PageHeader } from '@/components/ui/Page'
 import AvatarProfileForm from './avatar-profile-form'
 import NotifPrefsForm from './notif-prefs-form'
@@ -21,6 +20,16 @@ type AccountExtra = {
   notif_whatsapp: boolean
   notif_prefs: Partial<Record<string, { email?: boolean; whatsapp?: boolean }>>
   phone_verified_at: string | null
+}
+
+// The group label: heavier than a section eyebrow because it is naming a set
+// of them, and it is the only thing giving this page a shape.
+function GroupHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="mt-[26px] border-t border-line-card pt-[13px] font-display text-[15px] font-bold text-ink-900">
+      {children}
+    </h2>
+  )
 }
 
 export default async function AccountPage() {
@@ -66,14 +75,21 @@ export default async function AccountPage() {
         avatarPhotoUrl={account?.avatar_photo_url ?? null}
       />
 
-      <section className="mt-[18px]">
-        <SectionHeader>Cómo entras</SectionHeader>
+      {/* Rule 6, on a page with no live state to vary the shapes: five equal
+          sections in a column all look equally important, which is how you end
+          up opening three to find one. Two named groups instead, and the
+          values stay on the rows so you can check a setting without opening
+          it. Nothing here collapses: the whole page is short and every
+          section is something you might be part-way through. */}
+      <GroupHeader>Cómo Hive te encuentra</GroupHeader>
+
+      <section className="mt-2.5">
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2 rounded-md border border-line-card bg-paper px-3.5 py-2.5 text-sm">
             <span className="min-w-0 truncate text-ink-900">
               Correo <span className="text-ink-500">· {profile.email ?? 'sin correo'}</span>
             </span>
-            <Badge tone="active">verificado</Badge>
+            <Badge tone="success">verificado</Badge>
           </div>
           <WhatsappForm phone={profile.phone_whatsapp} verifiedAt={account?.phone_verified_at ?? null} />
         </div>
@@ -82,15 +98,17 @@ export default async function AccountPage() {
         </p>
       </section>
 
-      <PaymentMethodsForm methods={paymentMethods} />
-
-      <SavedPlaces places={places ?? []} />
-
       <NotifPrefsForm
         notifEmail={account?.notif_email ?? true}
         notifWhatsapp={account?.notif_whatsapp ?? false}
         prefs={account?.notif_prefs ?? {}}
       />
+
+      <GroupHeader>Dinero y lugares</GroupHeader>
+
+      <PaymentMethodsForm methods={paymentMethods} />
+
+      <SavedPlaces places={places ?? []} />
 
       <DangerZone />
     </Page>

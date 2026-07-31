@@ -7,6 +7,8 @@ import { Page, PageHeader } from '@/components/ui/Page'
 import { PlateItemRow } from '@/components/ui/PlateItemRow'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SettleUpFlow, ConfirmPaymentModal } from '@/components/settle-up'
+import { Loud } from '@/components/ui/Density'
+import { Button } from '@/components/ui/Button'
 import { MarkDoneButton } from './mark-done-modal'
 import SnoozeButton from './snooze-button'
 
@@ -21,6 +23,14 @@ export default async function PlatePage() {
     ? await supabase.from('payment_methods').select('user_id, kind, value').in('user_id', toUserIds).order('sort')
     : { data: [] as { user_id: string; kind: string; value: string }[] }
   const methodsFor = (uid: string) => (methodRows ?? []).filter((m) => m.user_id === uid)
+
+  // Rule 4: one auto-open thing and it is deterministic. Availability first,
+  // because nothing else on that event can happen until it is answered; then
+  // an RSVP; a poll last, because a poll with no vote still has a result.
+  const RANK = { availability: 0, rsvp: 1, poll: 2 }
+  const answers = [...board.toAnswer].sort((a, b) => RANK[a.asks] - RANK[b.asks])
+  const loudest = answers[0] ?? null
+  const restAnswers = answers.slice(1)
 
   return (
     <Page>
@@ -38,15 +48,51 @@ export default async function PlatePage() {
         <EmptyState icon="jar" title="Todo en orden." hint="No tienes nada pendiente por ahora. A disfrutar el zumbido." />
       ) : (
         <>
-          {/* First, because these are the only items with a deadline someone
-              else is waiting on. They navigate and never open a modal: a
-              generic plate confirmation would offer "yes, I brought it" to a
-              row that is asking whether you are coming. */}
-          {board.toAnswer.length > 0 && (
+          {/* Rule 1, applied to the page that had no loud block at all. Seven
+              equal rows meant seven equal claims on you, so the nearest
+              deadline is answerable where you land, which is this page's whole
+              job. It is not extra height: that item was the first row a moment
+              ago, and the rest of the list is unchanged. */}
+          {loudest && (
+            <div className="mb-[26px]">
+              <Loud
+                title={
+                  loudest.asks === 'availability'
+                    ? 'Falta que marques cuándo puedes'
+                    : loudest.asks === 'rsvp'
+                      ? '¿Vas a ir?'
+                      : (loudest.pollLabel ?? 'Falta tu voto')
+                }
+                body={
+                  <>
+                    {loudest.eventTitle}
+                    {loudest.clubName ? `, con ${loudest.clubName}` : ''}.{' '}
+                    {loudest.asks === 'availability'
+                      ? 'Nadie puede fijar la fecha hasta que respondan todos.'
+                      : loudest.asks === 'rsvp'
+                        ? 'Saber quién va decide el lugar y lo que hay que llevar.'
+                        : 'La encuesta sigue abierta.'}
+                  </>
+                }
+              >
+                <Link href={`/e/${loudest.eventSlug}`} className="block">
+                  <Button block display>
+                    {loudest.asks === 'availability' ? 'Marcar mi disponibilidad' : 'Responder'}
+                  </Button>
+                </Link>
+              </Loud>
+            </div>
+          )}
+
+          {/* The rest of what people are waiting on, minus whatever the loud
+              block took. They navigate and never open a modal: a generic plate
+              confirmation would offer "yes, I brought it" to a row that is
+              asking whether you are coming. */}
+          {restAnswers.length > 0 && (
             <section>
-              <SectionHeader>Te están esperando · {board.toAnswer.length}</SectionHeader>
+              <SectionHeader>Te están esperando · {restAnswers.length}</SectionHeader>
               <div className="flex flex-col gap-2">
-                {board.toAnswer.map((item, i) => (
+                {restAnswers.map((item, i) => (
                   <PlateItemRow
                     key={`answer-${i}`}
                     icon={
@@ -75,7 +121,7 @@ export default async function PlatePage() {
           )}
 
           {board.toPay.length > 0 && (
-            <section className="mt-[26px]">
+            <section className={loudest || restAnswers.length ? 'mt-[26px]' : undefined}>
               <SectionHeader>Pagos · por hacer</SectionHeader>
               <div className="flex flex-col gap-2">
                 {board.toPay.map((item, i) => (

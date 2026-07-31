@@ -21,7 +21,8 @@ import { InviteModal } from './invite-modal'
 import { DangerZone } from './danger-zone'
 import { updateClubJoinMode, decideChangeRequest, decideJoinRequest, revokeInvitation } from '@/app/actions'
 import { AppBar } from '@/components/ui/AppBar'
-import { WhenPill } from '@/components/ui/WhenPill'
+import { WhenPill, whenPill } from '@/components/ui/WhenPill'
+import { SummaryRow, DoorGroup } from '@/components/ui/Density'
 
 type Category = { id: string; name: string; emoji: string | null }
 type AttendanceRow = { user_id: string; category_id: string | null; events_attended: number; last_attended_at: string }
@@ -242,43 +243,17 @@ export default async function ClubPage({
         ) : (
           <div className="flex flex-col gap-3.5">
             {upcoming.map((e) => (
-              <EvCard key={e.id} e={e} catName={catName(e.category_id)} counts={rsvpCountsByEvent.get(e.id)} />
+              <EvCard
+                key={e.id}
+                e={e}
+                catName={catName(e.category_id)}
+                counts={rsvpCountsByEvent.get(e.id)}
+                today={whenPill(e.chosen_start, e.status)?.label === 'Hoy'}
+              />
             ))}
           </div>
         )}
       </section>
-
-      <SectionHeader
-        action={
-          <Link href={`/events?club=${club.id}&when=past`} className="inline-flex items-center gap-1 tap text-[12.5px] font-bold text-honey-700">
-            Historial completo <Icon name="chevron-right" size={10} />
-          </Link>
-        }
-      >
-        Historial
-      </SectionHeader>
-      <div className="mb-6 flex flex-col gap-2">
-        {past.length === 0 && <p className="text-sm text-ink-500">Aún sin historia.</p>}
-        {past.map((e) => (
-          <Link
-            key={e.id}
-            href={`/e/${e.slug}`}
-            className="min-h-11 flex items-center justify-between gap-2.5 rounded-md border border-line-card bg-paper px-[13px] py-[11px] text-sm"
-          >
-            <span className="flex min-w-0 items-center gap-2">
-              <span className="min-w-0 truncate text-ink-900">{e.title}</span>
-              {(owedByEvent.get(e.id) ?? 0) > 0 && (
-                <span className="flex-shrink-0 rounded-pill bg-honey-100 px-[9px] py-0.5 text-[10.5px] font-extrabold text-honey-800">
-                  aún se debe {fmtMoney(owedByEvent.get(e.id)!)}
-                </span>
-              )}
-            </span>
-            <span className="flex-shrink-0 text-ink-300">
-              {catName(e.category_id) ?? ''} · {fmt(e.chosen_start)}
-            </span>
-          </Link>
-        ))}
-      </div>
 
       {isManager && (changeReqs ?? []).length > 0 && (
         <>
@@ -326,7 +301,23 @@ export default async function ClubPage({
         </>
       )}
 
-      {isManager && (joinReqs ?? []).length > 0 && (
+      {/* Rule 5: a stack of identical cards for a queue you are not going to
+          empty here. One row with the faces on it says the same thing and
+          leaves the deciding to Admin, which is where it happens. */}
+      {isManager && (joinReqs ?? []).length > 0 && !isAdmin && (
+        <div className="mb-[26px]">
+          <SummaryRow
+            icon="clipboard"
+            label={`${(joinReqs ?? []).length} ${(joinReqs ?? []).length === 1 ? 'persona quiere entrar' : 'personas quieren entrar'}`}
+            meta="en revisión"
+            tone="hot"
+            faces={(joinReqs ?? []).map((r) => (r.users as unknown as AvatarUser | null) ?? { display_name: '·' })}
+            href="/admin"
+          />
+        </div>
+      )}
+
+      {isManager && (joinReqs ?? []).length > 0 && isAdmin && (
         <>
           <SectionHeader
             action={
@@ -456,6 +447,27 @@ export default async function ClubPage({
         </section>
       )}
 
+      {/* Rule 7. The club's own history and its settings were sections of this
+          page, indistinguishable from the things people come here for. They
+          are doors, and they say so once, under a line. */}
+      <DoorGroup label="El club">
+        <SummaryRow
+          icon="clock-rotate-left"
+          label="Eventos pasados"
+          meta={past.length ? String(past.length) : 'ninguno todavía'}
+          href={`/events?club=${club.id}&when=past`}
+        />
+        {past.some((e) => (owedByEvent.get(e.id) ?? 0) > 0) && (
+          <SummaryRow
+            icon="hand-holding-dollar"
+            label="Eventos con dinero pendiente"
+            meta={fmtMoney(past.reduce((s, e) => s + (owedByEvent.get(e.id) ?? 0), 0))}
+            tone="hot"
+            href={`/events?club=${club.id}&owed=true`}
+          />
+        )}
+      </DoorGroup>
+
       <SectionHeader>Ajustes del club</SectionHeader>
       <DangerZone clubId={club.id} clubName={club.name} isAdmin={isAdmin} isLastAdmin={isAdmin && adminCount === 1} memberCount={(roster ?? []).length} />
     </main>
@@ -463,18 +475,41 @@ export default async function ClubPage({
   )
 }
 
-function EvCard({ e, catName, counts }: { e: EventRow; catName: string | undefined; counts: { going: number; maybe: number } | undefined }) {
+// Rule 8, on the club page: tonight's event carries the address and the hour
+// at full weight, so this screen alone is enough to get you there. Later
+// events stay quiet, which is what makes the loud one mean something.
+//
+// The cost is two treatments for the same object, and honey normally means
+// "this wants an answer from you". Here it means "this is happening in a few
+// hours", which is the one other thing worth that much attention.
+function EvCard({
+  e,
+  catName,
+  counts,
+  today = false,
+}: {
+  e: EventRow
+  catName: string | undefined
+  counts: { going: number; maybe: number } | undefined
+  today?: boolean
+}) {
   const cancelled = e.status === 'cancelled'
+  const hot = today && !cancelled
   return (
     <Link
       href={`/e/${e.slug}`}
-      className={`block overflow-hidden rounded-lg border border-line-card bg-paper shadow-card ${cancelled ? 'opacity-65' : ''}`}
+      className={`block overflow-hidden rounded-lg border shadow-card ${
+        hot ? 'border-honey-500 bg-honey-100' : 'border-line-card bg-paper'
+      } ${cancelled ? 'opacity-65' : ''}`}
     >
       <div className="flex items-center justify-between gap-2.5 px-3.5 pb-2.5 pt-3.5">
         <span className="font-display text-lg font-bold text-ink-900">{e.title}</span>
         {catName && <Chip variant="sage">{catName}</Chip>}
       </div>
-      {e.location && (
+      {/* the map is the quiet card's way of showing where. On the day the
+          address itself carries it, so the iframe would just be noise above
+          the line that matters. */}
+      {e.location && !hot && (
         <iframe
           title={e.title}
           src={`https://www.google.com/maps?q=${encodeURIComponent(e.location)}&z=14&output=embed`}
@@ -488,7 +523,9 @@ function EvCard({ e, catName, counts }: { e: EventRow; catName: string | undefin
           <span className="mt-0.5">
             <MapPinIcon />
           </span>
-          <span className="min-w-0 text-sm font-extrabold text-ink-900">{e.location || 'sin lugar'}</span>
+          <span className={`min-w-0 font-extrabold text-ink-900 ${hot ? 'text-[15px]' : 'text-sm'}`}>
+            {e.location || 'sin lugar'}
+          </span>
         </span>
         {cancelled ? (
           <Badge tone="disabled">cancelado</Badge>

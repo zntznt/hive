@@ -19,6 +19,7 @@ export type EventRow = {
   status: 'draft' | 'scheduling' | 'scheduled' | 'done' | 'cancelled'
   organizer_user_id: string
   allow_guests: boolean
+  join_policy: 'club_members_only' | 'anyone_with_link' | 'invite_only'
   capacity: number | null
   waitlist_enabled: boolean
   confirm_deadline: string | null

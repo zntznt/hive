@@ -54,7 +54,7 @@ export default function PaymentMethodsForm({ methods }: { methods: PaymentMethod
   }
 
   return (
-    <section className="mt-[26px]">
+    <section className="mt-2.5">
       <SectionHeader>Cómo te pagan</SectionHeader>
       <form action={submit} className="flex flex-col gap-2.5">
         {rows.map((row) => (

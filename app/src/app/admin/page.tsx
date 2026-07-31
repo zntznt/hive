@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Chip } from '@/components/ui/Chip'
 import { SectionHeader } from '@/components/ui/SectionHeader'
+import { Loud, FoldedEmpties } from '@/components/ui/Density'
+import { timeAgo } from '@/lib/relative-time'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { TemplateRow, TemplateSyncBar } from './template-row'
@@ -101,18 +103,92 @@ export default async function AdminPage() {
 
   const approvalsCount = (changeReqs ?? []).length + (joinReqs ?? []).length
 
+  // Rule 1: the oldest thing waiting on a decision, answerable where you land.
+  // A join request wins a tie because it is a person asking to be let in and
+  // has been waiting the longest by definition of this queue's ordering.
+  const loudJoin = (joinReqs ?? [])[0] ?? null
+  const loudChange = !loudJoin ? ((changeReqs ?? [])[0] ?? null) : null
+  const restJoins = loudJoin ? (joinReqs ?? []).slice(1) : (joinReqs ?? [])
+  const restChanges = loudChange ? (changeReqs ?? []).slice(1) : (changeReqs ?? [])
+  const restCount = restJoins.length + restChanges.length
+
   return (
     <>
       <AppBar title="Administración" backHref="/" />
       <main className="mx-auto max-w-col px-4 pb-6">
 
+      {/* Rule 1. One decision, with the face of whoever is waiting on it,
+          because a join request is a person asking to be let in and a queue
+          of eight identical cards makes that abstract. */}
+      {loudJoin &&
+        (() => {
+          const club = loudJoin.clubs as unknown as { name: string; slug: string } | null
+          const requester = loudJoin.users as unknown as AvatarUser | null
+          return (
+            <div className="mb-[26px]">
+              <Loud
+                title={`${requester?.display_name ?? 'Alguien'} quiere entrar${club ? ` a ${club.name}` : ''}`}
+                body={`Lo pidió ${timeAgo(loudJoin.created_at as string)}.`}
+                faces={requester ? [requester] : undefined}
+              >
+                <div className="grid grid-cols-2 gap-2">
+                  <form action={decideJoinRequest.bind(null, loudJoin.id, club?.slug ?? '', true)}>
+                    <Button block display>
+                      Aprobar
+                    </Button>
+                  </form>
+                  <form action={decideJoinRequest.bind(null, loudJoin.id, club?.slug ?? '', false)}>
+                    <Button block variant="secondary">
+                      Rechazar
+                    </Button>
+                  </form>
+                </div>
+              </Loud>
+            </div>
+          )
+        })()}
+
+      {loudChange &&
+        (() => {
+          const club = loudChange.clubs as unknown as { name: string; slug: string } | null
+          const requester = loudChange.users as unknown as { display_name: string } | null
+          const payload = loudChange.payload as Record<string, string>
+          const summary =
+            payload?.name || payload?.description?.slice(0, 60) || CHANGE_KIND_LABEL[loudChange.kind] || loudChange.kind
+          return (
+            <div className="mb-[26px]">
+              <Loud
+                title={`${requester?.display_name ?? 'Alguien'} propone un cambio${club ? ` en ${club.name}` : ''}`}
+                body={`${CHANGE_KIND_LABEL[loudChange.kind] ?? loudChange.kind} · ${summary}`}
+              >
+                <div className="grid grid-cols-2 gap-2">
+                  <form action={decideChangeRequest.bind(null, loudChange.id, club?.slug ?? '', true)}>
+                    <Button block display>
+                      Aprobar
+                    </Button>
+                  </form>
+                  <form action={decideChangeRequest.bind(null, loudChange.id, club?.slug ?? '', false)}>
+                    <Button block variant="secondary">
+                      Rechazar
+                    </Button>
+                  </form>
+                </div>
+              </Loud>
+            </div>
+          )
+        })()}
+
       <section className="mb-[26px]">
-        <SectionHeader>Aprobaciones · {approvalsCount}</SectionHeader>
         {approvalsCount === 0 ? (
-          <EmptyState icon="clipboard" title="Nada pendiente." hint="Las propuestas y solicitudes aparecen aquí." />
-        ) : (
+          <>
+            <SectionHeader>Aprobaciones</SectionHeader>
+            <EmptyState icon="clipboard" title="Nada pendiente." hint="Las propuestas y solicitudes aparecen aquí." />
+          </>
+        ) : restCount === 0 ? null : (
+          <>
+            <SectionHeader>Y {restCount} más en la fila</SectionHeader>
           <div className="flex flex-col gap-2">
-            {(changeReqs ?? []).map((r) => {
+            {restChanges.map((r) => {
               const club = r.clubs as unknown as { name: string; slug: string } | null
               const requester = r.users as unknown as { display_name: string } | null
               const payload = r.payload as Record<string, string>
@@ -146,7 +222,7 @@ export default async function AdminPage() {
                 </Card>
               )
             })}
-            {(joinReqs ?? []).map((r) => {
+            {restJoins.map((r) => {
               const club = r.clubs as unknown as { name: string; slug: string } | null
               const requester = r.users as unknown as AvatarUser | null
               return (
@@ -180,16 +256,22 @@ export default async function AdminPage() {
               )
             })}
           </div>
+          </>
         )}
       </section>
 
       {profile.is_app_admin && (
         <>
+          {/* Rule 6: an empty queue is one line, not a header plus a card
+              plus a sentence saying there is nothing in it. */}
+          {pendingUsers.length === 0 ? (
+            <div className="mb-[26px]">
+              <FoldedEmpties>Nadie espera a que le verifiquen la cuenta.</FoldedEmpties>
+            </div>
+          ) : (
           <section className="mb-[26px]">
             <SectionHeader>Pendientes de verificar ({pendingUsers.length})</SectionHeader>
-            {pendingUsers.length === 0 ? (
-              <p className="text-sm text-ink-500">Nadie espera en la puerta.</p>
-            ) : (
+            {(
               <div className="flex flex-col gap-2">
                 {pendingUsers.map((u) => (
                   <Card key={u.id} pad="sm" className="border-honey-200 bg-honey-50 flex items-center justify-between">
@@ -205,6 +287,7 @@ export default async function AdminPage() {
               </div>
             )}
           </section>
+          )}
 
           <section className="mb-[26px]">
             <SectionHeader>Usuarios ({restUsers.length})</SectionHeader>
