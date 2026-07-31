@@ -98,7 +98,8 @@ export function DangerZone({ clubId, clubName, isAdmin, isLastAdmin, memberCount
           <div className="flex items-start gap-3 rounded-md bg-danger-bg px-3.5 py-3.5">
             <span aria-hidden="true"><Icon name="triangle-exclamation" size={13} /></span>
             <p className="text-[13.5px] leading-relaxed text-ink-700">
-              Se elimina cada evento, categoría, aportación y balance de este club para los {memberCount} miembros. No hay
+              Se elimina cada evento, categoría, aportación y balance de este club
+              {memberCount === 1 ? ' para su único miembro' : ` para sus ${memberCount} miembros`}. No hay
               manera de deshacerlo.
             </p>
           </div>

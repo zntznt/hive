@@ -751,7 +751,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             </span>
             {event.capacity != null && (
               <span>
-                <Icon name="users" size={11} /> {event.capacity} lugares
+                <Icon name="users" size={11} /> {event.capacity === 1 ? '1 lugar' : `${event.capacity} lugares`}
                 {event.waitlist_enabled ? ', con lista de espera' : ''}.
               </span>
             )}
