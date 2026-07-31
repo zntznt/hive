@@ -23,6 +23,7 @@ import { CreateClubButton } from './create-club-modal'
 import { Page } from '@/components/ui/Page'
 import { MarkDoneButton } from './plate/mark-done-modal'
 import { getAwayItems } from '@/lib/away'
+import { InstallPwa } from '@/components/ui/InstallPwa'
 import { timeAgo } from '@/lib/relative-time'
 import { WhenPill } from '@/components/ui/WhenPill'
 
@@ -363,6 +364,11 @@ export default async function Home() {
 
         <CreateClubButton />
       </section>
+
+      {/* Below the things people came for, on purpose. Rule 1 gives the page
+          one loud block and this is not it: it renders only when the phone can
+          actually install, and never again once dismissed. */}
+      <InstallPwa />
 
       {profile.is_app_admin && (
         <div className="mt-8 border-t border-line-card pt-5">

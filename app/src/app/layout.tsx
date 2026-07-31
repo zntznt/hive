@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
 import Chrome from "./chrome";
@@ -12,6 +12,26 @@ export const metadata: Metadata = {
   title: "Hive · tu club, organizado",
   description:
     "Eventos de club sin caos: fecha, confirmaciones, quién trae qué, gastos y encuestas en un solo enlace.",
+  manifest: "/assets/pwa/manifest.webmanifest",
+  // iOS ignores the manifest for this, so the home-screen icon and the
+  // standalone chrome have to be declared here as well.
+  appleWebApp: { capable: true, title: "Hive", statusBarStyle: "default" },
+  icons: {
+    icon: [{ url: "/assets/pwa/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/assets/pwa/icon-192.png", sizes: "192x192", type: "image/png" }],
+  },
+};
+
+// honey-500 tints the Android status bar and the task-switcher card; paper is
+// the splash field, matching the app's own background so launching does not
+// flash white and then settle into cream.
+export const viewport: Viewport = {
+  themeColor: "#EBA937",
+  // the app is a column of at most 460px and the tab bar is fixed, so a
+  // pinch-zoomed layout has nothing to reveal and everything to break
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
