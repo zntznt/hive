@@ -320,7 +320,11 @@ export default function Grid({
         <p className="mt-2.5 text-[11.5px] text-ink-300">
           {mode === 'pick'
             ? pick
-              ? `${days[pick.day]} · ${hhmm(timeMin + pick.a * slotMinutes)} a ${hhmm(timeMin + (pick.b + 1) * slotMinutes)}`
+              ? // days[] holds the raw yyyy-mm-dd, which is what this line was
+                // printing back at the organizer about to commit the date
+                `${fmtWeekdayDay(mexicoDay(days[pick.day]))} · ${fmtTime(slotDate(pick.day, pick.a))} a ${fmtTime(
+                  new Date(slotDate(pick.day, pick.b).getTime() + slotMinutes * 60_000)
+                )}`
               : 'Nada elegido todavía.'
             : `${marked} ${marked === 1 ? 'hueco marcado' : 'huecos marcados'}${
                 pending ? ' · guardando…' : saved ? ' · guardado' : ''
@@ -389,9 +393,12 @@ export default function Grid({
                 className="flex items-center justify-between rounded-md border border-line-card bg-paper p-2 text-sm"
               >
                 <span className="text-ink-700">
+                  {/* both ends through fmtTime: hhmm is the 24 hour label the
+                      grid's own axis uses, and next to a 12 hour start it read
+                      "7:00 p.m. a 21:00" */}
                   {fmtWeekdayDay(slotDate(s.day, s.a))} {fmtTime(slotDate(s.day, s.a))}
                   {' a '}
-                  {hhmm(timeMin + (s.b + 1) * slotMinutes)}
+                  {fmtTime(new Date(slotDate(s.day, s.b).getTime() + slotMinutes * 60_000))}
                   <span className="ml-2 text-ink-300">
                     {s.n}/{totalMembers}
                   </span>
