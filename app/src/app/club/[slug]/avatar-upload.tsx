@@ -11,7 +11,7 @@ import { Icon } from '@/components/ui/Icon'
 // Reuses the club-manager-writable "banners" storage bucket/policy (folder =
 // club id) for the club picture too, just under a distinct filename prefix -
 // avoids a whole new bucket+policy pair for one more club-scoped image.
-export function AvatarUpload({ clubId, slug, clubName, avatarUrl }: { clubId: string; slug: string; clubName: string; avatarUrl: string | null }) {
+export function AvatarUpload({ clubId, slug, clubName, avatarUrl, size = 40 }: { clubId: string; slug: string; clubName: string; avatarUrl: string | null; size?: number }) {
   const [pickedSrc, setPickedSrc] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
@@ -37,12 +37,17 @@ export function AvatarUpload({ clubId, slug, clubName, avatarUrl }: { clubId: st
 
   return (
     <span className="relative inline-flex">
-      <HexAvatar name={clubName} size={40} src={avatarUrl} />
+      <HexAvatar name={clubName} size={size} src={avatarUrl} />
+      {/* The chip is small so it does not sit on the club's face, but the tap
+          area around it is the full 44px, extending down and to the right
+          where there is nothing else to hit. */}
       <label
         title="Cambiar foto del club"
-        className="tap absolute -bottom-1 -right-2 grid h-5 w-5 cursor-pointer place-items-center rounded-full bg-paper text-[9px] text-ink-700 shadow-card"
+        className="tap absolute -bottom-3.5 -right-4 grid h-11 w-11 cursor-pointer place-items-center"
       >
-        {pending ? '…' : <Icon name="camera" size={13} />}
+        <span className="grid h-[26px] w-[26px] place-items-center rounded-full bg-paper text-ink-700 shadow-card">
+          {pending ? '…' : <Icon name="camera" size={13} />}
+        </span>
         <input type="file" accept="image/*" className="hidden" onChange={onFile} disabled={pending} />
       </label>
       {pickedSrc && (

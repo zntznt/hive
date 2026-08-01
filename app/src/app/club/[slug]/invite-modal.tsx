@@ -9,8 +9,32 @@ import { useToast } from '@/components/ui/Toast'
 import { createClubInvitation } from '@/app/actions'
 import { Icon } from '@/components/ui/Icon'
 
-export function InviteModal({ clubId, slug, clubName, isAdmin }: { clubId: string; slug: string; clubName: string; isAdmin: boolean }) {
-  const [open, setOpen] = useState(false)
+// Renders its own trigger by default. Pass `open` and `onClose` to drive it
+// from somewhere else, which is what the club page's AppBar does: the kit
+// gives that bar exactly one primary action and this is it.
+export function InviteModal({
+  clubId,
+  slug,
+  clubName,
+  isAdmin,
+  open: openProp,
+  onClose,
+}: {
+  clubId: string
+  slug: string
+  clubName: string
+  isAdmin: boolean
+  open?: boolean
+  onClose?: () => void
+}) {
+  const [selfOpen, setSelfOpen] = useState(false)
+  const controlled = openProp !== undefined
+  const open = controlled ? openProp : selfOpen
+  const setOpen = (v: boolean) => {
+    if (controlled) {
+      if (!v) onClose?.()
+    } else setSelfOpen(v)
+  }
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [role, setRole] = useState('member')
@@ -36,9 +60,11 @@ export function InviteModal({ clubId, slug, clubName, isAdmin }: { clubId: strin
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="tap text-[12.5px] font-bold text-honey-700">
-        <Icon name="plus" size={10} /> Invitar
-      </button>
+      {!controlled && (
+        <button onClick={() => setOpen(true)} className="tap text-[12.5px] font-bold text-honey-700">
+          <Icon name="plus" size={10} /> Invitar
+        </button>
+      )}
       {open && (
         <Modal
           open

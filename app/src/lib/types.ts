@@ -6,6 +6,8 @@ export type Profile = {
   phone_whatsapp: string | null
   status: 'pending' | 'active' | 'disabled'
   is_app_admin: boolean
+  // when they signed up, which is how the verification queue orders itself
+  created_at: string | null
 }
 
 export type EventRow = {
@@ -34,6 +36,8 @@ export type EventRow = {
   // can carry its own receipt instead of the app keeping a notification log.
   scheduled_at: string | null
   cancelled_at: string | null
+  closed_at: string | null
+  closed_by: string | null
   // when the organizer passed the roll call. Null means it has not been taken,
   // which is what tells the event page to ask.
   attendance_taken_at: string | null

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Icon } from '@/components/ui/Icon'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
+import { FaceStack } from '@/components/ui/FaceStack'
 import { timeAgo } from '@/lib/relative-time'
 
 // Post-event roll call, organizers only, and only once the event is done.
@@ -163,46 +164,38 @@ export function AttendanceSheet({
   }
 
   // --- 3. taken ------------------------------------------------------------
+  //
+  // A record, not a form. Once the roll call exists it stops being the loud
+  // thing on the page and becomes one row that says what was written down, who
+  // wrote it, and how to fix it. It used to keep a card, a success badge and a
+  // sentence explaining what attendance counts are for, all of which are
+  // answers to questions nobody asks twice.
   if (takenAt) {
     const everyone = absent.length === 0
     const cameCount = total - absent.length
+    const whoCame = people.filter((p) => p.present)
     return (
-      <div className="rounded-md border border-line-card bg-paper p-4 shadow-card">
-        <div className="flex items-start justify-between gap-2.5">
-          <div className="min-w-0">
-            <p className="font-display text-lg font-bold leading-tight text-ink-900">
-              {everyone ? 'Vinieron todos' : `${cameCount} de ${total} ${cameCount === 1 ? 'vino' : 'vinieron'}`}
-            </p>
-            <p className="mt-0.5 text-[12.5px] text-ink-500">
-              La pasó {takenBy ?? 'la organización'} · {timeAgo(takenAt)}
-            </p>
-          </div>
-          <Badge tone="success">
-            <Icon name="check" size={9} /> pasada
-          </Badge>
-        </div>
-
-        {!everyone && (
-          <p className="mt-3 rounded-md bg-cream-sunk px-3.5 py-3 text-[13px] leading-relaxed text-ink-700">
-            <span className="text-ink-500">No vinieron: </span>
-            {absent.map((p) => p.name).join(', ')}
-          </p>
-        )}
-
-        <div className="mt-3 flex items-center justify-between gap-2.5">
-          <span className="text-xs leading-relaxed text-ink-300">
-            Es lo que cuentan las asistencias del club.
+      <div className="flex items-center gap-3 rounded-md border border-line-card bg-paper px-3.5 py-3">
+        <Icon name="clipboard-check" size={16} className="flex-shrink-0 text-ink-300" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-bold text-ink-900">
+            {everyone ? 'Vinieron todos' : `${cameCount} de ${total} ${cameCount === 1 ? 'vino' : 'vinieron'}`}
           </span>
-          {/* bordered rather than a bare text link: a phone has no hover, so a
-              correction affordance has to look like one without being pressed */}
-          <button
-            type="button"
-            onClick={open}
-            className="tap flex-shrink-0 rounded-pill border-[1.5px] border-line-card bg-paper px-3.5 py-1.5 text-[12.5px] font-bold text-ink-900"
-          >
-            Corregir
-          </button>
-        </div>
+          <span className="mt-0.5 block truncate text-[12px] text-ink-300">
+            La pasó {takenBy ?? 'la organización'} · {timeAgo(takenAt)}
+            {!everyone && ` · faltaron ${absent.map((p) => p.name).join(', ')}`}
+          </span>
+        </span>
+        <FaceStack people={whoCame.map((p) => p.user)} size={20} max={4} />
+        {/* bordered rather than a bare text link: a phone has no hover, so a
+            correction affordance has to look like one without being pressed */}
+        <button
+          type="button"
+          onClick={open}
+          className="tap flex-shrink-0 rounded-pill border-[1.5px] border-line-card bg-paper px-3 py-1.5 text-[12.5px] font-bold text-ink-900"
+        >
+          Corregir
+        </button>
       </div>
     )
   }

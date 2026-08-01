@@ -8,7 +8,10 @@ import { PlateItemRow } from '@/components/ui/PlateItemRow'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SettleUpFlow, ConfirmPaymentModal } from '@/components/settle-up'
 import { Loud } from '@/components/ui/Density'
+import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
+import { ageInDays, ageLabel, byAge, STALE_DAYS } from '@/lib/debt-age'
 import { Button } from '@/components/ui/Button'
+import { Icon } from '@/components/ui/Icon'
 import { MarkDoneButton } from './mark-done-modal'
 import SnoozeButton from './snooze-button'
 
@@ -18,11 +21,30 @@ export default async function PlatePage() {
   const total = plateCount(board)
 
   const standings = await getStandings(supabase, profile.id)
+  // Only the side that is not already actionable further up the page.
+  const owedToMe = standings.filter((s) => s.netCents > 0)
   const toUserIds = [...new Set(board.toPay.map((i) => i.toUserId))]
   const { data: methodRows } = toUserIds.length
     ? await supabase.from('payment_methods').select('user_id, kind, value').in('user_id', toUserIds).order('sort')
     : { data: [] as { user_id: string; kind: string; value: string }[] }
   const methodsFor = (uid: string) => (methodRows ?? []).filter((m) => m.user_id === uid)
+
+  // The loud debt carries a face, so the people owed are fetched rather than
+  // named. You are not paying six pesos, you are paying Marta.
+  const { data: payeeRows } = toUserIds.length
+    ? await supabase
+        .from('users')
+        .select('id, display_name, avatar_kind, avatar_bug, avatar_color, avatar_photo_url')
+        .in('id', toUserIds)
+    : { data: [] as AvatarUser[] }
+  const payeeOf = new Map((payeeRows ?? []).map((u) => [(u as { id: string }).id, u as unknown as AvatarUser]))
+
+  // Money sorts by age, not amount and not when the row landed, and a debt
+  // past thirty days stops being a row in a list.
+  const debts = [...board.toPay].sort(byAge)
+  const stale = debts.filter((d) => (ageInDays(d.heldAt) ?? 0) >= STALE_DAYS)
+  const loudDebt = stale[0] ?? null
+  const restDebts = loudDebt ? debts.filter((d) => d !== loudDebt) : debts
 
   // Rule 4: one auto-open thing, and it is deterministic. Nearest deadline
   // first, which is what the rule actually says. Sorting by kind alone meant a
@@ -35,8 +57,11 @@ export default async function PlatePage() {
   const answers = [...board.toAnswer].sort(
     (a, b) => due(a.dueAt) - due(b.dueAt) || RANK[a.asks] - RANK[b.asks] || a.eventId.localeCompare(b.eventId)
   )
-  const loudest = answers[0] ?? null
-  const restAnswers = answers.slice(1)
+  // An old debt outranks an unanswered RSVP: the RSVP is still in time, the
+  // debt has been late for a month. Failing a stale debt, the nearest deadline
+  // takes the slot, which is what this page did before money could claim it.
+  const loudest = loudDebt ? null : (answers[0] ?? null)
+  const restAnswers = loudDebt ? answers : answers.slice(1)
 
   return (
     <Page>
@@ -54,6 +79,43 @@ export default async function PlatePage() {
         <EmptyState icon="jar" title="Todo en orden." hint="No tienes nada pendiente por ahora. A disfrutar el zumbido." />
       ) : (
         <>
+          {/* A debt past thirty days, with the face of the person waiting on
+              it. The amount is deliberately not the loudest thing here: it is
+              often small, and the reason to pay it is that it is old and it is
+              owed to somebody you will see again. */}
+          {loudDebt && (
+            <section className="mb-[26px] rounded-lg border-[1.5px] border-honey-500 bg-honey-50 p-4">
+              <div className="flex items-center gap-3">
+                <UserAvatar user={payeeOf.get(loudDebt.toUserId) ?? { display_name: loudDebt.toName }} size={44} />
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-lg font-bold leading-tight text-ink-900">
+                    {loudDebt.toName} puso {fmtMoney(loudDebt.amountCents)}
+                  </p>
+                  <p className="mt-0.5 truncate text-[12.5px] text-ink-500">
+                    {loudDebt.eventTitle}
+                    {' · '}
+                    <span className="font-bold text-danger">{ageLabel(ageInDays(loudDebt.heldAt))}</span>
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3.5 flex items-center gap-2.5">
+                <SettleUpFlow
+                  eventId={loudDebt.eventId}
+                  slug={loudDebt.eventSlug}
+                  fromUserId={profile.id}
+                  toUserId={loudDebt.toUserId}
+                  toName={loudDebt.toName}
+                  amountCents={loudDebt.amountCents}
+                  toPaymentMethods={methodsFor(loudDebt.toUserId)}
+                  display
+                >
+                  Pagar a {loudDebt.toName}
+                </SettleUpFlow>
+                <SnoozeButton itemKey={plateItemKey(loudDebt)} label="Todavía no" />
+              </div>
+            </section>
+          )}
+
           {/* Rule 1, applied to the page that had no loud block at all. Seven
               equal rows meant seven equal claims on you, so the nearest
               deadline is answerable where you land, which is this page's whole
@@ -133,19 +195,24 @@ export default async function PlatePage() {
             </section>
           )}
 
-          {board.toPay.length > 0 && (
-            <section className={loudest || restAnswers.length ? 'mt-[26px]' : undefined}>
-              <SectionHeader>Pagos · por hacer</SectionHeader>
+          {restDebts.length > 0 && (
+            <section className={loudDebt || loudest || restAnswers.length ? 'mt-[26px]' : undefined}>
+              {/* The order is the information, so the header says it. Without
+                  that, "oldest first" looks like an arbitrary shuffle to
+                  anyone who expected the biggest number on top. */}
+              <SectionHeader action={restDebts.length > 1 ? <span className="text-[12.5px] text-ink-300">más viejo primero</span> : null}>
+                {loudDebt ? 'También por pagar' : 'Pagos · por hacer'}
+              </SectionHeader>
               <div className="flex flex-col gap-2">
-                {board.toPay.map((item, i) => (
+                {restDebts.map((item, i) => (
                   <PlateItemRow
                     key={i}
                     icon="money-bill-transfer"
                     tone="danger"
-                    title={`Le debes ${item.toName}`}
+                    title={`${item.toName} puso ${fmtMoney(item.amountCents)}`}
                     eventTitle={item.eventTitle}
                     eventHref={`/e/${item.eventSlug}`}
-                    note={item.clubName ?? undefined}
+                    note={ageLabel(ageInDays(item.heldAt)) ?? item.clubName ?? undefined}
                     action={
                       <SettleUpFlow
                         eventId={item.eventId}
@@ -158,37 +225,6 @@ export default async function PlatePage() {
                       >
                         Pagar
                       </SettleUpFlow>
-                    }
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {board.toConfirm.length > 0 && (
-            <section className="mt-[18px]">
-              <SectionHeader>Pagos · por confirmar</SectionHeader>
-              <div className="flex flex-col gap-2">
-                {board.toConfirm.map((item) => (
-                  <PlateItemRow
-                    key={item.settlementId}
-                    icon="receipt"
-                    tone="honey"
-                    title={`${item.fromName} te pagó`}
-                    eventTitle={item.eventTitle}
-                    eventHref={`/e/${item.eventSlug}`}
-                    note={item.clubName ?? undefined}
-                    action={
-                      <ConfirmPaymentModal
-                        settlementId={item.settlementId}
-                        slug={item.eventSlug}
-                        fromName={item.fromName}
-                        amountCents={item.amountCents}
-                        method={item.method}
-                        proofSignedUrl={item.proofSignedUrl}
-                      >
-                        Confirmar
-                      </ConfirmPaymentModal>
                     }
                   />
                 ))}
@@ -254,35 +290,68 @@ export default async function PlatePage() {
         </>
       )}
 
-      {/* Where you stand with each person, netted across every event. Read
-          only on purpose: paying, proof and confirmation stay on the event,
-          because one netted transfer cannot be accepted or rejected per
-          event. */}
-      {standings.length > 0 && (
+      {/* Everything pointing the other way, in one place. A payment somebody
+          has claimed comes first and is the only actionable thing here: it is
+          waiting on you to look at the proof.
+
+          What people owe you is read only on purpose, and only the positive
+          side of the standings is shown. The negative side used to be printed
+          here too, under a different sentence, three sections below the same
+          debts rendered as buttons you can act on. One of those was reference
+          material about the other. */}
+      {(board.toConfirm.length > 0 || owedToMe.length > 0) && (
         <section className="mt-[26px]">
-          <SectionHeader>Cómo van las cuentas · por persona</SectionHeader>
-          <div className="overflow-hidden rounded-lg border border-line-card bg-paper">
-            {standings.map((s) => (
-              <div
-                key={s.userId}
-                className="flex items-center justify-between gap-2 border-t border-line-divider px-3.5 py-2.5 first:border-t-0"
-              >
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-bold text-ink-900">{s.name}</span>
-                  <Link href={`/events?person=${s.userId}`} className="text-[12px] font-semibold text-honey-700">
-                    {s.events} {s.events === 1 ? 'evento' : 'eventos'}
-                  </Link>
-                </span>
-                <span
-                  className={`flex-shrink-0 text-sm font-extrabold ${
-                    s.netCents < 0 ? 'text-danger' : 'text-success'
-                  }`}
-                >
-                  {s.netCents < 0 ? `le debes ${fmtMoney(-s.netCents)}` : `te debe ${fmtMoney(s.netCents)}`}
-                </span>
-              </div>
+          <SectionHeader
+            action={<span className="text-[12.5px] text-ink-300">{board.toConfirm.length + owedToMe.length}</span>}
+          >
+            Te deben
+          </SectionHeader>
+          <div className="flex flex-col gap-2">
+            {board.toConfirm.map((item) => (
+              <PlateItemRow
+                key={item.settlementId}
+                icon="receipt"
+                tone="honey"
+                title={`${item.fromName} te pagó ${fmtMoney(item.amountCents)}`}
+                eventTitle={item.eventTitle}
+                eventHref={`/e/${item.eventSlug}`}
+                note={item.clubName ?? undefined}
+                action={
+                  <ConfirmPaymentModal
+                    settlementId={item.settlementId}
+                    slug={item.eventSlug}
+                    fromName={item.fromName}
+                    amountCents={item.amountCents}
+                    method={item.method}
+                    proofSignedUrl={item.proofSignedUrl}
+                  >
+                    Revisarlo
+                  </ConfirmPaymentModal>
+                }
+              />
             ))}
           </div>
+          {owedToMe.length > 0 && (
+            <div className="mt-2 overflow-hidden rounded-lg border border-line-card bg-paper">
+              {owedToMe.map((s) => (
+                <Link
+                  key={s.userId}
+                  href={`/events?person=${s.userId}`}
+                  className="flex min-h-12 items-center justify-between gap-2 border-t border-line-divider px-3.5 py-2.5 first:border-t-0"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-bold text-ink-900">
+                      {s.name} te debe {fmtMoney(s.netCents)}
+                    </span>
+                    <span className="text-[12px] text-ink-300">
+                      {s.events} {s.events === 1 ? 'evento' : 'eventos'}
+                    </span>
+                  </span>
+                  <Icon name="chevron-right" size={10} className="flex-shrink-0 text-ink-300" />
+                </Link>
+              ))}
+            </div>
+          )}
         </section>
       )}
     </Page>

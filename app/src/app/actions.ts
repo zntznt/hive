@@ -956,10 +956,20 @@ export async function setEventStatus(
   const supabase = await supabaseServer()
   const { error } = await supabase.rpc('set_event_status', { eid: eventId, new_status: status })
   if (error) throw new Error(error.message)
-  // cancelling is the one transition worth dating on the event itself, so the
-  // banner can say when rather than just that
+  // Cancelling and closing both leave a mark on the event itself, so their
+  // banners can say when and by whom rather than only that it happened. The
+  // status RPC does not carry the actor, hence the second write.
   if (status === 'cancelled') {
     await supabase.from('events').update({ cancelled_at: new Date().toISOString() }).eq('id', eventId)
+  }
+  if (status === 'done') {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    await supabase
+      .from('events')
+      .update({ closed_at: new Date().toISOString(), closed_by: user?.id ?? null })
+      .eq('id', eventId)
   }
   revalidatePath(`/e/${slug}`)
 }

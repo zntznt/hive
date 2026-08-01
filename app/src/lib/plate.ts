@@ -32,6 +32,9 @@ export type PlateItem =
       toUserId: string
       toName: string
       amountCents: number
+      // the night the money was spent. A debt's age is the whole reason this
+      // page orders the way it does, so it travels with the item.
+      heldAt: string | null
     }
   | {
       kind: 'confirm'
@@ -115,7 +118,7 @@ export type PlateBoard = {
 async function eventContext(supabase: SupabaseClient, eventIds: string[]) {
   const { data: events } = await supabase
     .from('events')
-    .select('id, slug, title, club_id')
+    .select('id, slug, title, club_id, chosen_start')
     .in('id', eventIds.length ? eventIds : ['00000000-0000-0000-0000-000000000000'])
   const evs = (events ?? []) as EventRow[]
   const clubIds = [...new Set(evs.map((e) => e.club_id).filter((id): id is string => !!id))]
@@ -127,6 +130,8 @@ async function eventContext(supabase: SupabaseClient, eventIds: string[]) {
   return {
     titleOf: (eid: string) => evById.get(eid)?.title ?? '·',
     slugOf: (eid: string) => evById.get(eid)?.slug ?? '',
+    // when the money was spent, which is what a debt's age is measured from
+    heldOf: (eid: string) => (evById.get(eid) as { chosen_start?: string | null } | undefined)?.chosen_start ?? null,
     clubNameOf: (eid: string) => {
       const e = evById.get(eid)
       return e?.club_id ? (clubById.get(e.club_id)?.name ?? null) : null
@@ -260,6 +265,7 @@ export async function getPlateItems(supabase: SupabaseClient, userId: string): P
           toUserId: t.to.user_id,
           toName: t.to.name,
           amountCents: t.amount_cents,
+          heldAt: ctx.heldOf(eid),
         })
       }
     }

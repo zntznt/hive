@@ -6,26 +6,57 @@ import { Button } from '@/components/ui/Button'
 import { leaveClub, deleteClub } from '@/app/actions'
 import { Icon } from '@/components/ui/Icon'
 
-export function DangerZone({ clubId, clubName, isAdmin, isLastAdmin, memberCount }: { clubId: string; clubName: string; isAdmin: boolean; isLastAdmin: boolean; memberCount: number }) {
-  const [modal, setModal] = useState<'leave' | 'delete' | null>(null)
+// Leaving and deleting are lifecycle, so they live in the club's ⋯ menu rather
+// than in a red box at the bottom of the page. Pass `openWhich` and `onClose`
+// to drive the confirmations from there; without them it still draws its own
+// buttons, which is how it is used anywhere else.
+export function DangerZone({
+  clubId,
+  clubName,
+  isAdmin,
+  isLastAdmin,
+  memberCount,
+  openWhich,
+  onClose,
+}: {
+  clubId: string
+  clubName: string
+  isAdmin: boolean
+  isLastAdmin: boolean
+  memberCount: number
+  openWhich?: 'leave' | 'delete' | null
+  onClose?: () => void
+}) {
+  const [selfModal, setSelfModal] = useState<'leave' | 'delete' | null>(null)
   const [pending, startTransition] = useTransition()
+  const controlled = openWhich !== undefined
+  const modal = controlled ? openWhich : selfModal
+  const setModal = (v: 'leave' | 'delete' | null) => {
+    if (controlled) {
+      if (!v) onClose?.()
+    } else setSelfModal(v)
+  }
 
   return (
     <div>
-      <div className="flex flex-wrap gap-2.5">
-        <Button variant="secondary" size="sm" onClick={() => setModal('leave')}>
-          Salir del club
-        </Button>
-        {isAdmin && (
-          <Button variant="danger" size="sm" onClick={() => setModal('delete')}>
-            Eliminar club
-          </Button>
-        )}
-      </div>
-      <p className="mt-2.5 text-xs text-ink-300">
-        Cualquiera puede salir. Un club siempre necesita al menos un admin, así que el último admin debe pasar el
-        puesto o eliminar el club.
-      </p>
+      {!controlled && (
+        <>
+          <div className="flex flex-wrap gap-2.5">
+            <Button variant="secondary" size="sm" onClick={() => setModal('leave')}>
+              Salir del club
+            </Button>
+            {isAdmin && (
+              <Button variant="danger" size="sm" onClick={() => setModal('delete')}>
+                Eliminar club
+              </Button>
+            )}
+          </div>
+          <p className="mt-2.5 text-xs text-ink-300">
+            Cualquiera puede salir. Un club siempre necesita al menos un admin, así que el último admin debe pasar el
+            puesto o eliminar el club.
+          </p>
+        </>
+      )}
 
       {modal === 'leave' && (
         <Modal
