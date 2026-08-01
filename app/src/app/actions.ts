@@ -128,6 +128,13 @@ export async function signOut() {
 
 export async function setRsvp(eventId: string, slug: string, status: RsvpStatus) {
   const supabase = await supabaseServer()
+  // Join first, and from anywhere. rsvp_set refuses a member the event has
+  // never seen, and until now the only thing that made you one was opening the
+  // event page, which calls join_event on the way in. So the moment answering
+  // moved to the plate, every answer from there failed "not an event member"
+  // and the row sat there as if nothing had been pressed. The guard belongs on
+  // the action rather than on one of the screens that calls it.
+  await supabase.rpc('join_event', { event_slug: slug })
   const { error } = await supabase.rpc('rsvp_set', { eid: eventId, st: status })
   if (error) throw new Error(error.message)
   // rsvp_set may promote someone off the waitlist, which queues a
@@ -135,6 +142,11 @@ export async function setRsvp(eventId: string, slug: string, status: RsvpStatus)
   // it queued forever.
   dispatchAfterResponse(supabase)
   revalidatePath(`/e/${slug}`)
+  // An RSVP is a plate item, so answering one has to clear it everywhere it is
+  // drawn: the ledger, the home preview and the tab badge all read the same
+  // board and would otherwise keep asking a question you just answered.
+  revalidatePath('/plate')
+  revalidatePath('/')
 }
 
 export async function saveAvailability(eventId: string, slug: string, slots: number[]) {

@@ -33,6 +33,13 @@ the form, because the form wants a six digit code out of a mailbox.
 Nothing in the sandbox touches a deployed project. `.env.sandbox` holds the fixed local demo keys
 that `supabase start` prints on every machine; real credentials stay in `.env.local`.
 
+**What it does not check yet: client interactivity.** On a server-component page in this container
+React does not attach, so effects never run and a button press reaches nothing. Server output is
+faithful, which is what catches layout, copy and data bugs, but "I clicked it and it worked" is not
+something a shot can tell you. Two things that look like defects in a shot are this: the account's
+push row renders as an empty card, and any server action fired from a button appears to do nothing.
+Verify interactive changes on a device until this is fixed.
+
 `npm run sandbox:reset` rebuilds the database from `supabase/migrations` and is the only check that
 they can still build one. They could not, twice: a migration used an enum value in the transaction
 that added it, and another read a column that a later migration creates. Both had worked on

@@ -81,6 +81,9 @@ export type PlateItem =
       eventSlug: string
       clubName: string | null
       asks: 'availability' | 'rsvp' | 'poll'
+      // what you have said so far, for the rsvp rows that answer in place.
+      // Only ever 'maybe' or null, because the other two retire the row.
+      mine?: 'in' | 'maybe' | 'out' | null
       pollLabel?: string
       // when this stops being answerable, for the surfaces that rank items
       dueAt: string | null
@@ -172,7 +175,7 @@ export async function getPlateItems(supabase: SupabaseClient, userId: string): P
       const eventIds = live.map((e) => e.id)
       const [{ data: myAvail }, { data: myRsvps }, { data: openPolls }, { data: myVotes }] = await Promise.all([
         supabase.from('availability').select('event_id').eq('user_id', userId).in('event_id', eventIds),
-        supabase.from('rsvps').select('event_id').eq('user_id', userId).in('event_id', eventIds),
+        supabase.from('rsvps').select('event_id, status').eq('user_id', userId).in('event_id', eventIds),
         supabase.from('polls').select('id, event_id, question, closes_at').in('event_id', eventIds),
         supabase.from('votes').select('option_id').eq('user_id', userId),
       ])
@@ -182,7 +185,16 @@ export async function getPlateItems(supabase: SupabaseClient, userId: string): P
       for (const c of (clubRows ?? []) as { id: string; name: string }[]) clubs.set(c.id, c.name)
 
       const painted = new Set((myAvail ?? []).map((r) => r.event_id as string))
-      const answered = new Set((myRsvps ?? []).map((r) => r.event_id as string))
+      // "Quizás" is not an answer this row can retire on. It is the one RSVP
+      // state that still owes the organizer a decision, so the item stays and
+      // the buttons show which way you are currently leaning. Voy and no voy
+      // clear it.
+      const answered = new Set(
+        (myRsvps ?? []).filter((r) => r.status !== 'maybe').map((r) => r.event_id as string)
+      )
+      const leaning = new Map(
+        (myRsvps ?? []).map((r) => [r.event_id as string, r.status as 'in' | 'maybe' | 'out'])
+      )
 
       // votes are per option, so resolve them back to their poll before asking
       // whether this member has voted in it
@@ -213,7 +225,7 @@ export async function getPlateItems(supabase: SupabaseClient, userId: string): P
           board.toAnswer.push({ kind: 'answer', ...base(e), asks: 'availability' })
         }
         if (e.status === 'scheduled' && !answered.has(e.id)) {
-          board.toAnswer.push({ kind: 'answer', ...base(e), asks: 'rsvp' })
+          board.toAnswer.push({ kind: 'answer', ...base(e), asks: 'rsvp', mine: leaning.get(e.id) ?? null })
         }
         for (const poll of polls.filter((p) => p.event_id === e.id)) {
           const closed = !!poll.closes_at && new Date(poll.closes_at) <= new Date()

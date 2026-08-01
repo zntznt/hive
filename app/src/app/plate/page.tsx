@@ -5,6 +5,7 @@ import { fmtMoney } from '@/lib/money'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Page, PageHeader } from '@/components/ui/Page'
 import { PlateItemRow } from '@/components/ui/PlateItemRow'
+import { PlateRsvp } from './plate-rsvp'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SettleUpFlow, ConfirmPaymentModal } from '@/components/settle-up'
 import { Loud } from '@/components/ui/Density'
@@ -144,11 +145,20 @@ export default async function PlatePage() {
                 }
               >
                 <div className="flex items-center gap-3">
-                  <Link href={`/e/${loudest.eventSlug}`} className="block flex-1">
-                    <Button block display>
-                      {loudest.asks === 'availability' ? 'Marcar mi disponibilidad' : 'Responder'}
-                    </Button>
-                  </Link>
+                  {/* The RSVP answers here rather than sending you away for
+                      three words and three buttons. The grid and the poll
+                      genuinely live on the event, so those still travel. */}
+                  {loudest.asks === 'rsvp' ? (
+                    <span className="flex-1">
+                      <PlateRsvp eventId={loudest.eventId} slug={loudest.eventSlug} mine={loudest.mine ?? null} />
+                    </span>
+                  ) : (
+                    <Link href={`/e/${loudest.eventSlug}`} className="block flex-1">
+                      <Button block display>
+                        {loudest.asks === 'availability' ? 'Marcar mi disponibilidad' : 'Responder'}
+                      </Button>
+                    </Link>
+                  )}
                   {/* the loud slot is the one item you are most likely to be
                       unable to answer right now, so it keeps the way to put it
                       down. Without this a grid you never intend to paint pins
@@ -188,7 +198,15 @@ export default async function PlatePage() {
                     eventTitle={item.eventTitle}
                     eventHref={`/e/${item.eventSlug}`}
                     note={item.clubName ?? undefined}
-                    action={<SnoozeButton itemKey={plateItemKey(item)} />}
+                    action={
+                      // The RSVP answers here. The other two have somewhere
+                      // they have to send you, so they keep the snooze.
+                      item.asks === 'rsvp' ? (
+                        <PlateRsvp eventId={item.eventId} slug={item.eventSlug} mine={item.mine ?? null} />
+                      ) : (
+                        <SnoozeButton itemKey={plateItemKey(item)} />
+                      )
+                    }
                   />
                 ))}
               </div>
