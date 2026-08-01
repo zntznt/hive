@@ -28,6 +28,7 @@ import { DetailsSheet } from '@/components/ui/DetailsSheet'
 import { AddExpenseButton } from './expense-modal'
 import { AddPollButton } from './poll-modal'
 import { AttendanceSheet, type RollCallPerson } from './attendance-sheet'
+import { ClosedReceipt, DuplicatePrompt } from './done-blocks'
 import { fmtDateTime, fmtDayMonth, fmtTime } from '@/lib/time'
 
 function dayRange(start: string, end: string) {
@@ -278,6 +279,32 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   // only one of the three whose empty state is a composer you can type in.
   const nothingLive = (expenses ?? []).length === 0 && (polls ?? []).length === 0
 
+  // A finished event inverts. While nobody has taken the roll call it is the
+  // one thing here that decays, so it keeps the loud slot and the photos sit
+  // under it. Once the record exists the slot is free, the photos take the top
+  // (on a done event they are why anyone opens the page), and the loud action
+  // becomes the question a good night actually raises.
+  const isDone = event.status === 'done' && !event.deleted_at
+  const rollCallTaken = !!event.attendance_taken_at
+  const photosBlock =
+    (event.status === 'done' || photos.length > 0) ? (
+      <section className="mb-[26px]">
+        <OpenSection label="Fotos" meta={photos.length ? String(photos.length) : undefined}>
+          <Photos
+            eventId={event.id}
+            slug={event.slug}
+            photos={photos}
+            canAdd={!!myMembership && !event.deleted_at}
+            reason={
+              event.deleted_at
+                ? 'Este evento está en la papelera, no se pueden agregar fotos.'
+                : 'Solo quien fue al evento puede agregar fotos.'
+            }
+          />
+        </OpenSection>
+      </section>
+    ) : null
+
   const dateChip =
     event.status === 'scheduling'
       ? 'Fecha por definir'
@@ -316,6 +343,14 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             listas, pero se puede recuperar hasta entonces.
           </span>
         </div>
+      )}
+
+      {isDone && (
+        <ClosedReceipt
+          by={event.closed_by ? nameOf.get(event.closed_by as string) ?? null : null}
+          on={event.closed_at as string | null}
+          held={event.chosen_start}
+        />
       )}
 
       {event.status === 'cancelled' && (
@@ -535,16 +570,32 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           event is over, the only thing left that only the organizer can do is
           say who actually turned up. It sits above "Quién va" because it is
           the same question, answered after the fact. */}
-      {event.status === 'done' && isOrganizer && (
+      {isDone && rollCallTaken && photosBlock}
+
+      {isDone && isOrganizer && !rollCallTaken && (
         <section className="mb-[26px]">
           <AttendanceSheet
             eventId={event.id}
             slug={event.slug}
             people={rollCall}
             takenAt={event.attendance_taken_at}
-            takenBy={event.attendance_taken_at ? nameOf.get(event.organizer_user_id) ?? null : null}
+            takenBy={null}
           />
         </section>
+      )}
+
+      {isDone && !rollCallTaken && photosBlock}
+
+      {/* Only an organizer can start the next one, and only once the record of
+          this one exists. Offering it above an untaken roll call would be the
+          page asking about the future while the past is still unwritten. */}
+      {isDone && rollCallTaken && isOrganizer && (
+        <DuplicatePrompt
+          eventId={event.id}
+          faces={rollCall.filter((p) => p.present).map((p) => p.user)}
+          total={rollCall.filter((p) => p.present).length}
+          place={event.location}
+        />
       )}
 
       {event.status !== 'scheduling' && event.status !== 'cancelled' && (
@@ -576,9 +627,13 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             </div>
           )}
 
-          {/* the answer buttons stay for anyone who already answered and wants
-              to change it; the loud block above carries the first answer */}
-          {loud === 'none' && (
+          {/* The answer buttons stay for anyone who already answered and wants
+              to change it; the loud block above carries the first answer. They
+              go entirely once the event is over: an RSVP is a promise about
+              something that has not happened, and offering to change one for
+              last Thursday invites people to edit history the roll call is the
+              actual record of. (Cancelled is already excluded further up.) */}
+          {loud === 'none' && !isDone && (
             <div className="flex gap-2">
               {RSVP_OPTIONS.map((o) => (
                 <form key={o.v} action={setRsvp.bind(null, event.id, event.slug, o.v)} className="flex-1">
@@ -656,14 +711,16 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         {unclaimed.length > 0 && (
           <span className="text-[11.5px] font-bold text-honey-800">faltan {unclaimed.length}</span>
         )}
-        <span className="ml-auto">
-          <AddContributionButton
-            eventId={event.id}
-            slug={event.slug}
-            isOrganizer={!!isOrganizer}
-            members={(members ?? []).filter((m) => m.user_id !== profile.id).map((m) => ({ user_id: m.user_id, name: nameOf.get(m.user_id) ?? '·' }))}
-          />
-        </span>
+        {!isDone && event.status !== 'cancelled' && (
+          <span className="ml-auto">
+            <AddContributionButton
+              eventId={event.id}
+              slug={event.slug}
+              isOrganizer={!!isOrganizer}
+              members={(members ?? []).filter((m) => m.user_id !== profile.id).map((m) => ({ user_id: m.user_id, name: nameOf.get(m.user_id) ?? '·' }))}
+            />
+          </span>
+        )}
       </div>
       {contributions.length === 0 && <p className="text-sm text-ink-500">Nadie trae nada todavía. Estrena la lista.</p>}
       <ul className="flex flex-col gap-2">
@@ -771,21 +828,26 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
       {/* Only once there is an evening to have photographed. Before that the
           album is an empty promise taking up a section. */}
-      {(event.status === 'done' || photos.length > 0) && (
+      {!isDone && photosBlock}
+
+      {/* Said once, at the bottom, rather than as an empty state on each of
+          the two things it is true of. */}
+      {isDone && (
+        <p className="mb-[26px] flex items-start gap-2 px-0.5 text-[12.5px] leading-relaxed text-ink-300">
+          <Icon name="circle" size={4} className="mt-[7px] flex-shrink-0" />
+          <span>Los RSVPs y la lista de aportaciones ya están cerrados. Lo demás se queda como historial.</span>
+        </p>
+      )}
+
+      {isDone && isOrganizer && rollCallTaken && (
         <section className="mb-[26px]">
-          <OpenSection label="Fotos" meta={photos.length ? String(photos.length) : undefined}>
-            <Photos
-              eventId={event.id}
-              slug={event.slug}
-              photos={photos}
-              canAdd={!!myMembership && !event.deleted_at}
-              reason={
-                event.deleted_at
-                  ? 'Este evento está en la papelera, no se pueden agregar fotos.'
-                  : 'Solo quien fue al evento puede agregar fotos.'
-              }
-            />
-          </OpenSection>
+          <AttendanceSheet
+            eventId={event.id}
+            slug={event.slug}
+            people={rollCall}
+            takenAt={event.attendance_taken_at}
+            takenBy={nameOf.get((event.closed_by as string) ?? event.organizer_user_id) ?? null}
+          />
         </section>
       )}
 
