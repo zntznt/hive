@@ -26,14 +26,18 @@ import { clubFooter, quietSince, type CardEvent } from '@/lib/club-card'
 // 2 próximos" is two numbers nobody pictures, and the second one was answering
 // a question the footer already answers by name.
 
-type Row = { club_id: string; role: string; clubs: { slug: string; name: string; avatar_url: string | null } | null }
+type Row = {
+  club_id: string
+  role: string
+  clubs: { slug: string; name: string; avatar_url: string | null; banner_url: string | null } | null
+}
 
 export default async function ClubsPage() {
   const { supabase, profile } = await requireProfile()
 
   const { data: memberships } = await supabase
     .from('club_members')
-    .select('club_id, role, clubs(slug, name, avatar_url)')
+    .select('club_id, role, clubs(slug, name, avatar_url, banner_url)')
     .eq('user_id', profile.id)
 
   const rows = (memberships ?? []) as unknown as Row[]
@@ -146,14 +150,28 @@ export default async function ClubsPage() {
                 >
                   <Link
                     href={`/club/${club.slug}`}
-                    className="block w-full text-center"
-                    style={{ backgroundColor: 'var(--cream)', backgroundImage: 'var(--honeycomb)' }}
+                    className="relative block w-full overflow-hidden text-center"
+                    style={{
+                      backgroundColor: 'var(--cream)',
+                      backgroundImage: club.banner_url ? undefined : 'var(--honeycomb)',
+                    }}
                   >
+                    {club.banner_url && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute inset-x-0 top-0 h-[96px] bg-cover bg-center"
+                        style={{ backgroundImage: `url(${club.banner_url})` }}
+                      />
+                    )}
                     <span
-                      className="block px-3.5 pb-[13px] pt-3.5"
+                      className="relative block px-3.5 pb-[13px] pt-3.5"
                       style={{
-                        background:
-                          'linear-gradient(180deg, rgba(251,247,239,0) 0%, rgba(251,247,239,.86) 44%, var(--paper) 100%)',
+                        // A photo needs a heavier scrim than the honeycomb
+                        // does, or the club's own name lands on somebody's
+                        // living room and stops being readable.
+                        background: club.banner_url
+                          ? 'linear-gradient(180deg, rgba(251,247,239,.2) 0%, rgba(251,247,239,.9) 46%, var(--paper) 100%)'
+                          : 'linear-gradient(180deg, rgba(251,247,239,0) 0%, rgba(251,247,239,.86) 44%, var(--paper) 100%)',
                       }}
                     >
                       <span className="mx-auto grid h-[66px] w-[60px] place-items-center bg-paper [clip-path:polygon(50%_0,100%_25%,100%_75%,50%_100%,0_75%,0_25%)]">

@@ -1,12 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabaseBrowser } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { BrandMark } from '@/components/ui/BrandMark'
-import { BeeLoader } from '@/components/ui/BeeLoader'
-import { authOrigin } from '@/lib/site-url'
-import { requestWhatsappCode, verifyWhatsappCode } from './actions'
+import { requestSigninCodeFor, verifySigninCodeFor } from './actions'
 
 // One field takes either a correo or a WhatsApp number (wireframe 1). '@' is
 // the only reliable tell: Mexican numbers are written with spaces, dashes,
@@ -59,17 +56,16 @@ export default function SignIn() {
 
     const byEmail = looksLikeEmail(value)
     try {
-      // The WhatsApp code is generated and sent server-side, so it never
-      // touches the browser Supabase client.
-      const result = byEmail
-        ? await supabaseBrowser().auth.signInWithOtp({
-            email: value,
-            options: { emailRedirectTo: `${authOrigin()}/auth/callback` },
-          })
-        : await requestWhatsappCode(value)
+      // Both channels are the same request now. The code is generated and
+      // sent server-side either way, so it never touches the browser Supabase
+      // client and the form does not need to know which one it asked for
+      // beyond what it says on screen.
+      const result = await requestSigninCodeFor(value)
 
+      // Our own action returns a plain string; the Supabase error object this
+      // used to also have to handle went with the magic link.
       if ('error' in result && result.error) {
-        setError(humanize(typeof result.error === 'string' ? result.error : result.error.message))
+        setError(humanize(result.error))
         return
       }
       setViaWhatsapp(!byEmail)
@@ -87,7 +83,7 @@ export default function SignIn() {
     setSending(true)
     setError(null)
     try {
-      const res = await verifyWhatsappCode(contact.trim(), code)
+      const res = await verifySigninCodeFor(contact.trim(), code)
       if (!res.ok) {
         setError(res.error)
         setCode('')
@@ -117,8 +113,7 @@ export default function SignIn() {
             <h1 className="font-display text-2xl font-bold text-on-dark">
               {viaWhatsapp ? 'Revisa tu WhatsApp' : 'Revisa tu correo'}
             </h1>
-            {viaWhatsapp ? (
-              <>
+            <>
                 <p className="text-sm text-on-dark-mute">
                   Te mandamos un código de 6 dígitos{contact ? <> a <b className="text-honey-400">{contact}</b></> : null}.
                   Escríbelo aquí para entrar.
@@ -139,17 +134,17 @@ export default function SignIn() {
                   </Button>
                   {error && <p className="rounded-md bg-danger-bg p-3 text-xs text-danger">{error}</p>}
                 </form>
+                {/* Load-bearing, not a courtesy. Hive has no sign-up, so a
+                    contact we do not hold is sent nothing at all, and known
+                    and unknown have to advance identically or this form
+                    becomes a way to test which addresses have an account.
+                    That puts the entire explanation here. */}
                 <p className="text-xs text-on-dark-mute">
-                  Si ese número no tiene cuenta en Hive, no llegará nada. Prueba con tu correo.
+                  {viaWhatsapp
+                    ? 'Si ese número no tiene cuenta en Hive, no llegará nada. Prueba con tu correo.'
+                    : 'Si ese correo no tiene cuenta en Hive, no llegará nada. Prueba con tu WhatsApp, o pide a quien organiza que te invite.'}
                 </p>
               </>
-            ) : (
-              <p className="text-sm text-on-dark-mute">
-                Te mandamos un enlace para entrar{contact ? <> a <b className="text-honey-400">{contact}</b></> : null}.
-                Ábrelo en este mismo navegador.
-              </p>
-            )}
-            {!viaWhatsapp && <BeeLoader />}
             <button
               type="button"
               onClick={() => {
@@ -187,11 +182,11 @@ export default function SignIn() {
               />
             </div>
             <Button display block size="lg" disabled={sending}>
-              {sending ? 'Enviando…' : 'Mándame el enlace para entrar'}
+              {sending ? 'Enviando…' : 'Mándame el código'}
             </Button>
             {error && <p className="mt-3 rounded-md bg-danger-bg p-3 text-xs text-danger">{error}</p>}
             <p className="mt-4 text-center text-xs text-on-dark-mute">
-              Sin contraseñas. Te llega un enlace por WhatsApp o correo y entras.
+              Sin contraseñas. Te llega un código de 6 dígitos por WhatsApp o correo y entras.
             </p>
           </form>
         )}

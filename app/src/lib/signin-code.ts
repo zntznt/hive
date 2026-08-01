@@ -3,20 +3,44 @@ import { after } from 'next/server'
 import { supabaseService } from './supabase/service'
 import { supabaseServer } from './supabase/server'
 import { sendWhatsapp } from './whatsapp'
+import { sendEmail } from './email'
 
-// Sign in over WhatsApp, the only way Meta allows it.
+// Sign in with a code, on either channel.
 //
-// A tappable link is impossible here: Meta rejected the same body as UTILITY
-// and as MARKETING with INCORRECT_CATEGORY, because it recognises a sign-in
-// message and requires the AUTHENTICATION category, which accepts only a
-// one-time code with a copy-code button. So the member gets a code, types it
-// back, and the session is minted here. They never handle a token.
+// WhatsApp forced the design: Meta rejected the same body as UTILITY and as
+// MARKETING with INCORRECT_CATEGORY, because it recognises a sign-in message
+// and requires the AUTHENTICATION category, which accepts only a one-time code
+// with a copy-code button. So the member gets a code, types it back, and the
+// session is minted here. They never handle a token.
+//
+// Email then kept its magic link for a while, which meant the same app asked
+// for six digits on one channel and a tapped link on the other. The link is
+// the worse half: it opens in whichever browser the mail app prefers, which is
+// not the one holding the half-finished sign-in, and on a phone that is most
+// of the reason this fails. Both channels are codes now, and the only thing
+// that differs is what carries it.
 //
 // The Supabase session still comes from generateLink: once our own code is
 // verified, the server mints a magic link for that account and consumes it
 // itself, which sets the session cookies without a round trip through mail.
 
 const TEMPLATE = 'codigo_acceso'
+// One address shape decides everything downstream: which column identifies the
+// account, which channel carries the code, and what the outbox row says.
+const isEmail = (v: string) => v.includes('@')
+
+// Deliberately plain. A sign-in code is read in two seconds from a
+// notification shade, so the only job here is to make the digits the largest
+// thing in the message and let the rest get out of the way.
+function signinEmailHtml(code: string) {
+  return `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:420px;margin:0 auto;padding:24px;color:#231a12">
+  <p style="font-size:15px;line-height:1.5;margin:0 0 18px">Tu código para entrar a Hive:</p>
+  <p style="font-size:34px;font-weight:800;letter-spacing:.22em;margin:0 0 18px;color:#231a12">${code}</p>
+  <p style="font-size:13.5px;line-height:1.6;color:#6b5b4b;margin:0">
+    Vence en 10 minutos y solo sirve una vez. Si no lo pediste, ignora este correo y no pasa nada.
+  </p>
+</div>`
+}
 const CODE_TTL_MINUTES = 10
 const MAX_ATTEMPTS = 5
 
@@ -38,9 +62,10 @@ export type CodeRequest = { ok: true } | { ok: false; error: string }
 // Always reports success for an unknown number. The sign-in form is
 // unauthenticated, so a distinguishable answer turns it into a way to test
 // which phone numbers hold an account.
-export async function requestSigninCode(phone: string): Promise<CodeRequest> {
+export async function requestSigninCode(contact: string): Promise<CodeRequest> {
   const db = supabaseService()
-  if (!db) return { ok: false, error: 'El inicio de sesión por WhatsApp no está configurado.' }
+  if (!db) return { ok: false, error: 'El inicio de sesión no está configurado.' }
+  const email = isEmail(contact)
 
   // The throttle is taken BEFORE the account lookup, and keyed by number
   // rather than by user, for two reasons. It has to survive the signin_codes
@@ -49,7 +74,7 @@ export async function requestSigninCode(phone: string): Promise<CodeRequest> {
   // a six digit code fell in a couple of hours). And an unknown number has to
   // cost the same as a real one, or the difference is an oracle for which
   // numbers hold an account.
-  const { data: gate } = await db.rpc('signin_throttle_take', { p_phone: phone })
+  const { data: gate } = await db.rpc('signin_throttle_take', { p_contact: contact })
   const allowed = (gate as { allowed?: boolean } | null)?.allowed === true
   if (!allowed) return { ok: true }
 
@@ -59,7 +84,7 @@ export async function requestSigninCode(phone: string): Promise<CodeRequest> {
   const { data: user } = await db
     .from('users')
     .select('id, display_name')
-    .eq('phone_whatsapp', phone)
+    .eq(email ? 'email' : 'phone_whatsapp', contact)
     .neq('status', 'disabled')
     .maybeSingle()
   if (!user) return { ok: true }
@@ -85,8 +110,8 @@ export async function requestSigninCode(phone: string): Promise<CodeRequest> {
     .from('notification_outbox')
     .insert({
       user_id: user.id,
-      destination: phone,
-      channel: 'whatsapp',
+      destination: contact,
+      channel: email ? 'email' : 'whatsapp',
       template: 'signin_code',
       // never the code, for the same reason it is hashed in signin_codes
       payload: { requested_at: new Date().toISOString() },
@@ -110,24 +135,38 @@ export async function requestSigninCode(phone: string): Promise<CodeRequest> {
   // answered by the outbox, not by how long we made them wait.
   after(async () => {
     try {
-    const sent = await sendWhatsapp({
-      to: phone,
-      templateName: TEMPLATE,
-      language: 'es_MX',
-      // Meta owns the body of an authentication template, so there is nothing
-      // to render and no wa_vars to honor. The code is the only parameter.
-      vars: [],
-      variables: {},
-      body: '',
-      otpCode: code,
-    })
+    const sent = email
+      ? await sendEmail({
+          to: contact,
+          // The code is in the subject as well as the body, so it is readable
+          // from the notification without opening anything, which is the one
+          // thing the magic link could never do.
+          subject: `Tu código para entrar a Hive: ${code}`,
+          html: signinEmailHtml(code),
+        })
+      : await sendWhatsapp({
+          to: contact,
+          templateName: TEMPLATE,
+          language: 'es_MX',
+          // Meta owns the body of an authentication template, so there is
+          // nothing to render and no wa_vars to honor. The code is the only
+          // parameter.
+          vars: [],
+          variables: {},
+          body: '',
+          otpCode: code,
+        })
 
       if (logged) {
         await db
           .from('notification_outbox')
           .update({
+            // Resend's ok has no provider ref to record, where Meta's does.
+            // Reading one off the other is how this stopped compiling, and
+            // pretending otherwise would write "undefined" into the column an
+            // admin uses to chase a message.
             status: sent.ok ? 'pending' : sent.skipped ? 'logged' : 'failed',
-            provider_ref: sent.ok ? sent.providerRef : null,
+            provider_ref: sent.ok && 'providerRef' in sent ? sent.providerRef : null,
             error: sent.ok ? null : sent.error,
           })
           .eq('id', logged.id)
@@ -157,14 +196,14 @@ export type CodeVerify = { ok: true; next: string } | { ok: false; error: string
 // Verifies our own code, then establishes the Supabase session. Wrong codes
 // burn an attempt so a six digit code cannot be guessed at leisure, and the
 // row is deleted the moment it succeeds so a code is usable exactly once.
-export async function verifySigninCode(phone: string, code: string, next?: string | null): Promise<CodeVerify> {
+export async function verifySigninCode(contact: string, code: string, next?: string | null): Promise<CodeVerify> {
   const db = supabaseService()
-  if (!db) return { ok: false, error: 'El inicio de sesión por WhatsApp no está configurado.' }
+  if (!db) return { ok: false, error: 'El inicio de sesión no está configurado.' }
 
   const { data: user } = await db
     .from('users')
     .select('id, email')
-    .eq('phone_whatsapp', phone)
+    .eq(isEmail(contact) ? 'email' : 'phone_whatsapp', contact)
     .neq('status', 'disabled')
     .maybeSingle()
   // Same wording for "no account", "no code" and "wrong code": a distinct
@@ -183,7 +222,7 @@ export async function verifySigninCode(phone: string, code: string, next?: strin
     await db.from('signin_codes').delete().eq('user_id', user.id)
     // deleting the code must not also clear the limiter, which is the whole
     // reason this counter lives in its own table
-    await db.rpc('signin_throttle_fail', { p_phone: phone })
+    await db.rpc('signin_throttle_fail', { p_contact: contact })
     return wrong
   }
 
@@ -192,12 +231,12 @@ export async function verifySigninCode(phone: string, code: string, next?: strin
     // the network, so parallel guesses all read the same number and all wrote
     // the same increment
     await db.rpc('signin_code_attempt', { p_user: user.id })
-    await db.rpc('signin_throttle_fail', { p_phone: phone })
+    await db.rpc('signin_throttle_fail', { p_contact: contact })
     return wrong
   }
 
   await db.from('signin_codes').delete().eq('user_id', user.id)
-  await db.rpc('signin_throttle_ok', { p_phone: phone })
+  await db.rpc('signin_throttle_ok', { p_contact: contact })
 
   // Mint a magic link for this account and consume it here. verifyOtp on the
   // cookie-bound server client is what actually writes the session, so the
