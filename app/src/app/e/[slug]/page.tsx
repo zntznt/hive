@@ -7,9 +7,8 @@ import Expenses from './expenses'
 import Polls from './polls'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
-import { Chip } from '@/components/ui/Chip'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
-import { Icon, MapPinIcon, type IconName } from '@/components/ui/Icon'
+import { Icon, type IconName } from '@/components/ui/Icon'
 import { rsvpButtonClass, rsvpLabel, RSVP_OPTIONS } from '@/components/ui/RsvpToggle'
 import { AddContributionButton, EditContributionButton } from './contribution-modal'
 import { CoOrganizerButton } from './co-organizer-modal'
@@ -21,9 +20,10 @@ import { siteUrl } from '@/lib/site-url'
 import Thread from './thread'
 import Photos, { type EventPhoto } from './photos'
 import { timeAgo } from '@/lib/relative-time'
-import { WhenPill, whenPill } from '@/components/ui/WhenPill'
 import { Button } from '@/components/ui/Button'
-import { Loud, QuietRow, OpenSection, SummaryRow, FoldedEmpties, DoorGroup, FaceStack, DayBanner } from '@/components/ui/Density'
+import { Loud, QuietRow, OpenSection, SummaryRow, FoldedEmpties, DoorGroup } from '@/components/ui/Density'
+import { FaceStack } from '@/components/ui/FaceStack'
+import { WhereCard } from './where-card'
 import { DetailsSheet } from '@/components/ui/DetailsSheet'
 import { AddExpenseButton } from './expense-modal'
 import { AddPollButton } from './poll-modal'
@@ -31,7 +31,7 @@ import { AttendanceSheet, type RollCallPerson } from './attendance-sheet'
 import { ClosedReceipt, DuplicatePrompt } from './done-blocks'
 import { duplicateWindow } from '@/lib/duplicate-window'
 import { nameList } from '@/lib/event-line'
-import { fmtDateTime, fmtDayMonth, fmtTime } from '@/lib/time'
+import { fmtDayMonth, fmtSpan, isEventDay } from '@/lib/time'
 
 function dayRange(start: string, end: string) {
   // walk in UTC so toISOString() reads the same date we stepped - parsing as
@@ -300,7 +300,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const isToday =
     event.status === 'scheduled' &&
     !!event.chosen_start &&
-    whenPill(event.chosen_start, event.status)?.label === 'Hoy'
+    isEventDay(event)
 
   // Expenses and polls are record-keeping: when both are empty they are two
   // headers and two sentences saying nothing, so they fold to one line that
@@ -353,6 +353,10 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const carriedOver =
     !!event.duplicated_from && contributions.length > 0 && contributions.every((c) => !c.assigned_to)
 
+  // What I said I would bring and have not marked done. Only mine: the row is
+  // a reminder, not a roster.
+  const myUnfinished = contributions.find((c) => c.assigned_to === profile.id && !c.done) ?? null
+
   const isDone = event.status === 'done' && !event.deleted_at
   const rollCallTaken = !!event.attendance_taken_at
   const photosBlock =
@@ -378,7 +382,9 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     event.status === 'scheduling'
       ? 'Fecha por definir'
       : event.status === 'scheduled' && event.chosen_start
-        ? fmtDateTime(event.chosen_start)
+        ? // day plus the whole span, not just the start: the end is what tells
+          // you if you are free after and when to get a ride home
+          `${fmtDayMonth(event.chosen_start)} · ${fmtSpan(event.chosen_start, event.chosen_end)}`
         : event.status === 'done'
           ? `celebrado${event.chosen_start ? ' · ' + fmtDayMonth(event.chosen_start) : ''}`
           : event.status === 'cancelled'
@@ -430,19 +436,6 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             Este evento se canceló. RSVPs y aportaciones están cerrados, todo lo demás se queda como historial. Se avisó a todos por
             correo y WhatsApp. Los balances abiertos siguen pendientes de liquidar.
           </span>
-        </div>
-      )}
-
-      {/* Rule 8. For the hours when the only thing you need from this screen
-          is how to get there, the address comes out of the details sheet and
-          sits at the top at full weight. Nothing is added, it is promoted. */}
-      {isToday && event.location && (
-        <div className="mb-3.5">
-          <DayBanner
-            place={event.location}
-            note={event.chosen_start ? `Desde las ${fmtTime(event.chosen_start)}` : undefined}
-            mapHref={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.location)}`}
-          />
         </div>
       )}
 
@@ -524,54 +517,30 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         </div>
       )}
 
-      <div className="mb-5 overflow-hidden rounded-lg border border-line-card bg-paper shadow-raised">
-        <div className="flex items-center justify-between gap-2.5 px-4 pb-3 pt-3.5">
-          <span className="font-display text-[22px] font-bold leading-tight text-ink-900">{event.title}</span>
-          {category && <Chip variant="sage">{category.emoji ? `${category.emoji} ` : ''}{category.name}</Chip>}
-        </div>
-        {/* the banner above already carries the address, the hour and the
-            route on the day, so repeating them here is noise */}
-        {event.location && !isToday && (
-          <iframe
-            title="mapa"
-            src={`https://www.google.com/maps?q=${encodeURIComponent(event.location)}&z=15&output=embed`}
-            className="block h-[150px] w-full border-0"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
-        )}
-        <div className="flex items-start justify-between gap-2.5 px-3.5 pb-2.5 pt-3">
-          {event.location ? (
-            <span className="flex min-w-0 items-start gap-2">
-              <MapPinIcon size={15} />
-              <span className="text-[15px] font-extrabold text-ink-900">{event.location}</span>
-            </span>
-          ) : (
-            <span className="text-sm text-ink-300">Sin lugar todavía</span>
-          )}
-          <WhenPill at={event.status === 'scheduling' ? null : event.chosen_start} status={event.status} className="flex-shrink-0" />
-        </div>
-        <div className="flex flex-wrap gap-x-4.5 gap-y-1.5 px-3.5 pb-3 text-[13px] text-ink-700">
-          <span><Icon name="calendar-days" size={12} /> {event.status === 'scheduling' ? 'fecha no definida' : dateChip}</span>
-          <span>
-            {/* seatsTaken, not confirmed.length: this pill sits above a
-                "Quién va" block that counts guests, and the two reading
-                different numbers for the same question is worse than either
-                number being wrong on its own. */}
-            <Icon name="users" size={12} /> van {seatsTaken} · quizás {byStatus('maybe').length}
+      <WhereCard
+        location={event.location}
+        title={event.title}
+        when={`${event.title} · hoy ${fmtSpan(event.chosen_start, event.chosen_end)}`}
+        span={event.status === 'scheduling' ? 'fecha no definida' : dateChip}
+        status={event.status}
+        chosenStart={event.chosen_start}
+        today={isToday}
+        canEdit={!!isOrganizer}
+        editHref={`/e/${event.slug}/edit`}
+      />
+
+      {/* Rule 8's other half. At 19:50 the address is what you need, and the
+          one thing you can still get wrong is the thing you said you would
+          bring. It is loud for exactly as long as it is unfinished. */}
+      {isToday && myUnfinished && (
+        <div className="mb-5 flex items-center gap-2.5 rounded-lg border-[1.5px] border-honey-500 bg-honey-50 px-3.5 py-3">
+          <Icon name="basket-shopping" size={15} className="flex-shrink-0 text-honey-800" />
+          <span className="min-w-0 flex-1 text-[13.5px] font-bold text-ink-900">
+            Dijiste que llevas {myUnfinished.title}
           </span>
+          <span className="flex-shrink-0 text-[12.5px] text-ink-500">no se te olvide</span>
         </div>
-        {event.location && !isToday && (
-          <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.location)}`}
-            target="_blank"
-            rel="noreferrer"
-            className="block border-t border-line-divider py-2.5 text-center text-sm font-bold text-honey-700"
-          >
-            Ver ruta <Icon name="arrow-up-right-from-square" size={10} />
-          </a>
-        )}
-      </div>
+      )}
 
       {isClubGuest && (
         <div className="mb-4 rounded-lg border border-honey-200 bg-honey-50 px-4 py-3.5">
@@ -683,7 +652,8 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           {confirmed.length > 0 && (
             <div className="flex flex-col gap-2.5 rounded-md border border-line-card bg-paper px-3.5 py-3">
               <FaceStack
-                faces={confirmed.map((r) => userOf.get(r.user_id) ?? { display_name: nameOf.get(r.user_id) ?? '·' })}
+                people={confirmed.map((r) => userOf.get(r.user_id) ?? { display_name: nameOf.get(r.user_id) ?? '·' })}
+                total={seatsTaken}
                 size={30}
                 max={7}
               />

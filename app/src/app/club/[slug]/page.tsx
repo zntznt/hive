@@ -21,7 +21,8 @@ import { CollapsibleSection } from '@/components/ui/CollapsibleSection'
 import { attendanceLine, type MyRsvp } from '@/lib/event-line'
 import { decideChangeRequest, decideJoinRequest } from '@/app/actions'
 import { ClubBar } from './club-bar'
-import { WhenPill, whenPill } from '@/components/ui/WhenPill'
+import { WhenPill } from '@/components/ui/WhenPill'
+import { isEventDay } from '@/lib/time'
 import { SummaryRow, DoorGroup } from '@/components/ui/Density'
 import { siteUrl } from '@/lib/site-url'
 
@@ -91,7 +92,7 @@ export default async function ClubPage({
   // the top of the page to the address.
   const hasEventToday = ((evs ?? []) as EventRow[])
     .filter((e) => !['done', 'cancelled'].includes(e.status))
-    .some((e) => whenPill(e.chosen_start, e.status)?.label === 'Hoy')
+    .some((e) => isEventDay(e))
 
   // upcoming-event RSVP counts (going/maybe) for each EvCard's footer row.
   // "van" counts people, so a guest counts too, and only while the member who
@@ -263,18 +264,25 @@ export default async function ClubPage({
         {upcoming.length === 0 ? (
           <EmptyState icon="calendar-days" title="Nada en esta categoría todavía." hint={isManager ? 'Empieza algo.' : 'Vuelve pronto.'} />
         ) : (
-          <div className="flex flex-col gap-3.5">
-            {upcoming.map((e) => (
-              <EvCard
-                key={e.id}
-                e={e}
-                catName={catName(e.category_id)}
-                counts={rsvpCountsByEvent.get(e.id)}
-                faces={goingFaces.get(e.id) ?? []}
-                mine={myRsvpByEvent.get(e.id) ?? null}
-                today={whenPill(e.chosen_start, e.status)?.label === 'Hoy'}
-              />
-            ))}
+          <div className="flex flex-col gap-2">
+            {/* Rule 9. Today is a card; a week out is a row. Five upcoming
+                events used to mean five map iframes and five identical slabs,
+                which flattens tonight into next month. */}
+            {upcoming.map((e) =>
+              isEventDay(e) ? (
+                <EvCard
+                  key={e.id}
+                  e={e}
+                  catName={catName(e.category_id)}
+                  counts={rsvpCountsByEvent.get(e.id)}
+                  faces={goingFaces.get(e.id) ?? []}
+                  mine={myRsvpByEvent.get(e.id) ?? null}
+                  today
+                />
+              ) : (
+                <EvRow key={e.id} e={e} counts={rsvpCountsByEvent.get(e.id)} mine={myRsvpByEvent.get(e.id) ?? null} />
+              )
+            )}
           </div>
         )}
       </section>
@@ -463,6 +471,52 @@ export default async function ClubPage({
 // The cost is two treatments for the same object, and honey normally means
 // "this wants an answer from you". Here it means "this is happening in a few
 // hours", which is the one other thing worth that much attention.
+// Today gets the card. Everything else gets a row.
+//
+// Every upcoming event used to render the full card, map iframe and all, so a
+// club with five upcoming events loaded five Google Maps frames and an event
+// six days out carried the same 190px of weight as tonight's. The card is the
+// day-of treatment; a week out, the question is only "what and when", which
+// fits on one line.
+//
+// Cancelled keeps its struck title and its badge, but stops taking card space:
+// it is history, and history is a row.
+function EvRow({
+  e,
+  counts,
+  mine,
+}: {
+  e: EventRow
+  counts: { going: number; maybe: number; answered: boolean } | undefined
+  mine: MyRsvp
+}) {
+  const cancelled = e.status === 'cancelled'
+  return (
+    <Link
+      href={`/e/${e.slug}`}
+      className={`flex min-h-[52px] items-center gap-2.5 rounded-md border border-line-card bg-paper px-3.5 py-2.5 ${
+        cancelled ? 'opacity-65' : ''
+      }`}
+    >
+      <span className="min-w-0 flex-1">
+        <span className={`block truncate text-[13.5px] font-bold text-ink-900 ${cancelled ? 'line-through' : ''}`}>
+          {e.title}
+        </span>
+        <span className="mt-0.5 block truncate text-[12px] text-ink-500">
+          {e.location ?? 'sin lugar'}
+          {counts?.answered ? ` · ${attendanceLine(counts.going, mine, true)}` : ''}
+        </span>
+      </span>
+      {cancelled ? (
+        <Badge tone="disabled">cancelado</Badge>
+      ) : (
+        <WhenPill at={e.status === 'scheduling' ? null : e.chosen_start} status={e.status} />
+      )}
+      <Icon name="chevron-right" size={10} className="flex-shrink-0 text-ink-300" />
+    </Link>
+  )
+}
+
 function EvCard({
   e,
   catName,

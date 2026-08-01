@@ -10,8 +10,9 @@
 // card again from a club that has gone quiet, and the footer is where that
 // difference shows: an address, a name, or an honest sentence about nothing.
 
+import { fmtSpan, sameDayInMexico } from './time'
+
 const TZ = 'America/Mexico_City'
-const DAY = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' })
 
 export type CardEvent = {
   id: string
@@ -27,12 +28,6 @@ export type ClubFooter =
   | { kind: 'today'; event: CardEvent; window: string }
   | { kind: 'next'; event: CardEvent }
   | { kind: 'quiet'; since: string | null }
-
-function sameDayInMexico(iso: string, now: Date) {
-  return DAY.format(new Date(iso)) === DAY.format(now)
-}
-
-const HHMM = new Intl.DateTimeFormat('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TZ })
 
 // Which event is a club's next one. Dated events come first in date order;
 // undated ones (still finding a time) trail them. The tie-break chain is
@@ -62,9 +57,7 @@ export function clubFooter(events: CardEvent[], lastActivity: string | null, now
   if (next.chosen_start && sameDayInMexico(next.chosen_start, now)) {
     // On the day the address is the answer, so the time shrinks to a window
     // beside the category rather than taking a pill of its own.
-    const start = HHMM.format(new Date(next.chosen_start))
-    const end = next.chosen_end ? HHMM.format(new Date(next.chosen_end)) : null
-    return { kind: 'today', event: next, window: end ? `${start} a ${end}` : `desde las ${start}` }
+    return { kind: 'today', event: next, window: fmtSpan(next.chosen_start, next.chosen_end) }
   }
   return { kind: 'next', event: next }
 }

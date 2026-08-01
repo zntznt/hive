@@ -125,7 +125,7 @@ export default async function ClubsPage() {
 
   return (
     <Page>
-      <PageHeader title="Clubs" action={<CreateClubButton />} />
+      <PageHeader title="Clubes" action={<CreateClubButton />} />
 
       {clubs.length === 0 ? (
         <EmptyState
