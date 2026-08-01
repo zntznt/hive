@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Chip } from '@/components/ui/Chip'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { Icon, MapPinIcon } from '@/components/ui/Icon'
-import { rsvpButtonClass, RSVP_OPTIONS } from '@/components/ui/RsvpToggle'
+import { rsvpButtonClass, rsvpLabel, RSVP_OPTIONS } from '@/components/ui/RsvpToggle'
 import { AddContributionButton, EditContributionButton } from './contribution-modal'
 import { CoOrganizerButton } from './co-organizer-modal'
 import { RequestJoinClubButton } from './request-join-button'
@@ -398,18 +398,18 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               <div className="grid grid-cols-2 gap-2">
                 <form action={setRsvp.bind(null, event.id, event.slug, 'in')}>
                   <Button block display>
-                    Voy
+                    {rsvpLabel('in')}
                   </Button>
                 </form>
                 <form action={setRsvp.bind(null, event.id, event.slug, 'out')}>
                   <Button block variant="secondary">
-                    No puedo
+                    {rsvpLabel('out')}
                   </Button>
                 </form>
               </div>
               <form action={setRsvp.bind(null, event.id, event.slug, 'maybe')}>
                 <Button block variant="ghost" size="sm">
-                  Todavía no sé
+                  {rsvpLabel('maybe')}
                 </Button>
               </form>
             </div>
@@ -907,7 +907,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             </span>
             {event.capacity != null && (
               <span>
-                <Icon name="users" size={11} /> {event.capacity === 1 ? '1 lugar' : `${event.capacity} lugares`}
+                <Icon name="users" size={11} /> cupo para {event.capacity}
                 {event.waitlist_enabled ? ', con lista de espera' : ''}.
               </span>
             )}

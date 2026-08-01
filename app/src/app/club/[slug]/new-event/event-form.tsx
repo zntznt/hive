@@ -218,7 +218,7 @@ export default function EventForm({
           <Checkbox name="allow_guests" label="Permitir invitados (+1)" defaultChecked={initial?.allow_guests} />
           <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
             <label className="flex items-center gap-2" htmlFor="capacity">
-              Lugares máx.
+              Cupo máx.
               <input
                 id="capacity"
                 name="capacity"

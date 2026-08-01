@@ -14,6 +14,15 @@ import { TemplateRow, TemplateSyncBar } from './template-row'
 import OutboxLog, { type OutboxRow } from './outbox-log'
 import { AppBar } from '@/components/ui/AppBar'
 
+// The account states, in Spanish. The badge printed the database enum, so an
+// admin read "active" and "disabled" on a screen where everything else is
+// Spanish. The outbox log next to it already had exactly this map.
+const STATUS_LABEL: Record<string, string> = {
+  active: 'con acceso',
+  disabled: 'sin acceso',
+  pending: 'sin verificar',
+}
+
 // The platform panel: accounts and delivery, and nothing else.
 //
 // Club approvals used to live here, which put a club's own business on a
@@ -192,7 +201,9 @@ export default async function AdminPage() {
                   <span className="flex flex-wrap items-center gap-1.5 text-ink-900">
                     {u.display_name}
                     <span className="text-ink-300">{u.email ?? u.phone_whatsapp}</span>
-                    <Badge tone={u.status === 'active' ? 'active' : 'disabled'}>{u.status}</Badge>
+                    <Badge tone={u.status === 'active' ? 'active' : 'disabled'}>
+                      {STATUS_LABEL[u.status] ?? u.status}
+                    </Badge>
                     {u.is_app_admin && <Badge tone="admin">admin</Badge>}
                   </span>
                   {u.id !== profile.id && (
