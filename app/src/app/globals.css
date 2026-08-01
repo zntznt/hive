@@ -304,12 +304,22 @@ body {
 }
 
 /* Tailwind's reset strips native control styling, so state text/bg explicitly
-   to guarantee readable input text and visible placeholders everywhere. */
-input,
-textarea,
-select {
-  color: var(--text-heading);
-  background-color: var(--paper);
+   to guarantee readable input text and visible placeholders everywhere.
+ *
+ * This MUST stay inside `@layer base`. Unlayered CSS beats every layered rule
+ * regardless of specificity, and Tailwind v4 puts its utilities in a layer, so
+ * out here these two lines quietly won against every `bg-*` and `text-*` ever
+ * put on a field. The sign-in hero's own input carried `bg-charcoal-2` and
+ * rendered white on the charcoal card because of it, and the comment above
+ * that input confidently said the opposite. The same trap already cost this
+ * file the two camera buttons, documented further down. */
+@layer base {
+  input,
+  textarea,
+  select {
+    color: var(--text-heading);
+    background-color: var(--paper);
+  }
 }
 
 input::placeholder,

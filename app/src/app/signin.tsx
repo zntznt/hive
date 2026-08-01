@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/Button'
+import { CodeEntryStep } from '@/components/ui/CodeEntryStep'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { requestSigninCodeFor, verifySigninCodeFor } from './actions'
 
@@ -24,6 +25,7 @@ function humanize(raw: string) {
 export default function SignIn() {
   const [contact, setContact] = useState('')
   const [sent, setSent] = useState(false)
+  const [sentAt, setSentAt] = useState<number | undefined>(undefined)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [viaWhatsapp, setViaWhatsapp] = useState(false)
@@ -69,6 +71,7 @@ export default function SignIn() {
         return
       }
       setViaWhatsapp(!byEmail)
+      setSentAt(Date.now())
       setSent(true)
     } catch {
       setError('No pudimos completar el envío. Revisa tu conexión e intenta de nuevo.')
@@ -77,13 +80,12 @@ export default function SignIn() {
     }
   }
 
-  async function confirm(e: React.FormEvent) {
-    e.preventDefault()
+  async function confirm(submitted: string) {
     if (sending) return
     setSending(true)
     setError(null)
     try {
-      const res = await verifySigninCodeFor(contact.trim(), code)
+      const res = await verifySigninCodeFor(contact.trim(), submitted)
       if (!res.ok) {
         setError(res.error)
         setCode('')
@@ -100,9 +102,11 @@ export default function SignIn() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-entry flex-col justify-center px-4 pb-10 pt-6">
-      {/* Dark hero card. Tailwind's bg- and text- utilities are class selectors,
-          so they win over the global `input { color; background-color }` rule
-          (an element selector) regardless of source order; no !important needed. */}
+      {/* Dark hero card. This used to claim Tailwind's bg- and text- utilities
+          beat the global `input` rule on specificity. They do not: that rule
+          sat outside `@layer`, and unlayered CSS wins over any layered rule
+          whatever its specificity, so this field rendered white on charcoal
+          for as long as it existed. The rule is in `@layer base` now. */}
       <div className="rounded-2xl bg-charcoal px-7 py-8 shadow-pop">
         <div className="mb-6">
           <BrandMark variant="invert" />
@@ -114,26 +118,21 @@ export default function SignIn() {
               {viaWhatsapp ? 'Revisa tu WhatsApp' : 'Revisa tu correo'}
             </h1>
             <>
-                <p className="text-sm text-on-dark-mute">
-                  Te mandamos un código de 6 dígitos{contact ? <> a <b className="text-honey-400">{contact}</b></> : null}.
-                  Escríbelo aquí para entrar.
-                </p>
-                <form onSubmit={confirm} className="space-y-3">
-                  <input
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    maxLength={6}
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                    placeholder="000000"
-                    aria-label="Código de 6 dígitos"
-                    className="w-full rounded-md border border-charcoal-3 bg-charcoal-2 px-[14px] py-[13px] text-center font-display text-2xl tracking-[0.4em] text-on-dark outline-none placeholder:text-on-dark-mute focus:border-honey-500"
-                  />
-                  <Button display block size="lg" disabled={sending || code.length < 6}>
-                    {sending ? 'Entrando…' : 'Entrar'}
-                  </Button>
-                  {error && <p className="rounded-md bg-danger-bg p-3 text-xs text-danger">{error}</p>}
-                </form>
+                <CodeEntryStep
+                  value={code}
+                  onChange={setCode}
+                  onSubmit={confirm}
+                  status={sending ? 'submitting' : error ? 'wrong' : 'entry'}
+                  to={contact || undefined}
+                  error={error}
+                  sentAt={sentAt}
+                  onBack={() => {
+                    setSent(false)
+                    setCode('')
+                    setError(null)
+                  }}
+                  backLabel={viaWhatsapp ? 'Cambiar número' : 'Cambiar correo'}
+                />
                 {/* Load-bearing, not a courtesy. Hive has no sign-up, so a
                     contact we do not hold is sent nothing at all, and known
                     and unknown have to advance identically or this form

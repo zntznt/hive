@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { startWhatsappVerification, confirmWhatsappVerification, removeWhatsappPhone } from '@/app/actions'
 import { useToast } from '@/components/ui/Toast'
 import { Button } from '@/components/ui/Button'
+import { CodeEntryStep } from '@/components/ui/CodeEntryStep'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
@@ -15,6 +16,7 @@ import { formatPhone } from '@/lib/phone'
 export default function WhatsappForm({ phone, verifiedAt }: { phone: string | null; verifiedAt: string | null }) {
   const toast = useToast()
   const [step, setStep] = useState<'closed' | 'number' | 'code'>('closed')
+  const [sentAt, setSentAt] = useState<number | undefined>(undefined)
   const [value, setValue] = useState('')
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -35,6 +37,7 @@ export default function WhatsappForm({ phone, verifiedAt }: { phone: string | nu
       fd.set('phone', value.trim())
       const res = await startWhatsappVerification(fd)
       if (!res.ok) return setError(res.error)
+      setSentAt(Date.now())
       setStep('code')
     })
   }
@@ -102,26 +105,23 @@ export default function WhatsappForm({ phone, verifiedAt }: { phone: string | nu
       )}
 
       {step === 'code' && (
-        <div className="mt-2.5 flex flex-col gap-2 border-t border-line-card pt-2.5">
-          <Input
-            label="Código de 6 dígitos"
-            placeholder="000000"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={6}
+        <div className="mt-2.5 border-t border-line-card pt-2.5">
+          {/* Same six boxes as the sign-in hero, in the light compact skin.
+              This row used to roll its own input and its own Confirm button,
+              which is exactly the second code entry the kit forbids. */}
+          <CodeEntryStep
             value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+            onChange={setCode}
+            onSubmit={confirm}
+            status={pending ? 'submitting' : error ? 'wrong' : 'entry'}
+            to={value.trim()}
+            error={error}
+            sentAt={sentAt}
+            surface="light"
+            compact
+            onBack={() => setStep('number')}
+            backLabel="Cambiar número"
           />
-          <p className="text-xs text-ink-300">Lo mandamos a {value.trim()}. Vence en 10 minutos.</p>
-          {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
-          <div className="flex items-center gap-2">
-            <Button size="sm" disabled={pending || code.length < 6} onClick={confirm}>
-              {pending ? 'Confirmando…' : 'Confirmar'}
-            </Button>
-            <Button size="sm" variant="ghost" disabled={pending} onClick={() => setStep('number')}>
-              Cambiar número
-            </Button>
-          </div>
         </div>
       )}
 
