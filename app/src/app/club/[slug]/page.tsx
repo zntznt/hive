@@ -14,14 +14,13 @@ import { BannerUpload } from './banner-upload'
 import { AvatarUpload } from './avatar-upload'
 import { AboutEditor } from './about-editor'
 import { AddCategoryButton, EditCategoryButton } from './category-editor'
-import { DangerZone } from './danger-zone'
 import { CalendarSubscribe } from './calendar-subscribe'
 import { ClubHeader } from './club-header'
 import { FaceStack } from '@/components/ui/FaceStack'
 import { CollapsibleSection } from '@/components/ui/CollapsibleSection'
 import { attendanceLine, type MyRsvp } from '@/lib/event-line'
 import { decideChangeRequest, decideJoinRequest } from '@/app/actions'
-import { AppBar } from '@/components/ui/AppBar'
+import { ClubBar } from './club-bar'
 import { WhenPill, whenPill } from '@/components/ui/WhenPill'
 import { SummaryRow, DoorGroup } from '@/components/ui/Density'
 import { siteUrl } from '@/lib/site-url'
@@ -90,7 +89,9 @@ export default async function ClubPage({
 
   // The page knows what day it is. An event today folds the header and hands
   // the top of the page to the address.
-  const hasEventToday = upcoming.some((e) => whenPill(e.chosen_start, e.status)?.label === 'Hoy')
+  const hasEventToday = ((evs ?? []) as EventRow[])
+    .filter((e) => !['done', 'cancelled'].includes(e.status))
+    .some((e) => whenPill(e.chosen_start, e.status)?.label === 'Hoy')
 
   // upcoming-event RSVP counts (going/maybe) for each EvCard's footer row.
   // "van" counts people, so a guest counts too, and only while the member who
@@ -190,10 +191,15 @@ export default async function ClubPage({
 
   return (
     <>
-      <AppBar
-        title={club.name}
-        backHref="/clubs"
-        action={isManager ? { label: 'Nuevo evento', icon: 'plus', href: `/club/${slug}/new-event` } : undefined}
+      <ClubBar
+        clubId={club.id}
+        slug={slug}
+        clubName={club.name}
+        memberCount={(roster ?? []).length}
+        isManager={isManager}
+        isAdmin={isAdmin}
+        isLastAdmin={isAdmin && adminCount === 1}
+        pastCount={past.length}
       />
       <main className="mx-auto w-full max-w-col px-4 pb-6">
       {/* One front door instead of banner + name row + about card. On the day
@@ -211,7 +217,9 @@ export default async function ClubPage({
         foldedByDefault={hasEventToday}
         cover={isManager ? <BannerUpload clubId={club.id} slug={slug} /> : undefined}
         picture={
-          isManager ? <AvatarUpload clubId={club.id} slug={slug} clubName={club.name} avatarUrl={club.avatar_url} /> : undefined
+          isManager ? (
+            <AvatarUpload clubId={club.id} slug={slug} clubName={club.name} avatarUrl={club.avatar_url} size={64} />
+          ) : undefined
         }
         edit={
           isManager ? (
@@ -237,6 +245,16 @@ export default async function ClubPage({
         ))}
         {isManager && <AddCategoryButton clubId={club.id} slug={slug} isAdmin={isAdmin} />}
       </nav>
+
+      {isManager && (
+        <p className="mb-[26px]">
+          <Link href={`/club/${slug}/new-event`} className="block">
+            <Button display block size="lg" icon={<Icon name="plus" size={12} />}>
+              Nuevo evento
+            </Button>
+          </Link>
+        </p>
+      )}
 
       <section className="mb-[26px]">
         <SectionHeader action={upcoming.length > 0 ? <span className="text-[12.5px] text-ink-300">{upcoming.length}</span> : null}>
@@ -443,8 +461,6 @@ export default async function ClubPage({
         />
       </DoorGroup>
 
-      <SectionHeader>Ajustes del club</SectionHeader>
-      <DangerZone clubId={club.id} clubName={club.name} isAdmin={isAdmin} isLastAdmin={isAdmin && adminCount === 1} memberCount={(roster ?? []).length} />
     </main>
     </>
   )

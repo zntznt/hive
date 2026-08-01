@@ -47,6 +47,8 @@ export function ClubHeader({
   // the manager-only affordances, passed in so this stays presentational and
   // the uploads keep owning their own modals
   cover?: ReactNode
+  // the whole hexagon when a manager can change it, so the camera sits on the
+  // mark rather than next to a second copy of it
   picture?: ReactNode
   edit?: ReactNode
   foldedByDefault?: boolean
@@ -110,9 +112,8 @@ export function ClubHeader({
           </button>
         )}
 
-        <span className="relative mx-auto grid h-[76px] w-[70px] place-items-center bg-paper [clip-path:polygon(50%_0,100%_25%,100%_75%,50%_100%,0_75%,0_25%)]">
-          <HexAvatar name={name} src={avatarUrl} size={64} />
-          {picture && <span className="absolute -bottom-0.5 -right-1">{picture}</span>}
+        <span className="relative mx-auto flex w-[76px] justify-center">
+          {picture ?? <HexAvatar name={name} src={avatarUrl} size={64} />}
         </span>
 
         <span className="mt-1.5 flex flex-wrap items-center justify-center gap-2">
