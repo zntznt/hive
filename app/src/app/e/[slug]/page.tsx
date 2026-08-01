@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Chip } from '@/components/ui/Chip'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
-import { Icon, MapPinIcon } from '@/components/ui/Icon'
+import { Icon, MapPinIcon, type IconName } from '@/components/ui/Icon'
 import { rsvpButtonClass, rsvpLabel, RSVP_OPTIONS } from '@/components/ui/RsvpToggle'
 import { AddContributionButton, EditContributionButton } from './contribution-modal'
 import { CoOrganizerButton } from './co-organizer-modal'
@@ -29,6 +29,7 @@ import { AddExpenseButton } from './expense-modal'
 import { AddPollButton } from './poll-modal'
 import { AttendanceSheet, type RollCallPerson } from './attendance-sheet'
 import { ClosedReceipt, DuplicatePrompt } from './done-blocks'
+import { duplicateWindow } from '@/lib/duplicate-window'
 import { nameList } from '@/lib/event-line'
 import { fmtDateTime, fmtDayMonth, fmtTime } from '@/lib/time'
 
@@ -161,9 +162,28 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   // Painted nothing at all. Someone who saved an empty grid has a row and is
   // not waiting on anything: they answered, the answer was "no time works".
   const painted = new Set((avail ?? []).map((a) => a.user_id as string))
+  // Who has already been nudged about this event, read from the outbox, which
+  // is the same place nudgeMissingAvailability checks before it queues. One
+  // nudge per member per event, ever, is a rule the server already keeps; the
+  // card could not show it because nobody asked the outbox.
+  const { data: nudgeRows } = await supabase
+    .from('notification_outbox')
+    .select('user_id, created_at')
+    .eq('template', 'availability_pending')
+    .eq('payload->>event_id', event.id)
+  const nudgedIds = new Set((nudgeRows ?? []).map((r) => r.user_id as string))
+  const nudgedAt = (nudgeRows ?? [])
+    .map((r) => r.created_at as string)
+    .sort()
+    .at(-1) ?? null
+
   const waitingOn = (members ?? [])
     .filter((m) => !painted.has(m.user_id))
-    .map((m) => ({ id: m.user_id as string, user: (userOf.get(m.user_id) ?? { display_name: '·' }) as AvatarUser }))
+    .map((m) => ({
+      id: m.user_id as string,
+      user: (userOf.get(m.user_id) ?? { display_name: '·' }) as AvatarUser,
+      nudged: nudgedIds.has(m.user_id as string),
+    }))
 
   const contributions = (contribs ?? []) as Contribution[]
   const byStatus = (st: RsvpStatus) => (rsvps ?? []).filter((r) => r.status === st)
@@ -293,6 +313,46 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   // under it. Once the record exists the slot is free, the photos take the top
   // (on a done event they are why anyone opens the page), and the loud action
   // becomes the question a good night actually raises.
+  // What a duplicate actually takes with it, spelled out for the confirmation.
+  // The modal is a contract, so this is built from the event's own row rather
+  // than from a sentence somebody wrote once and forgot to update.
+  const carriesOver: { icon: IconName; text: string }[] = [
+    { icon: 'heading', text: `El nombre, ${event.title}` },
+    event.location ? { icon: 'location-dot', text: event.location } : null,
+    category ? { icon: 'tag', text: category.name as string } : null,
+    event.capacity != null
+      ? {
+          icon: 'users' as const,
+          text: `cupo para ${event.capacity}${event.waitlist_enabled ? ', con lista de espera' : ', sin lista de espera'}`,
+        }
+      : null,
+    {
+      icon: 'user-plus',
+      text: event.allow_guests ? 'Se permiten invitados' : 'Sin invitados',
+    },
+    contributions.length > 0
+      ? {
+          icon: 'basket-shopping' as const,
+          text: `${contributions.length} ${contributions.length === 1 ? 'cosa' : 'cosas'} que traer, ${contributions
+            .slice(0, 3)
+            .map((c) => c.title)
+            .join(', ')}${contributions.length > 3 ? ` y ${contributions.length - 3} más` : ''}`,
+        }
+      : null,
+  ].filter((x): x is { icon: IconName; text: string } => !!x)
+
+  // Three candidate weeks: the one the action would pick, and the two after
+  // it. The organizer changes the week here rather than in the event form,
+  // because leaving takes the two lists off screen as they are being read.
+  const dupWindow = duplicateWindow(event.sched_start_date, event.sched_end_date)
+  const weekOptions = dupWindow
+    ? [0, 1, 2].map((n) => duplicateWindow(event.sched_start_date, event.sched_end_date, n)!.start)
+    : []
+
+  // True only while every carried item is still unclaimed.
+  const carriedOver =
+    !!event.duplicated_from && contributions.length > 0 && contributions.every((c) => !c.assigned_to)
+
   const isDone = event.status === 'done' && !event.deleted_at
   const rollCallTaken = !!event.attendance_taken_at
   const photosBlock =
@@ -339,6 +399,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         isOrganizer={isOrganizer}
         isClubAdmin={isClubAdmin}
         isDeleted={!!event.deleted_at}
+        duplicate={isOrganizer ? { clubName: club?.name ?? null, carries: carriesOver, weeks: weekOptions } : undefined}
       />
       <main className="mx-auto w-full max-w-col px-4 pb-6">
 
@@ -570,6 +631,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               totalMembers={(members ?? []).length}
               isOrganizer={!!isOrganizer}
               waitingOn={waitingOn}
+              nudgedAt={nudgedAt}
             />
           </Card>
         </section>
@@ -604,6 +666,9 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           faces={rollCall.filter((p) => p.present).map((p) => p.user)}
           total={rollCall.filter((p) => p.present).length}
           place={event.location}
+          clubName={club?.name ?? null}
+          carries={carriesOver}
+          weeks={weekOptions}
         />
       )}
 
@@ -733,6 +798,21 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           </span>
         )}
       </div>
+      {/* A duplicated event opens with the whole bring list carried over and
+          nothing claimed, which looks exactly like a list everybody walked away
+          from. To somebody who was at the last one and remembers claiming the
+          hielo, that reads as the club quietly dropping out.
+
+          So it says what happened, in words, before the rows. And only while
+          it is true: the moment anyone claims anything this goes and the
+          normal list takes over, because by then "nadie ha apartado nada" is a
+          lie. */}
+      {carriedOver && (
+        <p className="rounded-md border border-line-card bg-cream-sunk px-3.5 py-3 text-[12.5px] leading-relaxed text-ink-700">
+          Esta lista viene de la vez pasada. Nadie ha apartado nada todavía, y así debe ser: apártalo otra vez si lo
+          vuelves a traer.
+        </p>
+      )}
       {contributions.length === 0 && <p className="text-sm text-ink-500">Nadie trae nada todavía. Estrena la lista.</p>}
       <ul className="flex flex-col gap-2">
         {contributions.map((c) => (

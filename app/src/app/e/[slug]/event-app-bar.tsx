@@ -1,10 +1,11 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppBar, type MenuItem } from '@/components/ui/AppBar'
 import { useToast } from '@/components/ui/Toast'
 import { setEventStatus, setEventDeleted, requestEventDeletion } from '@/app/actions'
+import { DuplicateModal, type CarryItem } from './duplicate-modal'
 
 // The event's whole lifecycle, collected into one menu.
 //
@@ -24,6 +25,7 @@ export default function EventAppBar({
   isOrganizer,
   isClubAdmin,
   isDeleted,
+  duplicate,
 }: {
   eventId: string
   slug: string
@@ -36,10 +38,16 @@ export default function EventAppBar({
   // admin does it and an organizer can only ask
   isClubAdmin: boolean
   isDeleted: boolean
+  // Duplicating is a secondary organizer tool on a live event: it belongs with
+  // the other organizer controls in this menu, never as a honey card competing
+  // with the page's real primary action. The loud version is the done event's
+  // recap, which is a different placement of the same thing.
+  duplicate?: { clubName: string | null; carries: CarryItem[]; weeks: string[] }
 }) {
   const [pending, startTransition] = useTransition()
   const toast = useToast()
   const router = useRouter()
+  const [duplicating, setDuplicating] = useState(false)
 
   const setStatus = (next: 'done' | 'cancelled' | 'scheduled', done: string) =>
     startTransition(async () => {
@@ -73,6 +81,11 @@ export default function EventAppBar({
 
   const menu: (MenuItem | false)[] = [
     { label: 'Copiar enlace', icon: 'link', onClick: copyLink },
+    isOrganizer &&
+      !isDeleted &&
+      status !== 'done' &&
+      status !== 'cancelled' &&
+      !!duplicate && { label: 'Duplicar evento', icon: 'copy' as const, onClick: () => setDuplicating(true) },
     isOrganizer && status !== 'cancelled' && { label: 'Editar evento', icon: 'pen', href: `/e/${slug}/edit` },
     isOrganizer &&
       status === 'scheduled' && {
@@ -117,13 +130,24 @@ export default function EventAppBar({
   ]
 
   return (
-    <AppBar
-      title={title}
-      subtitle={clubName ?? undefined}
-      subtitleHref={clubSlug ? `/club/${clubSlug}` : undefined}
-      backHref={clubSlug ? `/club/${clubSlug}` : '/events'}
-      action={isOrganizer ? { label: 'Invitar', icon: 'user-plus', href: `/e/${slug}/invites` } : undefined}
-      menu={menu}
-    />
+    <>
+      <AppBar
+        title={title}
+        subtitle={clubName ?? undefined}
+        subtitleHref={clubSlug ? `/club/${clubSlug}` : undefined}
+        backHref={clubSlug ? `/club/${clubSlug}` : '/events'}
+        action={isOrganizer ? { label: 'Invitar', icon: 'user-plus', href: `/e/${slug}/invites` } : undefined}
+        menu={menu}
+      />
+      {duplicating && duplicate && (
+        <DuplicateModal
+          eventId={eventId}
+          clubName={duplicate.clubName}
+          carries={duplicate.carries}
+          weeks={duplicate.weeks}
+          onClose={() => setDuplicating(false)}
+        />
+      )}
+    </>
   )
 }
