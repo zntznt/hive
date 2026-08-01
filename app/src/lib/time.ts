@@ -82,3 +82,32 @@ export function mexicoInstant(day: string, minutesFromMidnight: number): Date {
 // A bare YYYY-MM-DD as noon in Mexico City. Noon rather than midnight so that
 // formatting it can never land on the neighbouring day.
 export const mexicoDay = (day: string) => new Date(`${day}T12:00:00${MX_OFFSET}`)
+
+// The window an event is being scheduled inside: "31 jul a 3 ago · noches".
+//
+// While a date is being found this is the answer to "when", and the only place
+// it appeared was as column headers on the availability grid. The card above
+// said "Buscando fecha" and stopped, so anyone deciding whether to bother
+// painting had to scroll to find out which week it was even about.
+//
+// The part of day is named rather than printed as hours, because "19:00 a
+// 23:00" repeated on every one of four days is the same fact four times, and
+// the grid is where the hours are actually chosen.
+export function fmtWindow(
+  startDay: string | null,
+  endDay: string | null,
+  timeMin?: number,
+  timeMax?: number
+): string | null {
+  if (!startDay) return null
+  const days =
+    endDay && endDay !== startDay
+      ? `${fmtDayMonth(mexicoDay(startDay))} a ${fmtDayMonth(mexicoDay(endDay))}`
+      : fmtDayMonth(mexicoDay(startDay))
+  if (timeMin == null || timeMax == null) return days
+  // Named by where the window sits, not by its length: a window that starts at
+  // 19:00 is an evening whether it runs three hours or six.
+  const part =
+    timeMin >= 17 * 60 ? 'noches' : timeMax <= 13 * 60 ? 'mañanas' : timeMin >= 12 * 60 ? 'tardes' : 'todo el día'
+  return `${days} · ${part}`
+}

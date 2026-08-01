@@ -1,9 +1,8 @@
 'use client'
 
-import { Fragment, useState } from 'react'
+import { Fragment, useRef, useState } from 'react'
 import { updateNotifPrefs } from '@/app/actions'
 import { useToast } from '@/components/ui/Toast'
-import { Button } from '@/components/ui/Button'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { NOTIF_TOPICS } from '@/lib/notif-topics'
 
@@ -13,6 +12,12 @@ type Matrix = Partial<Record<string, { email?: boolean; whatsapp?: boolean }>>
 // pipeline really sends. Both columns can be on at once: each ticked channel
 // queues its own outbox row. WhatsApp needs a linked number to deliver,
 // otherwise the notification falls back to correo.
+//
+// No Save button. A tickbox that has visibly changed and has not been saved is
+// the screen telling you one thing and the database holding another, and the
+// gap lasts until you notice a button you had no reason to look for. Ten
+// tickboxes made that ten chances to walk away having changed nothing. Each
+// one commits as it is ticked.
 export default function NotifPrefsForm({
   notifEmail,
   notifWhatsapp,
@@ -23,15 +28,21 @@ export default function NotifPrefsForm({
   prefs: Matrix
 }) {
   const toast = useToast()
+  const formRef = useRef<HTMLFormElement>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function submit(formData: FormData) {
+  // Reads the whole grid off the form and sends it, whichever box was ticked.
+  // updateNotifPrefs takes the full matrix, so a partial write would silently
+  // clear every row it did not mention.
+  async function commit() {
+    const form = formRef.current
+    if (!form) return
     setSaving(true)
     setError(null)
     try {
-      await updateNotifPrefs(formData)
-      toast('Preferencias guardadas')
+      await updateNotifPrefs(new FormData(form))
+      toast('Listo')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar.')
     } finally {
@@ -44,7 +55,7 @@ export default function NotifPrefsForm({
   return (
     <section className="mt-[18px]">
       <SectionHeader>Notificaciones</SectionHeader>
-      <form action={submit} className="flex flex-col gap-2.5">
+      <form ref={formRef} onChange={commit} className="flex flex-col gap-2.5">
         <div className="grid items-center gap-x-2 gap-y-2.5" style={{ gridTemplateColumns: '1fr 52px 76px' }}>
           <span />
           <span className="text-center text-[11px] font-extrabold uppercase tracking-wide text-ink-500">Correo</span>
@@ -68,9 +79,7 @@ export default function NotifPrefsForm({
           Hive no tiene bandeja propia. Todo llega a donde ya estás: correo o WhatsApp. Para recibir por WhatsApp agrega tu número arriba, en &quot;Cómo entras&quot;.
         </p>
         {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
-        <Button type="submit" size="sm" className="self-start" disabled={saving}>
-          {saving ? 'Guardando…' : 'Guardar'}
-        </Button>
+        {saving && <p className="text-xs text-ink-300">Guardando…</p>}
       </form>
     </section>
   )

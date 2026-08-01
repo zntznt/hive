@@ -32,7 +32,7 @@ import { RsvpRow } from './rsvp-row'
 import { WhoIsComing, type Attendee } from './who-is-coming'
 import { PendingAnswers } from './pending-answers'
 import { duplicateWindow } from '@/lib/duplicate-window'
-import { fmtDayMonth, fmtSpan, isEventDay } from '@/lib/time'
+import { fmtDayMonth, fmtSpan, fmtWindow, isEventDay } from '@/lib/time'
 
 function dayRange(start: string, end: string) {
   // walk in UTC so toISOString() reads the same date we stepped - parsing as
@@ -546,6 +546,11 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         area={null}
         title={event.title}
         span={fmtSpan(event.chosen_start, event.chosen_end)}
+        window={
+          event.status === 'scheduling'
+            ? fmtWindow(event.sched_start_date, event.sched_end_date, event.sched_time_min, event.sched_time_max)
+            : null
+        }
         going={seatsTaken}
         receipt={receipt}
         status={event.status}
