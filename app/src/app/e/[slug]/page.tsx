@@ -357,6 +357,12 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   // a reminder, not a roster.
   const myUnfinished = contributions.find((c) => c.assigned_to === profile.id && !c.done) ?? null
 
+  // The receipt the where-card carries: who committed the club to this time,
+  // and that nobody needs telling separately.
+  const lockedNote = event.scheduled_at
+    ? `${nameOf.get(event.organizer_user_id) ?? 'Quien organiza'} fijó la hora ${timeAgo(event.scheduled_at)} · se avisó al club`
+    : null
+
   const isDone = event.status === 'done' && !event.deleted_at
   const rollCallTaken = !!event.attendance_taken_at
   const photosBlock =
@@ -519,14 +525,29 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
       <WhereCard
         location={event.location}
+        area={null}
         title={event.title}
-        when={`${event.title} · hoy ${fmtSpan(event.chosen_start, event.chosen_end)}`}
-        span={event.status === 'scheduling' ? 'fecha no definida' : dateChip}
+        span={fmtSpan(event.chosen_start, event.chosen_end)}
+        going={seatsTaken}
+        lockedNote={lockedNote}
         status={event.status}
         chosenStart={event.chosen_start}
         today={isToday}
         canEdit={!!isOrganizer}
         editHref={`/e/${event.slug}/edit`}
+        calendar={
+          event.status === 'scheduled' && event.chosen_start ? (
+            <AddToCalendar
+              slug={event.slug}
+              title={event.title}
+              startIso={event.chosen_start}
+              endIso={event.chosen_end}
+              location={event.location}
+              clubName={club?.name ?? null}
+              eventUrl={`${siteUrl()}/e/${event.slug}`}
+            />
+          ) : undefined
+        }
       />
 
       {/* Rule 8's other half. At 19:50 the address is what you need, and the
@@ -574,13 +595,12 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       )}
 
 
-      {/* The receipt lives on the object it describes. This is what the app
-          has instead of a notification log. */}
-      {(event.scheduled_at || event.cancelled_at) && (
+      {/* Cancelling still gets its own line: it is news, and it is about the
+          event as a whole rather than about where it is. The "fijó la hora"
+          receipt moved inside the where-card, next to the time it describes. */}
+      {event.cancelled_at && (
         <p className="mb-3.5 text-[12px] text-ink-300">
-          {event.cancelled_at
-            ? `Se canceló ${timeAgo(event.cancelled_at)}. Se avisó a quienes iban.`
-            : `${nameOf.get(event.organizer_user_id) ?? 'Quien organiza'} fijó la hora ${timeAgo(event.scheduled_at)}. Se avisó al club.`}
+          Se canceló {timeAgo(event.cancelled_at)}. Se avisó a quienes iban.
         </p>
       )}
 
@@ -937,21 +957,6 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               <CoOrganizerButton eventId={event.id} slug={event.slug} candidates={coOrganizerCandidates} />
             )}
           </div>
-
-          {event.status === 'scheduled' && event.chosen_start && (
-            <div className="flex flex-col gap-2">
-              <span className="eyebrow">Calendario</span>
-              <AddToCalendar
-                slug={event.slug}
-                title={event.title}
-                startIso={event.chosen_start}
-                endIso={event.chosen_end}
-                location={event.location}
-                clubName={club?.name ?? null}
-                eventUrl={`${siteUrl()}/e/${event.slug}`}
-              />
-            </div>
-          )}
 
           <div className="flex flex-col gap-1.5 text-[12.5px] text-ink-500">
             <span className="eyebrow text-ink-500">Ficha</span>
