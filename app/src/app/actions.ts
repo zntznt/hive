@@ -1667,11 +1667,19 @@ export async function resendInvitation(invitationId: string, path: string) {
   return { ok: true as const }
 }
 
-// Step one of signing in over WhatsApp: send the code. Unauthenticated by
-// definition, so it normalizes the number here rather than trusting the
-// client, and never reports whether that number has an account.
-export async function requestWhatsappCode(rawPhone: string) {
-  const phone = normalizePhone(rawPhone)
+// Step one of signing in: send the code, over whichever channel the member
+// typed. Unauthenticated by definition, so a number is normalized here rather
+// than trusted from the client, and neither channel ever reports whether that
+// contact has an account.
+//
+// An address is lowercased for the same reason a number is normalized: people
+// type Ana@Correo.com and the column holds ana@correo.com, and without this
+// that sign-in silently finds nobody and reports success, which is
+// indistinguishable from a mail server being slow.
+export async function requestSigninCodeFor(raw: string) {
+  const value = raw.trim()
+  if (value.includes('@')) return requestSigninCode(value.toLowerCase())
+  const phone = normalizePhone(value)
   if (!phone) return { ok: false as const, error: 'Ese número no se ve completo. Incluye la clave, por ejemplo +52 55 1234 5678.' }
   return requestSigninCode(phone)
 }
@@ -1679,8 +1687,10 @@ export async function requestWhatsappCode(rawPhone: string) {
 // Step two: check the code and open the session. Returns where to go next
 // rather than redirecting, so the form can show an error in place when the
 // code is wrong instead of navigating away from what the member typed.
-export async function verifyWhatsappCode(rawPhone: string, code: string, next?: string | null) {
-  const phone = normalizePhone(rawPhone)
+export async function verifySigninCodeFor(raw: string, code: string, next?: string | null) {
+  const value = raw.trim()
+  if (value.includes('@')) return verifySigninCode(value.toLowerCase(), code, next)
+  const phone = normalizePhone(value)
   if (!phone) return { ok: false as const, error: 'Ese número no se ve completo.' }
   return verifySigninCode(phone, code, next)
 }
