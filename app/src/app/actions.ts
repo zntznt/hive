@@ -1529,6 +1529,7 @@ export async function duplicateEvent(eventId: string, extraWeeks = 0) {
     .insert({
       club_id: src.club_id,
       category_id: src.category_id,
+      duplicated_from: eventId,
       slug,
       title: src.title,
       location: src.location,

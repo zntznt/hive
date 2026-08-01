@@ -349,6 +349,10 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     ? [0, 1, 2].map((n) => duplicateWindow(event.sched_start_date, event.sched_end_date, n)!.start)
     : []
 
+  // True only while every carried item is still unclaimed.
+  const carriedOver =
+    !!event.duplicated_from && contributions.length > 0 && contributions.every((c) => !c.assigned_to)
+
   const isDone = event.status === 'done' && !event.deleted_at
   const rollCallTaken = !!event.attendance_taken_at
   const photosBlock =
@@ -395,6 +399,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         isOrganizer={isOrganizer}
         isClubAdmin={isClubAdmin}
         isDeleted={!!event.deleted_at}
+        duplicate={isOrganizer ? { clubName: club?.name ?? null, carries: carriesOver, weeks: weekOptions } : undefined}
       />
       <main className="mx-auto w-full max-w-col px-4 pb-6">
 
@@ -793,6 +798,21 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           </span>
         )}
       </div>
+      {/* A duplicated event opens with the whole bring list carried over and
+          nothing claimed, which looks exactly like a list everybody walked away
+          from. To somebody who was at the last one and remembers claiming the
+          hielo, that reads as the club quietly dropping out.
+
+          So it says what happened, in words, before the rows. And only while
+          it is true: the moment anyone claims anything this goes and the
+          normal list takes over, because by then "nadie ha apartado nada" is a
+          lie. */}
+      {carriedOver && (
+        <p className="rounded-md border border-line-card bg-cream-sunk px-3.5 py-3 text-[12.5px] leading-relaxed text-ink-700">
+          Esta lista viene de la vez pasada. Nadie ha apartado nada todavía, y así debe ser: apártalo otra vez si lo
+          vuelves a traer.
+        </p>
+      )}
       {contributions.length === 0 && <p className="text-sm text-ink-500">Nadie trae nada todavía. Estrena la lista.</p>}
       <ul className="flex flex-col gap-2">
         {contributions.map((c) => (

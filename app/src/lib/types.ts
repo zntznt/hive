@@ -38,6 +38,7 @@ export type EventRow = {
   cancelled_at: string | null
   closed_at: string | null
   closed_by: string | null
+  duplicated_from: string | null
   // when the organizer passed the roll call. Null means it has not been taken,
   // which is what tells the event page to ask.
   attendance_taken_at: string | null
