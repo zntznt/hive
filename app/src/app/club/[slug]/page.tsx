@@ -8,36 +8,25 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { HexAvatar } from '@/components/ui/HexAvatar'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { Icon, MapPinIcon } from '@/components/ui/Icon'
-import CopyButton from '@/components/copy-button'
 import { BannerUpload } from './banner-upload'
 import { AvatarUpload } from './avatar-upload'
 import { AboutEditor } from './about-editor'
 import { AddCategoryButton, EditCategoryButton } from './category-editor'
-import { MemberRow } from './member-row'
-import { InviteModal } from './invite-modal'
 import { DangerZone } from './danger-zone'
 import { CalendarSubscribe } from './calendar-subscribe'
-import { updateClubJoinMode, decideChangeRequest, decideJoinRequest, revokeInvitation } from '@/app/actions'
+import { ClubHeader } from './club-header'
+import { FaceStack } from '@/components/ui/FaceStack'
+import { CollapsibleSection } from '@/components/ui/CollapsibleSection'
+import { attendanceLine, type MyRsvp } from '@/lib/event-line'
+import { decideChangeRequest, decideJoinRequest } from '@/app/actions'
 import { AppBar } from '@/components/ui/AppBar'
 import { WhenPill, whenPill } from '@/components/ui/WhenPill'
 import { SummaryRow, DoorGroup } from '@/components/ui/Density'
-import { fmtDayMonth } from '@/lib/time'
 import { siteUrl } from '@/lib/site-url'
 
 type Category = { id: string; name: string; emoji: string | null }
-type AttendanceRow = {
-  user_id: string
-  category_id: string | null
-  events_attended: number
-  last_attended_at: string
-  // how the count was arrived at: recorded by an organizer, or inferred from
-  // RSVPs on events that finished before roll call existed
-  recorded_events: number
-  estimated_events: number
-}
 type Link_ = { label: string; url: string }
 
 const CHANGE_KIND_LABEL: Record<string, string> = {
@@ -48,10 +37,6 @@ const CHANGE_KIND_LABEL: Record<string, string> = {
   banner: 'Portada',
   avatar: 'Foto del club',
   member_removal: 'Quitar miembro',
-}
-
-function fmt(d: string | null) {
-  return d ? fmtDayMonth(d) : '·'
 }
 
 export default async function ClubPage({
@@ -74,10 +59,9 @@ export default async function ClubPage({
     )
   }
 
-  const [{ data: cats }, { data: evs }, { data: att }, { data: roster }] = await Promise.all([
+  const [{ data: cats }, { data: evs }, { data: roster }] = await Promise.all([
     supabase.from('event_categories').select('*').eq('club_id', club.id).order('name'),
     supabase.from('events').select('*').eq('club_id', club.id).is('deleted_at', null).order('created_at', { ascending: false }),
-    supabase.from('attendance_stats').select('*').eq('club_id', club.id),
     supabase
       .from('club_members')
       .select('user_id, role, joined_at, users(display_name, avatar_kind, avatar_bug, avatar_color, avatar_photo_url)')
@@ -91,39 +75,54 @@ export default async function ClubPage({
   const upcoming = events.filter((e) => !['done', 'cancelled'].includes(e.status))
   const past = events.filter((e) => ['done', 'cancelled'].includes(e.status))
 
-  const attendance = (att ?? []) as AttendanceRow[]
-  const attFor = (uid: string) => attendance.find((a) => a.user_id === uid && a.category_id === (cat ?? null))
-
   const me = (roster ?? []).find((m) => m.user_id === profile.id)
   const isAdmin = me?.role === 'admin' || profile.is_app_admin
   const isOrganizer = me?.role === 'organizer'
   const isManager = isAdmin || isOrganizer
   const adminCount = (roster ?? []).filter((m) => m.role === 'admin').length
+  const myRole = me?.role ?? 'member'
+
+  // Who is in this club, for the header and the members door. Faces, not a
+  // count: "12 miembros" is a fact nobody pictures.
+  const rosterFaces = (roster ?? [])
+    .map((m) => m.users as unknown as AvatarUser | null)
+    .filter((u): u is AvatarUser => !!u)
+
+  // The page knows what day it is. An event today folds the header and hands
+  // the top of the page to the address.
+  const hasEventToday = upcoming.some((e) => whenPill(e.chosen_start, e.status)?.label === 'Hoy')
 
   // upcoming-event RSVP counts (going/maybe) for each EvCard's footer row.
   // "van" counts people, so a guest counts too, and only while the member who
   // brought them is seated. Same rule as the event page and as
   // event_seats_taken in the database; a card that says 6 next to an event
   // page that says 8 is the bug 0033 set out to remove.
-  const rsvpCountsByEvent = new Map<string, { going: number; maybe: number }>()
+  const rsvpCountsByEvent = new Map<string, { going: number; maybe: number; answered: boolean }>()
+  const goingFaces = new Map<string, AvatarUser[]>()
+  const myRsvpByEvent = new Map<string, MyRsvp>()
   if (upcoming.length > 0) {
     const ids = upcoming.map((e) => e.id)
     const [{ data: rsvpRows }, { data: guestRows }] = await Promise.all([
       supabase.from('rsvps').select('event_id, user_id, status, waitlist_pos').in('event_id', ids),
       supabase.from('guests').select('event_id, host_user_id').in('event_id', ids).is('promoted_to_user_id', null),
     ])
+    const userOf = new Map((roster ?? []).map((m) => [m.user_id, m.users as unknown as AvatarUser | null]))
     const seated = new Set<string>()
     for (const r of rsvpRows ?? []) {
-      const cur = rsvpCountsByEvent.get(r.event_id) ?? { going: 0, maybe: 0 }
+      const cur = rsvpCountsByEvent.get(r.event_id) ?? { going: 0, maybe: 0, answered: false }
+      cur.answered = true
       if (r.status === 'in' && r.waitlist_pos == null) {
         cur.going++
         seated.add(`${r.event_id}:${r.user_id}`)
+        const u = userOf.get(r.user_id)
+        if (u) goingFaces.set(r.event_id, [...(goingFaces.get(r.event_id) ?? []), u])
       } else if (r.status === 'maybe') cur.maybe++
       rsvpCountsByEvent.set(r.event_id, cur)
+      if (r.user_id === profile.id) myRsvpByEvent.set(r.event_id, r.status as MyRsvp)
     }
     for (const g of guestRows ?? []) {
       if (!seated.has(`${g.event_id}:${g.host_user_id}`)) continue
-      const cur = rsvpCountsByEvent.get(g.event_id) ?? { going: 0, maybe: 0 }
+      const cur = rsvpCountsByEvent.get(g.event_id) ?? { going: 0, maybe: 0, answered: true }
       cur.going++
       rsvpCountsByEvent.set(g.event_id, cur)
     }
@@ -143,7 +142,7 @@ export default async function ClubPage({
     for (const r of pastBal ?? []) owedByEvent.set(r.event_id, (owedByEvent.get(r.event_id) ?? 0) - r.net_cents)
   }
 
-  const [{ data: changeReqs }, { data: joinReqs }, { data: pendingInvites }] = isManager
+  const [{ data: changeReqs }, { data: joinReqs }] = isManager
     ? await Promise.all([
         supabase
           .from('change_requests')
@@ -157,11 +156,8 @@ export default async function ClubPage({
           .eq('club_id', club.id)
           .eq('status', 'pending')
           .order('created_at'),
-        isAdmin
-          ? supabase.from('invitations').select('*').eq('club_id', club.id).is('claimed_by_user_id', null).order('created_at', { ascending: false })
-          : Promise.resolve({ data: [] }),
       ])
-    : [{ data: [] }, { data: [] }, { data: [] }]
+    : [{ data: [] }, { data: [] }]
 
   // money still out across this club's events: sum each member's negative
   // event_balances into a per-person outstanding total.
@@ -200,44 +196,29 @@ export default async function ClubPage({
         action={isManager ? { label: 'Nuevo evento', icon: 'plus', href: `/club/${slug}/new-event` } : undefined}
       />
       <main className="mx-auto w-full max-w-col px-4 pb-6">
-      <div className="relative mb-3 mt-1">
-        <div
-          className="h-[110px] rounded-lg border border-line-card bg-cream bg-center bg-cover"
-          style={{ backgroundImage: club.banner_url ? `url(${club.banner_url})` : 'var(--honeycomb)' }}
-        />
-        {isManager && <BannerUpload clubId={club.id} slug={slug} />}
-      </div>
-
-      <header className="mb-4 flex items-center gap-3">
-        {isManager ? (
-          <AvatarUpload clubId={club.id} slug={slug} clubName={club.name} avatarUrl={club.avatar_url} />
-        ) : (
-          <HexAvatar name={club.name} size={40} src={club.avatar_url} />
-        )}
-        <span className="text-xl font-extrabold text-ink-900">{club.name}</span>
-      </header>
-
-      <Card className="mb-[18px]">
-        <div className="flex items-start justify-between gap-2.5">
-          <p className="text-[13.5px] leading-relaxed text-ink-700">{club.description || 'Todavía sin descripción.'}</p>
-          {isManager && <AboutEditor clubId={club.id} slug={slug} isAdmin={isAdmin} description={club.description ?? ''} links={links} />}
-        </div>
-        {links.length > 0 && (
-          <div className="mt-2.5 flex flex-wrap gap-2">
-            {links.map((l) => (
-              <a
-                key={l.label}
-                href={l.url.startsWith('http') ? l.url : `https://${l.url}`}
-                target="_blank"
-                rel="noreferrer"
-                className="tap inline-flex items-center gap-1.5 rounded-pill bg-cream-sunk px-3 py-1 text-xs font-bold text-honey-700"
-              >
-                <Icon name="link" size={12} /> {l.label}
-              </a>
-            ))}
-          </div>
-        )}
-      </Card>
+      {/* One front door instead of banner + name row + about card. On the day
+          of an event it starts folded, because the answer you came for is the
+          address further down and this is not it. */}
+      <ClubHeader
+        name={club.name}
+        avatarUrl={club.avatar_url}
+        bannerUrl={club.banner_url}
+        description={club.description}
+        role={myRole}
+        faces={rosterFaces}
+        total={(roster ?? []).length}
+        links={links}
+        foldedByDefault={hasEventToday}
+        cover={isManager ? <BannerUpload clubId={club.id} slug={slug} /> : undefined}
+        picture={
+          isManager ? <AvatarUpload clubId={club.id} slug={slug} clubName={club.name} avatarUrl={club.avatar_url} /> : undefined
+        }
+        edit={
+          isManager ? (
+            <AboutEditor clubId={club.id} slug={slug} isAdmin={isAdmin} description={club.description ?? ''} links={links} />
+          ) : undefined
+        }
+      />
 
       <nav className="mb-4 flex flex-wrap items-center gap-1.5">
         <Link href={`/club/${slug}`}>
@@ -257,18 +238,10 @@ export default async function ClubPage({
         {isManager && <AddCategoryButton clubId={club.id} slug={slug} isAdmin={isAdmin} />}
       </nav>
 
-      {isManager && (
-        <p className="mb-[18px]">
-          <Link href={`/club/${slug}/new-event`}>
-            <Button display icon={<Icon name="plus" size={11} />}>
-              Nuevo evento
-            </Button>
-          </Link>
-        </p>
-      )}
-
       <section className="mb-[26px]">
-        <SectionHeader>Próximos</SectionHeader>
+        <SectionHeader action={upcoming.length > 0 ? <span className="text-[12.5px] text-ink-300">{upcoming.length}</span> : null}>
+          Próximos
+        </SectionHeader>
         {upcoming.length === 0 ? (
           <EmptyState icon="calendar-days" title="Nada en esta categoría todavía." hint={isManager ? 'Empieza algo.' : 'Vuelve pronto.'} />
         ) : (
@@ -279,6 +252,8 @@ export default async function ClubPage({
                 e={e}
                 catName={catName(e.category_id)}
                 counts={rsvpCountsByEvent.get(e.id)}
+                faces={goingFaces.get(e.id) ?? []}
+                mine={myRsvpByEvent.get(e.id) ?? null}
                 today={whenPill(e.chosen_start, e.status)?.label === 'Hoy'}
               />
             ))}
@@ -398,62 +373,6 @@ export default async function ClubPage({
         </>
       )}
 
-      <SectionHeader action={isManager ? <InviteModal clubId={club.id} slug={slug} clubName={club.name} isAdmin={isAdmin} /> : null}>
-        Miembros · {(roster ?? []).length} {cat ? `· asistencia a ${catName(cat)}` : ''}
-      </SectionHeader>
-      <div className="mb-2 overflow-hidden rounded-lg border border-line-card bg-paper">
-        {(roster ?? []).map((m) => (
-          <MemberRow
-            key={m.user_id}
-            clubId={club.id}
-            slug={slug}
-            userId={m.user_id}
-            user={(m.users as unknown as AvatarUser | null) ?? { display_name: '·' }}
-            role={m.role}
-            isAdmin={isAdmin}
-            isOrganizer={isOrganizer}
-            isSelf={m.user_id === profile.id}
-            lastAttendedAt={attFor(m.user_id)?.last_attended_at ?? null}
-            eventsAttended={attFor(m.user_id)?.events_attended ?? 0}
-            recordedEvents={attFor(m.user_id)?.recorded_events ?? 0}
-            estimatedEvents={attFor(m.user_id)?.estimated_events ?? 0}
-          />
-        ))}
-        {isAdmin &&
-          (pendingInvites ?? []).map((inv) => (
-            <div key={inv.id} className="flex items-center justify-between gap-2 border-t border-line-divider px-[13px] py-[11px] text-sm">
-              <span className="flex min-w-0 items-center gap-2.5">
-                <HexAvatar name={inv.email ?? inv.phone ?? '?'} size={28} />
-                <span className="min-w-0 truncate text-ink-500">{inv.email ?? inv.phone}</span>
-                {inv.declined_at ? <Badge tone="disabled">no puede</Badge> : <Badge>invitado</Badge>}
-              </span>
-              <form action={revokeInvitation.bind(null, inv.id, `/club/${slug}`)} className="flex-shrink-0">
-                <button className="tap text-[12.5px] font-bold text-ink-500">Revocar</button>
-              </form>
-            </div>
-          ))}
-      </div>
-
-
-      {isAdmin && (
-        <section className="mb-[26px]">
-          <SectionHeader>Enlace para unirse</SectionHeader>
-          <div className="flex items-center justify-between gap-2 rounded-md border border-line-card bg-paper px-[13px] py-[11px] text-sm">
-            <span className="truncate text-ink-500">/c/{club.join_token}</span>
-            <CopyButton path={`/c/${club.join_token}`} />
-          </div>
-          <form action={updateClubJoinMode.bind(null, club.id, slug)} className="mt-2 flex items-center gap-2 text-sm">
-            <label htmlFor="join_mode" className="text-ink-700">
-              Quién puede pedir entrar con el enlace
-            </label>
-            <select id="join_mode" name="join_mode" defaultValue={club.join_mode} className="rounded-md border border-line-input bg-paper p-1.5 text-xs">
-              <option value="invite_only">solo con invitación</option>
-              <option value="anyone_with_link">cualquiera con el enlace (pide aprobación)</option>
-            </select>
-            <button className="tap rounded-md border border-line-input px-2 py-1 text-xs font-bold">Guardar</button>
-          </form>
-        </section>
-      )}
 
       {isManager && owedByMember.length > 0 && (
         <section className="mb-[26px]">
@@ -491,7 +410,12 @@ export default async function ClubPage({
 
       {/* Above the history on purpose: it is the one thing on this page that
           keeps working after you close the app. */}
-      <section className="mb-[26px]">
+      <CollapsibleSection
+        label="Suscribirme"
+        icon="calendar-days"
+        summary="cada evento, en tu calendario"
+        className="mb-[26px]"
+      >
         <CalendarSubscribe
           clubName={club.name}
           clubId={club.id}
@@ -499,12 +423,18 @@ export default async function ClubPage({
           feedUrl={`${siteUrl()}/c/${club.calendar_token}/calendar.ics`}
           isAdmin={isAdmin}
         />
-      </section>
+      </CollapsibleSection>
 
       {/* Rule 7. The club's own history and its settings were sections of this
           page, indistinguishable from the things people come here for. They
           are doors, and they say so once, under a line. */}
       <DoorGroup label="El club">
+        <SummaryRow
+          icon="users"
+          label="Miembros"
+          meta={<FaceStack people={rosterFaces} total={(roster ?? []).length} size={20} max={5} />}
+          href={`/club/${slug}/members`}
+        />
         <SummaryRow
           icon="clock-rotate-left"
           label="Eventos pasados"
@@ -531,11 +461,15 @@ function EvCard({
   e,
   catName,
   counts,
+  faces,
+  mine,
   today = false,
 }: {
   e: EventRow
   catName: string | undefined
-  counts: { going: number; maybe: number } | undefined
+  counts: { going: number; maybe: number; answered: boolean } | undefined
+  faces: AvatarUser[]
+  mine: MyRsvp
   today?: boolean
 }) {
   const cancelled = e.status === 'cancelled'
@@ -578,13 +512,12 @@ function EvCard({
           <WhenPill at={e.status === 'scheduling' ? null : e.chosen_start} status={e.status} />
         )}
       </div>
-      <div className="flex flex-wrap gap-x-4 gap-y-1 px-3.5 pb-3.5 text-[12.5px] text-ink-700">
-        <span>
-          <Icon name="calendar-days" size={12} /> {e.status === 'scheduling' ? 'sin fecha aún' : fmt(e.chosen_start)}
-        </span>
-        <span>
-          <Icon name="users" size={12} /> van {counts?.going ?? 0} · quizás {counts?.maybe ?? 0}
-        </span>
+      {/* Who, then where you stand with them. The date is not repeated here:
+          the pill above already said it, and saying it twice was how this row
+          got to be two lines of readout. */}
+      <div className="flex items-center gap-2.5 px-3.5 pb-3.5 text-[12.5px] text-ink-500">
+        <FaceStack people={faces} total={counts?.going} size={22} max={5} />
+        <span className="min-w-0 truncate">{attendanceLine(counts?.going ?? 0, mine, counts?.answered ?? false)}</span>
       </div>
     </Link>
   )

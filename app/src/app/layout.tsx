@@ -14,12 +14,24 @@ export const metadata: Metadata = {
     "Eventos de club sin caos: fecha, confirmaciones, quién trae qué, gastos y encuestas en un solo enlace.",
   manifest: "/assets/pwa/manifest.webmanifest",
   // iOS ignores the manifest for this, so the home-screen icon and the
-  // standalone chrome have to be declared here as well.
+  // standalone chrome have to be declared here as well. Without the
+  // apple-touch-icon, iOS screenshots the page and puts that on the home
+  // screen. statusBarStyle stays "default": black-translucent slides the app's
+  // cream up under the clock.
   appleWebApp: { capable: true, title: "Hive", statusBarStyle: "default" },
   icons: {
-    icon: [{ url: "/assets/pwa/icon-192.png", sizes: "192x192", type: "image/png" }],
-    apple: [{ url: "/assets/pwa/icon-192.png", sizes: "192x192", type: "image/png" }],
+    // 16 is a different drawing from 32, not a resize of it, so both ship.
+    icon: [
+      { url: "/assets/pwa/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/assets/pwa/favicon-16.png", sizes: "16x16", type: "image/png" },
+    ],
+    shortcut: [{ url: "/assets/pwa/favicon-48.png", sizes: "48x48", type: "image/png" }],
+    apple: [{ url: "/assets/pwa/apple-touch-icon-180.png", sizes: "180x180", type: "image/png" }],
   },
+  // Next emits the standardised "mobile-web-app-capable" for appleWebApp.capable,
+  // which iOS only started reading in 16.4. Older iPhones need the prefixed
+  // spelling, and standalone is what gates web push there, so both ship.
+  other: { "apple-mobile-web-app-capable": "yes" },
 };
 
 // honey-500 tints the Android status bar and the task-switcher card; paper is
