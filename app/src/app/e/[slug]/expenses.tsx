@@ -54,6 +54,11 @@ export default async function Expenses({
   const pending = settlements.filter((s) => !s.confirmed)
   const nets = netOfPending(balances, settlements, (id) => nameOf.get(id) ?? '·')
   const suggestions = suggestTransfers(nets)
+  // Money still out, and across how many people. Summed from the owing side
+  // only: every peso owed is also a peso somebody is waiting on, so adding
+  // both halves would report twice what is actually outstanding.
+  const owing = nets.filter((n) => n.net_cents < 0).length
+  const stillOut = nets.reduce((sum, n) => (n.net_cents < 0 ? sum - n.net_cents : sum), 0)
 
   const supabase = await supabaseServer()
   const creditorIds = [...new Set(suggestions.map((t) => t.to.user_id))]
@@ -111,7 +116,23 @@ export default async function Expenses({
 
       {nets.length > 0 && (
         <>
-          <SectionHeader>Balances</SectionHeader>
+          {/* The header answers "how bad is it" so the list underneath does not
+              have to be added up by eye. Only the owing side is summed: the
+              positive nets are the same money seen from the other end, so
+              totalling everything would double it. */}
+          <SectionHeader
+            action={
+              stillOut > 0 ? (
+                <span className="text-[12.5px] text-ink-300">
+                  {fmtMoney(stillOut)} entre {owing} {owing === 1 ? 'persona' : 'personas'}
+                </span>
+              ) : (
+                <span className="text-[12.5px] text-ink-300">a mano</span>
+              )
+            }
+          >
+            Balances
+          </SectionHeader>
           <ul className="mb-3 flex flex-col gap-1.5">
             {nets
               .sort((a, b) => b.net_cents - a.net_cents)

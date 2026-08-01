@@ -29,6 +29,7 @@ import { AddExpenseButton } from './expense-modal'
 import { AddPollButton } from './poll-modal'
 import { AttendanceSheet, type RollCallPerson } from './attendance-sheet'
 import { ClosedReceipt, DuplicatePrompt } from './done-blocks'
+import { nameList } from '@/lib/event-line'
 import { fmtDateTime, fmtDayMonth, fmtTime } from '@/lib/time'
 
 function dayRange(start: string, end: string) {
@@ -166,6 +167,14 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
   const contributions = (contribs ?? []) as Contribution[]
   const byStatus = (st: RsvpStatus) => (rsvps ?? []).filter((r) => r.status === st)
+  // Who has not answered at all, by name. Not the same as "no voy": a no is an
+  // answer, and the difference between the two is whether there is anybody
+  // left to nudge.
+  const answered = new Set((rsvps ?? []).map((r) => r.user_id as string))
+  const silent = (members ?? [])
+    .filter((m) => !answered.has(m.user_id as string))
+    .map((m) => nameOf.get(m.user_id) ?? '·')
+
   // confirmed = "in" with no waitlist position; waitlisted = "in" parked behind capacity
   const confirmed = byStatus('in').filter((r) => r.waitlist_pos == null)
   const waitlisted = byStatus('in')
@@ -618,10 +627,12 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                 {(guests ?? []).filter((g) => !g.promoted_to_user_id).length > 0 &&
                   ` y ${(guests ?? []).filter((g) => !g.promoted_to_user_id).length} invitado${(guests ?? []).filter((g) => !g.promoted_to_user_id).length === 1 ? '' : 's'}`}
               </span>
-              {(members ?? []).length - (rsvps ?? []).length > 0 && (
+              {/* Names, for the same reason the line above it names people:
+                  "2 personas no han dicho" is a number you cannot act on, and
+                  "Ana y Diego no han dicho" is a text message you can send. */}
+              {silent.length > 0 && (
                 <span className="text-[12.5px] font-bold text-honey-800">
-                  {(members ?? []).length - (rsvps ?? []).length}{' '}
-                  {(members ?? []).length - (rsvps ?? []).length === 1 ? 'persona no ha dicho' : 'personas no han dicho'}
+                  {nameList(silent)} {silent.length === 1 ? 'no ha dicho' : 'no han dicho'}
                 </span>
               )}
             </div>

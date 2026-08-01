@@ -11,6 +11,24 @@
 
 export type MyRsvp = 'in' | 'out' | 'maybe' | null
 
+// "Ana y Diego", "Ana, Diego y Lucía", "Ana, Diego y 3 más".
+//
+// Spanish joins a list with "y" before the last item and no comma in front of
+// it. The exception is real and people notice it: "y" becomes "e" before a
+// word that starts with an i sound, so it is "Ana e Inés", never "Ana y
+// Inés". Hi- counts (Hilda), but hie- does not (hierro keeps "y"), because
+// there the i is not the sound doing the work.
+export function nameList(names: string[], max = 3): string {
+  const clean = names.filter(Boolean)
+  if (clean.length === 0) return ''
+  if (clean.length === 1) return clean[0]
+
+  const shown = clean.length > max ? clean.slice(0, max) : clean.slice(0, -1)
+  const last = clean.length > max ? `${clean.length - max} más` : clean[clean.length - 1]
+  const conj = /^[iíIÍ]|^[hH][iíIÍ](?![eE])/.test(last) ? 'e' : 'y'
+  return `${shown.join(', ')} ${conj} ${last}`
+}
+
 export function attendanceLine(going: number, mine: MyRsvp, anyAnswer: boolean): string {
   if (!anyAnswer) return 'Nadie ha contestado'
   if (mine === 'in') return going > 1 ? `Vas, y ${going - 1} más` : 'Vas'
