@@ -12,7 +12,8 @@
     "sandbox:down": "node scripts/sandbox.mjs down",
     "sandbox:reset": "node scripts/sandbox.mjs reset",
     "dev:sandbox": "env $(grep -v \"^#\" .env.sandbox | xargs) next dev",
-    "shoot": "node scripts/shoot.mjs"
+    "shoot": "node scripts/shoot.mjs",
+    "sandbox:app": "env $(grep -v \"^#\" .env.sandbox | xargs) next build && env $(grep -v \"^#\" .env.sandbox | xargs) next start -p 3100"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

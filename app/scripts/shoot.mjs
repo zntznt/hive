@@ -41,7 +41,21 @@ const path = args.find((a) => a.startsWith('/')) ?? '/'
 const who = flag('as', 'marta')
 const out = flag('out', path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'home')
 const width = Number(flag('width', 430))
-const base = flag('base', 'http://127.0.0.1:3000')
+// Port 3100 is `npm run sandbox:app`: a production build, served by
+// `next start`. That is deliberate and not an accident of ports.
+//
+// `next dev` in this container renders correct HTML and then never hydrates.
+// React loads, the flight runtime loads, nothing throws, and no client
+// component ever mounts, so every effect is dead and every button is a
+// decoration. A shot taken against it is honest about layout and copy and
+// silently wrong about anything you would click, which is the worst kind of
+// harness: one that looks like it is checking.
+//
+// A production build hydrates here, and it is also what actually ships, so
+// this points at that. Pass --base http://127.0.0.1:3000 to shoot the dev
+// server anyway when you are iterating on markup and know what you are
+// getting.
+const base = flag('base', 'http://127.0.0.1:3100')
 
 const e = env()
 
