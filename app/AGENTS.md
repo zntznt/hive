@@ -21,7 +21,7 @@ any of those and neither can a diff.
 ```
 npm run sandbox:up      # postgres, auth, rest and storage, in docker
 npm run sandbox:seed    # demo club, and passwords so a browser can sign in
-npm run dev:sandbox     # the app, pointed at it
+npm run sandbox:app     # build and serve the app against it, on :3100
 npm run shoot -- /club/los-jueves --as marta
 ```
 
@@ -33,12 +33,16 @@ the form, because the form wants a six digit code out of a mailbox.
 Nothing in the sandbox touches a deployed project. `.env.sandbox` holds the fixed local demo keys
 that `supabase start` prints on every machine; real credentials stay in `.env.local`.
 
-**What it does not check yet: client interactivity.** On a server-component page in this container
-React does not attach, so effects never run and a button press reaches nothing. Server output is
-faithful, which is what catches layout, copy and data bugs, but "I clicked it and it worked" is not
-something a shot can tell you. Two things that look like defects in a shot are this: the account's
-push row renders as an empty card, and any server action fired from a button appears to do nothing.
-Verify interactive changes on a device until this is fixed.
+`sandbox:app` builds and serves rather than running `next dev`, and that matters. **`next dev` in
+this container renders correct HTML and then never hydrates**: React loads, the flight runtime
+loads, nothing throws, and no client component ever mounts. Every effect is dead and every button
+is a decoration. A shot taken against it is honest about layout and copy and silently wrong about
+anything you would click, which is the worst kind of harness, one that looks like it is checking.
+A production build hydrates here, and it is also what ships, so that is what `shoot` points at.
+
+`npm run dev:sandbox` still exists for iterating on markup with hot reload. Do not conclude
+anything about behaviour from it. It is how "the push row renders as an empty card" and "the RSVP
+button does nothing" got written down as defects; both were the harness, and both were fine.
 
 `npm run sandbox:reset` rebuilds the database from `supabase/migrations` and is the only check that
 they can still build one. They could not, twice: a migration used an enum value in the transaction

@@ -40,5 +40,14 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  // Everything Next serves under /_next is skipped, not just static and image.
+  //
+  // The old pattern let paths like /_next/webpack-hmr through, so a Supabase
+  // session refresh ran against requests that are not pages and where no
+  // visitor's session decides anything. That was only ever cost.
+  //
+  // It is not the fix for anything: it was written while chasing a websocket
+  // that fails in the sandbox, and the websocket still fails without it. Kept
+  // because it is correct on its own terms, not because it repaired that.
+  matcher: ['/((?!_next/|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 }
