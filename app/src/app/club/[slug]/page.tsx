@@ -23,6 +23,7 @@ import { decideChangeRequest, decideJoinRequest } from '@/app/actions'
 import { ClubBar } from './club-bar'
 import { WhenPill } from '@/components/ui/WhenPill'
 import { isEventDay, fmtSpan, fmtWeekdayDay, fmtDayMonth } from '@/lib/time'
+import { mapEmbedUrl } from '@/lib/place'
 import { SummaryRow, DoorGroup } from '@/components/ui/Density'
 import { siteUrl } from '@/lib/site-url'
 
@@ -578,6 +579,7 @@ function EvCard({
 }) {
   const cancelled = e.status === 'cancelled'
   const hot = today && !cancelled
+  const embed = mapEmbedUrl(e)
   return (
     <Link
       href={`/e/${e.slug}`}
@@ -592,10 +594,10 @@ function EvCard({
       {/* the map is the quiet card's way of showing where. On the day the
           address itself carries it, so the iframe would just be noise above
           the line that matters. */}
-      {e.location && !hot && (
+      {embed && !hot && (
         <iframe
           title={e.title}
-          src={`https://www.google.com/maps?q=${encodeURIComponent(e.location)}&z=14&output=embed`}
+          src={embed}
           className="block h-[110px] w-full border-0"
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"

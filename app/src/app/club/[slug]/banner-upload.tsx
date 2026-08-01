@@ -6,6 +6,7 @@ import { ImageCropModal } from '@/components/ui/ImageCropModal'
 import { dataUrlToBlob, uploadBanner } from '@/lib/upload'
 import { updateClubBanner } from '@/app/actions'
 import { Icon } from '@/components/ui/Icon'
+import { BANNER_ASPECT } from '@/lib/banner'
 
 export function BannerUpload({ clubId, slug }: { clubId: string; slug: string }) {
   const [pickedSrc, setPickedSrc] = useState<string | null>(null)
@@ -43,7 +44,7 @@ export function BannerUpload({ clubId, slug }: { clubId: string; slug: string })
       {pickedSrc && (
         <ImageCropModal
           src={pickedSrc}
-          aspect={4}
+          aspect={BANNER_ASPECT}
           shape="rect"
           outWidth={1280}
           title="Encuadra la portada"

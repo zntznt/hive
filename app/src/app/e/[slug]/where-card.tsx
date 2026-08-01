@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { type ReactNode } from 'react'
 import { Icon, MapPinIcon, type IconName } from '@/components/ui/Icon'
 import { WhenPill } from '@/components/ui/WhenPill'
+import { mapEmbedUrl, directionsUrl } from '@/lib/place'
 
 // Where this is, in one block.
 //
@@ -27,11 +28,11 @@ import { WhenPill } from '@/components/ui/WhenPill'
 // nobody reads, they look at it, so it sits under the lines you read and the
 // buttons you press rather than pushing them down the screen.
 
-function MapFrame({ location, title }: { location: string; title: string }) {
+function MapFrame({ src, title }: { src: string; title: string }) {
   return (
     <iframe
       title={title}
-      src={`https://www.google.com/maps?q=${encodeURIComponent(location)}&z=15&output=embed`}
+      src={src}
       className="block h-[150px] w-full border-0"
       loading="lazy"
       referrerPolicy="no-referrer-when-downgrade"
@@ -41,6 +42,8 @@ function MapFrame({ location, title }: { location: string; title: string }) {
 
 export function WhereCard({
   location,
+  lat,
+  lng,
   area,
   title,
   span,
@@ -54,6 +57,11 @@ export function WhereCard({
   calendar,
 }: {
   location: string | null
+  // The pin, when the organizer dropped one. It outranks the text: the
+  // preview centres on it and the directions route to it, so what people see
+  // here is where they end up.
+  lat: number | null
+  lng: number | null
   // the street line under the name: "Calle Colima 210, Roma Norte, CDMX"
   area: string | null
   title: string
@@ -87,6 +95,11 @@ export function WhereCard({
     )
   }
 
+  // One place, one query. The preview and the route are built from the same
+  // call, so they cannot drift.
+  const embed = mapEmbedUrl({ location, lat, lng })
+  const directions = directionsUrl({ location, lat, lng }) ?? undefined
+
   // Everything under the head, identical in both live states: who can change
   // it, the receipt for who fixed the time, the calendar hand-off, and the way
   // out to directions.
@@ -107,7 +120,7 @@ export function WhereCard({
       )}
       {calendar && <div className="px-3.5 pb-3 pt-2.5">{calendar}</div>}
       <a
-        href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(location)}`}
+        href={directions}
         target="_blank"
         rel="noreferrer"
         className="tap flex min-h-11 items-center justify-center gap-1.5 border-t border-line-divider text-sm font-bold text-honey-700"
@@ -117,7 +130,7 @@ export function WhereCard({
       {/* Kept in both states, deliberately. The head says where to go and the
           map says how far, and the day of the event is when you want both
           most: hiding it then was the original defect. */}
-      <MapFrame location={location} title={title} />
+      {embed && <MapFrame src={embed} title={title} />}
     </>
   )
 

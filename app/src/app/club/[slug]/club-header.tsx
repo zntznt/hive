@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Icon } from '@/components/ui/Icon'
 import { FaceStack } from '@/components/ui/FaceStack'
 import { type AvatarUser } from '@/components/ui/Avatar'
+import { BANNER_ASPECT_CLASS } from '@/lib/banner'
 
 // The club's front door, and the one card that changes shape with the day.
 //
@@ -91,7 +92,7 @@ export function ClubHeader({
   return (
     <section className="relative mb-[18px] overflow-hidden rounded-lg border border-line-card bg-paper text-center">
       <div
-        className="relative h-[104px] bg-cover bg-center"
+        className={`relative ${BANNER_ASPECT_CLASS} bg-cover bg-center`}
         style={
           bannerUrl
             ? { backgroundImage: `url(${bannerUrl})` }

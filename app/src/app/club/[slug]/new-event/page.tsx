@@ -17,11 +17,19 @@ export default async function NewEventPage({ params }: { params: Promise<{ slug:
   const [{ data: categories }, { data: pastLocations }, { data: places }] = await Promise.all([
     supabase.from('event_categories').select('id, name, emoji').eq('club_id', club.id).order('name'),
     supabase.from('events').select('location').eq('club_id', club.id).not('location', 'is', null),
-    supabase.from('saved_places').select('name, addr, query').eq('user_id', profile.id).order('created_at'),
+    supabase.from('saved_places').select('name, addr, query, lat, lng').eq('user_id', profile.id).order('created_at'),
   ])
   // "your places" (saved on Account, usable across every club) show as a
   // starred group; this club's own past locations fill the recents group.
-  const yourPlaces: Place[] = (places ?? []).map((p) => ({ name: p.name, addr: p.addr ?? undefined, q: p.query }))
+  // A saved place carries its pin into the event, so reusing one does not
+  // throw away the point somebody already dropped.
+  const yourPlaces: Place[] = (places ?? []).map((p) => ({
+    name: p.name,
+    addr: p.addr ?? undefined,
+    q: p.query,
+    lat: p.lat,
+    lng: p.lng,
+  }))
   const recentPlaces: Place[] = [...new Set((pastLocations ?? []).map((e) => e.location as string))]
     .filter((n) => !yourPlaces.some((p) => p.name === n))
     .slice(0, 6)

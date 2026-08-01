@@ -10,6 +10,7 @@ import { CreateClubButton } from '../create-club-modal'
 import { Page, PageHeader } from '@/components/ui/Page'
 import { WhenPill } from '@/components/ui/WhenPill'
 import { clubFooter, quietSince, type CardEvent } from '@/lib/club-card'
+import { BANNER_ASPECT_CLASS } from '@/lib/banner'
 
 // The Clubs tab.
 //
@@ -154,7 +155,7 @@ export default async function ClubsPage() {
                         fade into the card and any real cover came out muddy. */}
                     <span
                       aria-hidden="true"
-                      className="block h-[76px] bg-cover bg-center"
+                      className={`block ${BANNER_ASPECT_CLASS} bg-cover bg-center`}
                       style={
                         club.banner_url
                           ? { backgroundImage: `url(${club.banner_url})` }

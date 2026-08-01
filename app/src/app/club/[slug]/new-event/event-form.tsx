@@ -99,6 +99,8 @@ type Initial = {
   title: string
   category_id: string | null
   location: string | null
+  lat: number | null
+  lng: number | null
   allow_guests: boolean
   capacity: number | null
   waitlist_enabled: boolean
@@ -214,7 +216,14 @@ export default function EventForm({
         {catNote && <p className="mt-1.5 text-xs text-ink-500">{catNote}</p>}
       </div>
 
-      <LocationPicker name="location" label="Lugar (opcional)" defaultValue={initial?.location ?? ''} saved={savedPlaces} recent={recentPlaces} />
+      <LocationPicker
+        name="location"
+        label="Lugar (opcional)"
+        defaultValue={initial?.location ?? ''}
+        defaultPoint={initial?.lat != null && initial?.lng != null ? { lat: initial.lat, lng: initial.lng } : null}
+        saved={savedPlaces}
+        recent={recentPlaces}
+      />
 
       {showSchedWindow && (
         <Fieldset legend="Buscar fecha" hint="La ventana de fechas y horas donde los miembros marcan cuándo pueden.">
