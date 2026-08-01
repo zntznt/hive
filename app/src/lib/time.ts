@@ -29,6 +29,44 @@ export const fmtTime = (iso: string | Date) => TIME.format(at(iso))
 export const fmtWeekdayDay = (iso: string | Date) => WEEKDAY_DAY.format(at(iso))
 export const fmtMonthYear = (iso: string | Date) => MONTH_YEAR.format(at(iso))
 
+// Every time this app shows is a span, never a start.
+//
+// "20:00" answers when to turn up and nothing else. People need to know
+// whether they are free afterwards, whether the trip across town is worth it,
+// and when to arrange a ride home, and all three of those live in the end.
+// Only a row too narrow to fit a range may fall back to the start, and it says
+// "desde" so it reads as an open end rather than a whole evening.
+//
+// The Clubs tab already did this correctly while the event page for the very
+// same event said "Desde las 20:00", which is the drift this replaces.
+export function fmtSpan(startIso: string | Date | null, endIso?: string | Date | null): string {
+  if (!startIso) return ''
+  const start = fmtTime(startIso)
+  return endIso ? `${start} a ${fmtTime(endIso)}` : `desde las ${start}`
+}
+
+// Whether an event falls on today, in Mexico City, where the club is.
+//
+// This used to be decided by string-matching WhenPill's label against 'Hoy'.
+// WhenPill returns display copy: renaming it, uppercasing it or translating it
+// would silently switch off the entire day-of layout with no error anywhere.
+// Nothing branches on copy.
+const DAY_KEY = new Intl.DateTimeFormat('en-CA', { timeZone: MX_TZ, year: 'numeric', month: '2-digit', day: '2-digit' })
+export function sameDayInMexico(iso: string | Date, now: Date = new Date()): boolean {
+  return DAY_KEY.format(at(iso)) === DAY_KEY.format(now)
+}
+
+// The event-shaped version, so callers do not each decide what a missing date
+// or a cancelled event means.
+export function isEventDay(
+  event: { chosen_start: string | null; status: string },
+  now: Date = new Date()
+): boolean {
+  if (!event.chosen_start) return false
+  if (event.status === 'cancelled' || event.status === 'scheduling') return false
+  return sameDayInMexico(event.chosen_start, now)
+}
+
 // A calendar day plus minutes-since-midnight, as the instant that means in
 // Mexico City. The availability grid used to build this with `new Date("...T20:00:00")`,
 // which the language defines as local time: an organizer whose phone was not on

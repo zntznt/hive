@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { type ReactNode } from 'react'
 import { Icon, type IconName } from './Icon'
 import { UserAvatar, type AvatarUser } from './Avatar'
+import { FaceStack } from './FaceStack'
 
 // The eight density rules, as parts you can build a page out of.
 //
@@ -32,7 +33,7 @@ export function Loud({
     <div className="flex flex-col gap-[9px] rounded-lg border border-honey-500 bg-honey-100 p-3.5">
       <div className="flex items-center gap-2.5">
         <span className="min-w-0 flex-1 font-display text-[17px] font-bold text-ink-900">{title}</span>
-        {faces && faces.length > 0 && <FaceStack faces={faces} size={25} />}
+        {faces && faces.length > 0 && <FaceStack people={faces} size={25} />}
       </div>
       {body && <span className="text-[13px] leading-normal text-ink-700">{body}</span>}
       {children}
@@ -45,28 +46,13 @@ export function Loud({
 // Overlapping hex avatars. A summary that shows people instead of counting
 // them, which is the difference between "6 van" and seeing that Marta is one
 // of them.
-export function FaceStack({ faces, size = 22, max = 5 }: { faces: AvatarUser[]; size?: number; max?: number }) {
-  const shown = faces.slice(0, max)
-  return (
-    <span className="flex items-center">
-      {shown.map((u, i) => (
-        <span
-          key={i}
-          style={{ marginLeft: i ? -size * 0.3 : 0, filter: 'drop-shadow(1px 0 0 var(--paper))' }}
-        >
-          <UserAvatar user={u} size={size} />
-        </span>
-      ))}
-      {faces.length > max && (
-        <span className="ml-1 text-[11.5px] font-bold text-ink-500">+{faces.length - max}</span>
-      )}
-    </span>
-  )
-}
+// FaceStack used to live here too, with a `faces` prop and overflow counted
+// from the array length, while components/ui/FaceStack.tsx counted it from
+// `total`. Two components, two prop names, two overflow rules, one concept:
+// the same five people rendered "+2" on the event page and "+7" everywhere
+// else. The `total` one is correct, because a club usually has more members
+// than the faces any one query fetched, so this one is gone.
 
-// The thread, summarised as something somebody actually said. A count of
-// comments tells you there is a conversation; a line of it tells you whether
-// you care.
 export function QuoteLine({
   who,
   user,
@@ -150,7 +136,7 @@ export function SummaryRow({
         <span className="truncate text-[13.5px] font-bold text-ink-900">{label}</span>
         {meta && faces && faces.length > 2 && <span className="text-[11.5px] text-ink-500">{meta}</span>}
       </span>
-      {faces && faces.length > 0 && <FaceStack faces={faces} size={22} />}
+      {faces && faces.length > 0 && <FaceStack people={faces} size={22} />}
       {meta && (!faces || faces.length <= 2) && (
         <span className={`whitespace-nowrap text-[12.5px] ${hot ? 'font-bold text-honey-800' : 'text-ink-500'}`}>
           {meta}
