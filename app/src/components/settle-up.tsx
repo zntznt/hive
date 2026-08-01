@@ -26,6 +26,7 @@ export function SettleUpFlow({
   amountCents,
   toPaymentMethods,
   children,
+  display = false,
 }: {
   eventId: string
   slug: string
@@ -35,6 +36,8 @@ export function SettleUpFlow({
   amountCents: number
   toPaymentMethods: PaymentMethodRow[]
   children: ReactNode
+  // the loud slot wants a full-size button; a list row wants the small one
+  display?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState<1 | 2 | 3 | 'done'>(1)
@@ -97,7 +100,7 @@ export function SettleUpFlow({
 
   return (
     <>
-      <Button size="sm" onClick={() => setOpen(true)}>
+      <Button size={display ? 'lg' : 'sm'} display={display} onClick={() => setOpen(true)}>
         {children}
       </Button>
       {open && (
