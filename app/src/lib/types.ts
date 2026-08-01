@@ -18,6 +18,11 @@ export type EventRow = {
   title: string
   description: string | null
   location: string | null
+  // The pin, when somebody dropped one. Where lat is set it is the place: the
+  // preview centres on it and directions route to it, and the location text
+  // goes back to being a label people read.
+  lat: number | null
+  lng: number | null
   status: 'draft' | 'scheduling' | 'scheduled' | 'done' | 'cancelled'
   organizer_user_id: string
   allow_guests: boolean

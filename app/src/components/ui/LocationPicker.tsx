@@ -2,34 +2,66 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Icon, MapPinIcon } from './Icon'
+import { PinMap, type Point } from './PinMap'
 
-export type Place = { name: string; addr?: string; q?: string }
+export type Place = { name: string; addr?: string; q?: string; lat?: number | null; lng?: number | null }
 
-// Location picker with grouped type-ahead suggestions (the member's saved
-// "your places" starred first, then this club's recent spots) and a live
-// Google Maps preview via the keyless classic embed (maps?q=...&output=embed).
-// Picking a suggestion collapses into a selected-place card with the map and
-// a "Cambiar" affordance; free-typed text stays valid too. Submits as a
-// plain input named `name`, so it drops into any <form action={...}>.
+// Where something is: the words for it, and the point on the map.
+//
+// The words are for people ("Casa de Dansc y Zeo"); the point is for the map
+// and the route. This used to be words only, handed to a Google embed as a
+// query string, so the preview was Google's guess at a sentence and the
+// directions link was a second, independent guess at the same sentence. Two
+// answers to one question, and no way to correct either.
+//
+// Now the pin is the answer. Typing an address geocodes it to get the pin
+// near, and then the pin is dragged to say exactly. Everything downstream
+// reads the coordinates when they exist, so the preview here, the map on the
+// event page and the "Cómo llegar" link are the same place by construction.
+//
+// Submits three fields into whatever form it sits in: `name`, `name_lat` and
+// `name_lng`. The two coordinates are empty when nobody has placed a pin,
+// which keeps a text-only place valid.
 export function LocationPicker({
   name,
   label,
   defaultValue = '',
+  defaultPoint = null,
   saved = [],
   recent = [],
+  onChange,
 }: {
   name: string
   label?: string
   defaultValue?: string
+  defaultPoint?: Point | null
   saved?: Place[]
   recent?: Place[]
+  // for callers that need to know before submit, like the saved-places form
+  // deciding whether "Guardar" is allowed yet
+  onChange?: (v: { text: string; point: Point | null }) => void
 }) {
   const all = [...saved, ...recent]
   const initialPlace = all.find((p) => p.name === defaultValue) ?? (defaultValue ? { name: defaultValue } : null)
   const [value, setValue] = useState(defaultValue)
   const [picked, setPicked] = useState<Place | null>(initialPlace)
+  const [point, setPoint] = useState<Point | null>(
+    defaultPoint ??
+      (initialPlace?.lat != null && initialPlace?.lng != null
+        ? { lat: initialPlace.lat, lng: initialPlace.lng }
+        : null)
+  )
   const [open, setOpen] = useState(false)
+  const [locating, setLocating] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+
+  const onChangeRef = useRef(onChange)
+  useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
+  useEffect(() => {
+    onChangeRef.current?.({ text: picked?.name ?? value, point })
+  }, [value, picked, point])
 
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
@@ -39,17 +71,78 @@ export function LocationPicker({
     return () => document.removeEventListener('mousedown', onDown)
   }, [])
 
+  // Typing geocodes, but only to place the pin the first time. Once somebody
+  // has moved it, their correction outranks the geocoder: re-running the
+  // search on the next keystroke would drag the pin back out from under them.
+  const movedByHand = useRef(defaultPoint != null)
+  const text = picked?.name ?? value
+  useEffect(() => {
+    const q = text.trim()
+    if (q.length < 4 || movedByHand.current) return
+    let cancelled = false
+    setLocating(true)
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`)
+        const json = (await res.json()) as { results: { lat: number; lng: number }[] }
+        if (!cancelled && json.results?.[0]) setPoint({ lat: json.results[0].lat, lng: json.results[0].lng })
+      } catch {
+        // leave the pin where it is
+      } finally {
+        if (!cancelled) setLocating(false)
+      }
+    }, 700)
+    return () => {
+      cancelled = true
+      clearTimeout(t)
+      setLocating(false)
+    }
+  }, [text])
+
   const q = value.toLowerCase()
   const match = (p: Place) => `${p.name} ${p.addr ?? ''}`.toLowerCase().includes(q)
   const savedMatches = saved.filter(match)
   const recentMatches = recent.filter((p) => match(p) && !saved.some((s) => s.name === p.name))
-  const embed = (query: string) => `https://www.google.com/maps?q=${encodeURIComponent(query)}&z=15&output=embed`
 
   function pick(p: Place) {
     setPicked(p)
     setValue(p.name)
     setOpen(false)
+    if (p.lat != null && p.lng != null) {
+      setPoint({ lat: p.lat, lng: p.lng })
+      // A saved place's pin was already placed by hand once. Re-geocoding its
+      // name would throw that away the moment it is reused.
+      movedByHand.current = true
+    } else {
+      movedByHand.current = false
+    }
   }
+
+  function drop(p: Point) {
+    movedByHand.current = true
+    setPoint(p)
+  }
+
+  const hidden = (
+    <>
+      <input type="hidden" name={`${name}_lat`} value={point ? String(point.lat) : ''} />
+      <input type="hidden" name={`${name}_lng`} value={point ? String(point.lng) : ''} />
+    </>
+  )
+
+  // The line under the map, in both states. It is the only place that says
+  // whether there is a pin at all, which is the difference between "the map
+  // will take you here" and "the map will guess".
+  const pinNote = point ? (
+    <span className="flex items-center gap-1.5 text-[11.5px] text-ink-300">
+      <Icon name="location-dot" size={10} />
+      Arrastra el pin o toca el mapa para moverlo. Aquí es a donde llega quien venga.
+    </span>
+  ) : (
+    <span className="text-[11.5px] text-ink-300">
+      {locating ? 'Buscando la dirección…' : 'Toca el mapa para poner el pin exacto.'}
+    </span>
+  )
 
   const groupLabel = 'block bg-paper px-[13px] pb-1 pt-2 text-[10.5px] font-bold uppercase tracking-wide text-ink-300'
 
@@ -58,27 +151,25 @@ export function LocationPicker({
       <div>
         {label && <span className="mb-1.5 block text-[12.5px] font-semibold text-ink-700">{label}</span>}
         <input type="hidden" name={name} value={picked.name} />
+        {hidden}
         <div className="overflow-hidden rounded-md border border-line-card bg-paper">
-          <iframe
-            title="mapa"
-            src={embed(picked.q ?? picked.name)}
-            className="block h-[150px] w-full border-0"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
+          <PinMap point={point} onChange={drop} />
           <div className="flex items-start gap-2 px-[13px] py-[11px]">
             <span className="mt-0.5">
               <MapPinIcon />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold text-ink-900">{picked.name}</span>
-              {picked.addr && <span className="text-[12.5px] text-ink-500">{picked.addr}</span>}
+              {picked.addr && <span className="block text-[12.5px] text-ink-500">{picked.addr}</span>}
+              <span className="mt-1 block">{pinNote}</span>
             </span>
             <button
               type="button"
               onClick={() => {
                 setPicked(null)
                 setValue('')
+                setPoint(null)
+                movedByHand.current = false
               }}
               className="tap flex-shrink-0 text-[12.5px] font-bold text-honey-700"
             >
@@ -101,12 +192,16 @@ export function LocationPicker({
           onChange={(e) => {
             setValue(e.target.value)
             setOpen(true)
+            // A new address is a new place, so the geocoder gets to answer
+            // again even if the last one was dragged.
+            movedByHand.current = false
           }}
           onFocus={() => setOpen(true)}
           placeholder="Casa de… o una dirección"
           className="flex-1 border-none bg-transparent py-[11px] text-sm text-ink-900 outline-none"
         />
       </div>
+      {hidden}
 
       {open && (savedMatches.length > 0 || recentMatches.length > 0) && (
         <div className="absolute inset-x-0 z-10 mt-1.5 overflow-hidden rounded-md border border-line-card bg-paper shadow-raised">
@@ -149,13 +244,8 @@ export function LocationPicker({
 
       {value.trim() && (
         <div className="mt-2.5 overflow-hidden rounded-md border border-line-card">
-          <iframe
-            title="mapa"
-            src={embed(value)}
-            className="block h-[150px] w-full border-0"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
+          <PinMap point={point} onChange={drop} />
+          <div className="px-[13px] py-2">{pinNote}</div>
         </div>
       )}
     </div>

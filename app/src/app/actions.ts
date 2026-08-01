@@ -820,6 +820,7 @@ export async function createEvent(
     slug,
     title,
     location: String(formData.get('location') ?? '').trim() || null,
+    ...readPoint(formData, 'location'),
     description: String(formData.get('description') ?? '').trim() || null,
     status: 'scheduling',
     organizer_user_id: user.id,
@@ -872,6 +873,7 @@ export async function updateEvent(eventId: string, slug: string, _prev: string |
     title,
     category_id: categoryRaw || null,
     location: String(formData.get('location') ?? '').trim() || null,
+    ...readPoint(formData, 'location'),
     join_policy: String(formData.get('join_policy') ?? 'club_members_only'),
     allow_guests: formData.get('allow_guests') === 'on',
     capacity: capacityRaw ? Number(capacityRaw) : null,
@@ -1426,19 +1428,63 @@ export async function requestAccountDeletion(formData: FormData) {
   redirect('/')
 }
 
+// A saved place needs both halves. The name is what a member recognises in
+// the picker and the address is what gets anybody there, so a row with one of
+// them is half a place: "Casa de Marta" with no address routes nowhere, and a
+// bare street with no name is unrecognisable in a list of five.
+//
+// The form used to fill the gap silently, copying the address into the name
+// when the name was blank, so saving with one field filled produced a saved
+// place and looked like it had worked.
+function readPlace(formData: FormData) {
+  const name = String(formData.get('name') ?? '').trim()
+  const addr = String(formData.get('addr') ?? '').trim()
+  return {
+    ok: !!name && !!addr,
+    row: { name, addr, query: addr, ...readPoint(formData, 'addr') },
+  }
+}
+
+// The pin the organizer dropped, read off the LocationPicker's two hidden
+// fields. Both or neither, which is what the check constraint on the table
+// says too: one of the two alone puts a marker on the equator.
+function readPoint(formData: FormData, field: string) {
+  const lat = Number(formData.get(`${field}_lat`))
+  const lng = Number(formData.get(`${field}_lng`))
+  const ok = Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)
+  return { lat: ok ? lat : null, lng: ok ? lng : null }
+}
+
 export async function addSavedPlace(formData: FormData) {
   const supabase = await supabaseServer()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) throw new Error('not signed in')
-  const name = String(formData.get('name') ?? '').trim()
-  const addr = String(formData.get('addr') ?? '').trim() || null
-  const query = String(formData.get('query') ?? '').trim() || name
-  if (!name) return
-  const { error } = await supabase.from('saved_places').insert({ user_id: user.id, name, addr, query })
+  const { ok, row } = readPlace(formData)
+  if (!ok) return { ok: false as const, error: 'Ponle nombre y dirección: los dos hacen falta para guardarlo.' }
+  const { error } = await supabase.from('saved_places').insert({ user_id: user.id, ...row })
   if (error) throw new Error(error.message)
   revalidatePath('/account')
+  return { ok: true as const }
+}
+
+// Editing rather than delete-and-retype. A saved place is mostly right when
+// it is wrong: the pin is a street off, or the name changed when the club
+// started calling it something else.
+export async function updateSavedPlace(id: string, formData: FormData) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
+  const { ok, row } = readPlace(formData)
+  if (!ok) return { ok: false as const, error: 'Ponle nombre y dirección: los dos hacen falta para guardarlo.' }
+  // RLS already scopes this to the owner; the filter says so out loud.
+  const { error } = await supabase.from('saved_places').update(row).eq('id', id).eq('user_id', user.id)
+  if (error) throw new Error(error.message)
+  revalidatePath('/account')
+  return { ok: true as const }
 }
 
 export async function removeSavedPlace(id: string) {

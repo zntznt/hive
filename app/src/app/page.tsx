@@ -24,6 +24,8 @@ import { getAwayItems } from '@/lib/away'
 import { InstallPwa } from '@/components/ui/InstallPwa'
 import { timeAgo } from '@/lib/relative-time'
 import { WhenPill } from '@/components/ui/WhenPill'
+import { FaceStack } from '@/components/ui/FaceStack'
+import { type AvatarUser } from '@/components/ui/Avatar'
 
 type UpcomingEvent = {
   id: string
@@ -125,8 +127,12 @@ export default async function Home() {
           .order('created_at', { ascending: false })
       : Promise.resolve({ data: [] as UpcomingEvent[] }),
     clubIds.length
-      ? supabase.from('club_members').select('club_id').in('club_id', clubIds)
-      : Promise.resolve({ data: [] as { club_id: string }[] }),
+      ? supabase
+          .from('club_members')
+          .select('club_id, users(display_name, avatar_kind, avatar_bug, avatar_color, avatar_photo_url)')
+          .in('club_id', clubIds)
+          .order('joined_at')
+      : Promise.resolve({ data: [] as { club_id: string; users: AvatarUser | null }[] }),
   ])
 
   const total = plateCount(board)
@@ -152,13 +158,19 @@ export default async function Home() {
     .filter((e) => e.status === 'scheduling' || rsvpByEvent.get(e.id)?.status === 'in')
     .slice(0, 5)
 
+  // Who is in each club, not how many. "2 miembros · 2 próximos" is two
+  // numbers nobody pictures, and the second one was answering a question the
+  // next-event line answers by name.
   const memberCountByClub = new Map<string, number>()
-  for (const row of memberCountResult.data ?? []) {
+  const facesByClub = new Map<string, AvatarUser[]>()
+  for (const row of (memberCountResult.data ?? []) as unknown as { club_id: string; users: AvatarUser | null }[]) {
     memberCountByClub.set(row.club_id, (memberCountByClub.get(row.club_id) ?? 0) + 1)
+    if (row.users) facesByClub.set(row.club_id, [...(facesByClub.get(row.club_id) ?? []), row.users])
   }
-  const upcomingCountByClub = new Map<string, number>()
+  // The soonest thing each club is doing, which is the reason to tap it.
+  const nextByClub = new Map<string, UpcomingEvent>()
   for (const e of allUpcoming) {
-    if (e.club_id) upcomingCountByClub.set(e.club_id, (upcomingCountByClub.get(e.club_id) ?? 0) + 1)
+    if (e.club_id && !nextByClub.has(e.club_id)) nextByClub.set(e.club_id, e)
   }
 
   return (
@@ -329,7 +341,7 @@ export default async function Home() {
       )}
 
       <section className="mt-[26px]">
-        <SectionHeader>Tus clubs</SectionHeader>
+        <SectionHeader>Tus clubes</SectionHeader>
         {clubs.length === 0 ? (
           <EmptyState
             icon="bugs"
@@ -338,26 +350,42 @@ export default async function Home() {
           />
         ) : (
           <div className="flex flex-col gap-2">
-            {clubs.map((c) => (
-              <Link
-                key={c.slug}
-                href={`/club/${c.slug}`}
-                className="flex items-center gap-3 rounded-lg border border-line-card bg-paper p-4 shadow-card"
-              >
-                <HexAvatar name={c.name} size={34} />
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-bold text-ink-900">{c.name}</span>
-                  <span className="text-[12.5px] text-ink-500">
-                    {memberCountByClub.get(c.id) ?? 0} miembro{(memberCountByClub.get(c.id) ?? 0) === 1 ? '' : 's'} ·{' '}
-                    {upcomingCountByClub.get(c.id) ?? 0} próximo{(upcomingCountByClub.get(c.id) ?? 0) === 1 ? '' : 's'}
+            {clubs.map((c) => {
+              const next = nextByClub.get(c.id)
+              return (
+                <Link
+                  key={c.slug}
+                  href={`/club/${c.slug}`}
+                  className="flex items-center gap-3 rounded-lg border border-line-card bg-paper p-4 shadow-card"
+                >
+                  <HexAvatar name={c.name} size={34} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-bold text-ink-900">{c.name}</span>
+                    <span className="mt-1 flex items-center gap-2">
+                      <FaceStack
+                        people={facesByClub.get(c.id) ?? []}
+                        total={memberCountByClub.get(c.id)}
+                        size={20}
+                        max={4}
+                      />
+                      <span className="min-w-0 truncate text-[12.5px] text-ink-500">
+                        {next ? next.title : 'sin nada planeado'}
+                      </span>
+                    </span>
                   </span>
-                </span>
-              </Link>
-            ))}
+                  {next && <WhenPill at={next.chosen_start} status={next.status} />}
+                </Link>
+              )
+            })}
           </div>
         )}
 
-        <CreateClubButton />
+        {/* Its own row, not stuck to the last card. Creating a club is a
+            different act from opening one, and butting the pill against the
+            card read as part of it. */}
+        <div className="mt-3">
+          <CreateClubButton />
+        </div>
       </section>
 
       {/* Below the things people came for, on purpose. Rule 1 gives the page

@@ -6,7 +6,7 @@ import NotifPrefsForm from './notif-prefs-form'
 import WhatsappForm from './whatsapp-form'
 import { PushRow } from './push-row'
 import PaymentMethodsForm, { type PaymentMethod } from './payment-methods-form'
-import { SavedPlaces } from './saved-places'
+import { SavedPlaces, type Place as SavedPlace } from './saved-places'
 import DangerZone from './danger-zone'
 
 // Columns added by migration 0005 that aren't on the (still pre-redesign)
@@ -43,7 +43,11 @@ export default async function AccountPage() {
       .select('id, kind, value, sort')
       .eq('user_id', profile.id)
       .order('sort'),
-    supabase.from('saved_places').select('id, name, addr, query').eq('user_id', profile.id).order('created_at'),
+    supabase
+      .from('saved_places')
+      .select('id, name, addr, query, lat, lng')
+      .eq('user_id', profile.id)
+      .order('created_at'),
     supabase.from('push_subscriptions').select('endpoint, device_label').eq('user_id', profile.id),
   ])
 
@@ -112,7 +116,7 @@ export default async function AccountPage() {
 
       <PaymentMethodsForm methods={paymentMethods} />
 
-      <SavedPlaces places={places ?? []} />
+      <SavedPlaces places={(places ?? []) as SavedPlace[]} />
 
       <DangerZone />
     </Page>

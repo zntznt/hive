@@ -541,6 +541,8 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
       <WhereCard
         location={event.location}
+        lat={event.lat}
+        lng={event.lng}
         area={null}
         title={event.title}
         span={fmtSpan(event.chosen_start, event.chosen_end)}
