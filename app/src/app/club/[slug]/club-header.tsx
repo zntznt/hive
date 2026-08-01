@@ -78,27 +78,25 @@ export function ClubHeader({
     )
   }
 
+  // The familiar shape: a cover strip, the picture straddling its bottom edge,
+  // everything centred under it. It reads as a club home immediately because it
+  // reads like every profile people already know.
+  //
+  // The banner used to fade into the content, on the theory that it should read
+  // as one surface. With the honeycomb texture that was fine; with a real photo
+  // it turned any cover into muddy beige, because the fade hits .9 opacity by
+  // the midpoint and eats the image. So the photo is a crisp strip now and the
+  // content sits on paper below it, the avatar bridging the two. No photo means
+  // the honeycomb texture, which is what the strip is for.
   return (
-    <section
-      className="relative mb-[18px] overflow-hidden rounded-lg border border-line-card bg-paper text-center"
-      style={{ backgroundColor: 'var(--cream)', backgroundImage: bannerUrl ? undefined : 'var(--honeycomb)' }}
-    >
-      {bannerUrl && (
-        <span
-          aria-hidden="true"
-          className="absolute inset-x-0 top-0 h-[124px] bg-cover bg-center"
-          style={{ backgroundImage: `url(${bannerUrl})` }}
-        />
-      )}
-      {/* the field fades into paper so the head reads as one surface, not a
-          banner glued to a card */}
+    <section className="relative mb-[18px] overflow-hidden rounded-lg border border-line-card bg-paper text-center">
       <div
-        className="relative px-4 pb-4 pt-4"
-        style={{
-          background: bannerUrl
-            ? 'linear-gradient(180deg, rgba(251,247,239,.18) 0%, rgba(251,247,239,.9) 46%, var(--paper) 100%)'
-            : 'linear-gradient(180deg, rgba(251,247,239,0) 0%, rgba(251,247,239,.86) 44%, var(--paper) 100%)',
-        }}
+        className="relative h-[104px] bg-cover bg-center"
+        style={
+          bannerUrl
+            ? { backgroundImage: `url(${bannerUrl})` }
+            : { backgroundColor: 'var(--cream)', backgroundImage: 'var(--honeycomb)' }
+        }
       >
         {cover && <div className="absolute right-2.5 top-2.5">{cover}</div>}
         {foldedByDefault && (
@@ -106,17 +104,21 @@ export function ClubHeader({
             type="button"
             onClick={() => setOpen(false)}
             aria-expanded
-            className="tap absolute left-2.5 top-2.5 inline-flex min-h-11 items-center px-1 text-xs font-bold text-honey-800"
+            className="tap absolute left-2.5 top-2.5 inline-flex min-h-11 items-center rounded-pill bg-charcoal/55 px-2.5 text-xs font-bold text-on-dark"
           >
             Ocultar
           </button>
         )}
+      </div>
 
-        <span className="relative mx-auto flex w-[76px] justify-center">
+      <div className="px-4 pb-4">
+        {/* pulled up so it straddles the strip's bottom edge, on a paper hex so
+            it separates cleanly from whatever the cover photo is */}
+        <span className="relative -mt-[40px] mx-auto grid h-[76px] w-[70px] place-items-center bg-paper [clip-path:polygon(50%_0,100%_25%,100%_75%,50%_100%,0_75%,0_25%)]">
           {picture ?? <HexAvatar name={name} src={avatarUrl} size={64} />}
         </span>
 
-        <span className="mt-1.5 flex flex-wrap items-center justify-center gap-2">
+        <span className="mt-2 flex flex-wrap items-center justify-center gap-2">
           <span className="font-display text-[21px] font-bold leading-tight text-ink-900">{name}</span>
           {badge}
           {edit}

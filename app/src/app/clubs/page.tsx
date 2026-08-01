@@ -148,36 +148,24 @@ export default async function ClubsPage() {
                     tonight ? 'border-[1.5px] border-honey-500' : 'border border-line-card'
                   }`}
                 >
-                  <Link
-                    href={`/club/${club.slug}`}
-                    className="relative block w-full overflow-hidden text-center"
-                    style={{
-                      backgroundColor: 'var(--cream)',
-                      backgroundImage: club.banner_url ? undefined : 'var(--honeycomb)',
-                    }}
-                  >
-                    {club.banner_url && (
-                      <span
-                        aria-hidden="true"
-                        className="absolute inset-x-0 top-0 h-[96px] bg-cover bg-center"
-                        style={{ backgroundImage: `url(${club.banner_url})` }}
-                      />
-                    )}
+                  <Link href={`/club/${club.slug}`} className="block w-full text-center">
+                    {/* Crisp cover strip with the mark straddling its edge, the
+                        same profile shape as the club page. The photo used to
+                        fade into the card and any real cover came out muddy. */}
                     <span
-                      className="relative block px-3.5 pb-[13px] pt-3.5"
-                      style={{
-                        // A photo needs a heavier scrim than the honeycomb
-                        // does, or the club's own name lands on somebody's
-                        // living room and stops being readable.
-                        background: club.banner_url
-                          ? 'linear-gradient(180deg, rgba(251,247,239,.2) 0%, rgba(251,247,239,.9) 46%, var(--paper) 100%)'
-                          : 'linear-gradient(180deg, rgba(251,247,239,0) 0%, rgba(251,247,239,.86) 44%, var(--paper) 100%)',
-                      }}
-                    >
-                      <span className="mx-auto grid h-[66px] w-[60px] place-items-center bg-paper [clip-path:polygon(50%_0,100%_25%,100%_75%,50%_100%,0_75%,0_25%)]">
+                      aria-hidden="true"
+                      className="block h-[76px] bg-cover bg-center"
+                      style={
+                        club.banner_url
+                          ? { backgroundImage: `url(${club.banner_url})` }
+                          : { backgroundColor: 'var(--cream)', backgroundImage: 'var(--honeycomb)' }
+                      }
+                    />
+                    <span className="block px-3.5 pb-[13px]">
+                      <span className="relative -mt-[30px] mx-auto grid h-[66px] w-[60px] place-items-center bg-paper [clip-path:polygon(50%_0,100%_25%,100%_75%,50%_100%,0_75%,0_25%)]">
                         <HexAvatar name={club.name} src={club.avatar_url} size={54} />
                       </span>
-                      <span className="mt-1 flex flex-wrap items-center justify-center gap-[7px]">
+                      <span className="mt-1.5 flex flex-wrap items-center justify-center gap-[7px]">
                         <span className="font-display text-[19px] font-bold leading-[1.15] text-ink-900">
                           {club.name}
                         </span>

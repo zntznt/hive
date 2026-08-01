@@ -23,11 +23,15 @@ export function CreateClubButton() {
 
   return (
     <>
+      {/* A compact header action, not a full-width block. It sits in the
+          PageHeader's action slot beside the title, the same place "Nuevo
+          evento" sits on the club page; creating a club is rare and does not
+          earn a full row above the clubs you already have. */}
       <button
         onClick={() => setOpen(true)}
-        className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border-[1.5px] border-line-input bg-paper px-[18px] py-[11px] text-sm font-extrabold text-ink-700"
+        className="tap inline-flex min-h-11 flex-shrink-0 items-center gap-1.5 rounded-pill border-[1.5px] border-line-input bg-paper px-3.5 text-[13px] font-extrabold text-ink-700"
       >
-        <span aria-hidden="true">+</span> Crear un club
+        <span aria-hidden="true">+</span> Crear club
       </button>
       {open && (
         <Modal
