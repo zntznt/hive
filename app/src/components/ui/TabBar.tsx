@@ -23,7 +23,7 @@ const BARE = ['/i/', '/c/', '/pending', '/auth/']
 type Tab = { id: string; href: string; label: string; icon: IconName }
 
 const LEFT: Tab[] = [
-  { id: 'clubs', href: '/clubs', label: 'Clubs', icon: 'hashtag' },
+  { id: 'clubs', href: '/clubs', label: 'Clubes', icon: 'hashtag' },
   { id: 'events', href: '/events', label: 'Eventos', icon: 'calendar-days' },
 ]
 const RIGHT: Tab[] = [
