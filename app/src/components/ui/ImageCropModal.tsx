@@ -7,6 +7,18 @@ import { Button } from './Button'
 // Crop & framing step shown right after picking an image, before it's
 // uploaded. Drag to pan, slider to zoom; exports the framed region as a JPEG
 // data URL (caller turns that into a Blob via lib/upload's dataUrlToBlob).
+//
+// The frame used to be 300px wide, always, whatever the modal or the screen
+// was. For a square avatar that is fine. For a wide cover it meant framing a
+// photograph inside a 300x75 slot: too small to see what you were choosing,
+// on every phone, no matter how much room the sheet had. It measures the
+// space it was given now and fills it.
+
+// Small enough to still fit a narrow phone, large enough that the picture is
+// a picture. Beyond the upper bound the frame stops growing, because a crop
+// box wider than a forearm is not easier to aim.
+const MIN_FRAME = 240
+const MAX_FRAME = 420
 export function ImageCropModal({
   src,
   aspect = 1,
@@ -31,8 +43,9 @@ export function ImageCropModal({
   const [pos, setPos] = useState({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
   const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null)
-  const frameW = 300
-  const frameH = Math.round(300 / aspect)
+  const slotRef = useRef<HTMLDivElement>(null)
+  const [frameW, setFrameW] = useState(MIN_FRAME)
+  const frameH = Math.round(frameW / aspect)
 
   useEffect(() => {
     if (!src) return
@@ -43,6 +56,21 @@ export function ImageCropModal({
       setPos({ x: 0, y: 0 })
     }
     i.src = src
+  }, [src])
+
+  // How much room the sheet actually gave us, watched rather than assumed, so
+  // the frame is right on a phone, on a tablet and after a rotation.
+  useEffect(() => {
+    const slot = slotRef.current
+    if (!slot) return
+    const measure = () => {
+      const w = slot.clientWidth
+      if (w > 0) setFrameW(Math.round(Math.min(MAX_FRAME, Math.max(MIN_FRAME, w))))
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(slot)
+    return () => ro.disconnect()
   }, [src])
 
   if (!src) return null
@@ -76,6 +104,13 @@ export function ImageCropModal({
     setPos((p) => clampAt(p, base * z))
   }
 
+  // Where the image actually sits, clamped as it is read rather than stored
+  // clamped. The frame is measured after the first paint, so a pan that was
+  // against the edge of a 240px frame is past the edge of the 354px one that
+  // replaces it, and a wider frame would otherwise show a strip of empty
+  // background down one side.
+  const view = clampAt(pos, scale)
+
   const apply = () => {
     if (!img) {
       onCancel()
@@ -86,8 +121,8 @@ export function ImageCropModal({
     c.width = outWidth
     c.height = outH
     const ctx = c.getContext('2d')!
-    const imgX = frameW / 2 + pos.x - (img.width * scale) / 2
-    const imgY = frameH / 2 + pos.y - (img.height * scale) / 2
+    const imgX = frameW / 2 + view.x - (img.width * scale) / 2
+    const imgY = frameH / 2 + view.y - (img.height * scale) / 2
     ctx.drawImage(img, -imgX / scale, -imgY / scale, frameW / scale, frameH / scale, 0, 0, outWidth, outH)
     onApply(c.toDataURL('image/jpeg', 0.9))
   }
@@ -109,7 +144,7 @@ export function ImageCropModal({
         </>
       }
     >
-      <div className="flex flex-col items-center gap-3.5">
+      <div ref={slotRef} className="flex w-full flex-col items-center gap-3.5">
         <div
           onPointerDown={onDown}
           onPointerMove={onMove}
@@ -128,7 +163,7 @@ export function ImageCropModal({
               style={{
                 width: img.width * scale,
                 height: img.height * scale,
-                transform: `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))`,
+                transform: `translate(calc(-50% + ${view.x}px), calc(-50% + ${view.y}px))`,
               }}
             />
           )}
