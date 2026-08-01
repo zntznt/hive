@@ -7,6 +7,8 @@ import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Icon } from '@/components/ui/Icon'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { useToast } from '@/components/ui/Toast'
+import { Badge } from '@/components/ui/Badge'
+import { timeAgo } from '@/lib/relative-time'
 import { mexicoInstant, mexicoDay, fmtWeekdayDay, fmtTime } from '@/lib/time'
 
 type Props = {
@@ -22,7 +24,9 @@ type Props = {
   isOrganizer: boolean
   // members who have not painted anything at all, with their faces, so the
   // organizer sees who they are waiting on rather than a number
-  waitingOn: { id: string; user: AvatarUser }[]
+  waitingOn: { id: string; user: AvatarUser; nudged: boolean }[]
+  // when the last nudge for this event went out, for the record line
+  nudgedAt: string | null
 }
 
 // One gesture, two meanings. Press a cell, drag down the day, release.
@@ -58,7 +62,11 @@ export default function Grid({
   totalMembers,
   isOrganizer,
   waitingOn,
+  nudgedAt,
 }: Props) {
+  // Who has still never been nudged. The button exists only for these.
+  const unreached = waitingOn.filter((m) => !m.nudged)
+
   const rows = Math.max(1, Math.floor((timeMax - timeMin) / slotMinutes))
   const [selected, setSelected] = useState<Set<number>>(new Set(initialSlots))
   const [failed, setFailed] = useState(false)
@@ -67,7 +75,6 @@ export default function Grid({
   const [pick, setPick] = useState<{ day: number; a: number; b: number } | null>(null)
   const [saved, setSaved] = useState(false)
   const [pending, startTransition] = useTransition()
-  const [nudged, setNudged] = useState(false)
   const surface = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const toast = useToast()
@@ -346,40 +353,62 @@ export default function Grid({
       {/* The one thing an organizer running a poll actually needs. Faces
           rather than a count, because "waiting on 3" is a statistic and
           "waiting on Marta, Jorge and Lucía" is a decision. */}
+      {/* The one thing an organizer running a poll actually needs. Faces
+          rather than a count, because "waiting on 3" is a statistic and
+          "waiting on Marta, Jorge and Lucía" is a decision.
+
+          One nudge per member per event, ever. The server has always enforced
+          that (it checks the outbox before queueing), but the button only went
+          grey, and grey reads as "try again later", which is a lie. Worse, it
+          was local state, so a reload brought it back bright and an organizer
+          could poke it all evening for a toast telling them nothing happened.
+          Once everybody pending has been reached there is no button at all,
+          just the record of when it went. */}
       {isOrganizer && waitingOn.length > 0 && (
         <div className="mt-5 rounded-lg border border-line-card bg-paper p-3.5">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[13.5px] font-bold text-ink-900">
               Faltan {waitingOn.length} de {totalMembers}
             </span>
-            <button
-              type="button"
-              disabled={pending || nudged}
-              onClick={() =>
-                startTransition(async () => {
-                  const res = await remindMissingAvailability(eventId, slug)
-                  setNudged(true)
-                  toast(
-                    res.queued > 0
-                      ? `Les recordamos a ${res.queued}`
-                      : 'Ya les habíamos recordado'
-                  )
-                  router.refresh()
-                })
-              }
-              className="tap flex-shrink-0 rounded-md border-[1.5px] border-honey-500 px-2.5 py-1 text-xs font-bold text-honey-700 disabled:opacity-50"
-            >
-              <Icon name="paper-plane" size={11} /> {nudged ? 'Recordado' : 'Recordarles'}
-            </button>
+            {unreached.length > 0 && (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() =>
+                  startTransition(async () => {
+                    const res = await remindMissingAvailability(eventId, slug)
+                    toast(res.queued > 0 ? `Les recordamos a ${res.queued}` : 'Ya les habíamos recordado')
+                    router.refresh()
+                  })
+                }
+                className="tap flex-shrink-0 rounded-md border-[1.5px] border-honey-500 px-2.5 py-1 text-xs font-bold text-honey-700 disabled:opacity-50"
+              >
+                <Icon name="paper-plane" size={11} />{' '}
+                {/* The state everyone forgets: somebody joined the club after
+                    the automatic nudge went out, so exactly one person is
+                    un-nudged and the action names them. */}
+                {nudgedAt && unreached.length === 1
+                  ? `Recordarle a ${unreached[0].user.display_name}`
+                  : 'Recordarles'}
+              </button>
+            )}
           </div>
+
           <div className="mt-2.5 flex flex-wrap gap-1.5">
             {waitingOn.map((m) => (
               <span key={m.id} className="flex items-center gap-1.5 rounded-pill bg-cream-sunk py-0.5 pl-0.5 pr-2.5">
                 <UserAvatar user={m.user} size={22} />
                 <span className="text-[12px] font-semibold text-ink-700">{m.user.display_name}</span>
+                {m.nudged && <Badge tone="success">recordado</Badge>}
               </span>
             ))}
           </div>
+
+          <p className="mt-2.5 text-[11.5px] leading-relaxed text-ink-300">
+            {unreached.length === 0
+              ? `Ya se les recordó${nudgedAt ? ` ${timeAgo(nudgedAt)}` : ''}. Solo se manda una vez a cada quien, así que no vuelve a salir.`
+              : 'Se manda solo cuando pasa la fecha límite para confirmar. Solo llega una vez a cada quien.'}
+          </p>
         </div>
       )}
 

@@ -161,9 +161,28 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   // Painted nothing at all. Someone who saved an empty grid has a row and is
   // not waiting on anything: they answered, the answer was "no time works".
   const painted = new Set((avail ?? []).map((a) => a.user_id as string))
+  // Who has already been nudged about this event, read from the outbox, which
+  // is the same place nudgeMissingAvailability checks before it queues. One
+  // nudge per member per event, ever, is a rule the server already keeps; the
+  // card could not show it because nobody asked the outbox.
+  const { data: nudgeRows } = await supabase
+    .from('notification_outbox')
+    .select('user_id, created_at')
+    .eq('template', 'availability_pending')
+    .eq('payload->>event_id', event.id)
+  const nudgedIds = new Set((nudgeRows ?? []).map((r) => r.user_id as string))
+  const nudgedAt = (nudgeRows ?? [])
+    .map((r) => r.created_at as string)
+    .sort()
+    .at(-1) ?? null
+
   const waitingOn = (members ?? [])
     .filter((m) => !painted.has(m.user_id))
-    .map((m) => ({ id: m.user_id as string, user: (userOf.get(m.user_id) ?? { display_name: '·' }) as AvatarUser }))
+    .map((m) => ({
+      id: m.user_id as string,
+      user: (userOf.get(m.user_id) ?? { display_name: '·' }) as AvatarUser,
+      nudged: nudgedIds.has(m.user_id as string),
+    }))
 
   const contributions = (contribs ?? []) as Contribution[]
   const byStatus = (st: RsvpStatus) => (rsvps ?? []).filter((r) => r.status === st)
@@ -570,6 +589,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               totalMembers={(members ?? []).length}
               isOrganizer={!!isOrganizer}
               waitingOn={waitingOn}
+              nudgedAt={nudgedAt}
             />
           </Card>
         </section>
