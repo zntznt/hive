@@ -75,8 +75,25 @@ export function ImageCropModal({
 
   if (!src) return null
 
-  const base = img ? Math.max(frameW / img.width, frameH / img.height) : 1
-  const scale = base * zoom
+  // Two scales matter. `cover` fills the frame and loses whatever does not
+  // fit; `contain` fits the whole picture inside it and leaves room over.
+  //
+  // The slider used to start at cover and only go up, so cover was the most of
+  // your photo you could ever include. A phone shoots 4:3 and this frame is
+  // 5:2, which means every cover upload silently threw away about half the
+  // height and no amount of dragging brought it back. That is the whole of
+  // "it is still cropped": not the page, the picker.
+  //
+  // So zoom now goes below 1, down to contain, and the room left over is
+  // filled with a blurred blow-up of the photo itself rather than bars. The
+  // export is a full 5:2 image either way, so nothing downstream has to know
+  // which choice was made.
+  const cover = img ? Math.max(frameW / img.width, frameH / img.height) : 1
+  const contain = img ? Math.min(frameW / img.width, frameH / img.height) : 1
+  const minZoom = img ? contain / cover : 1
+  const scale = cover * zoom
+  // true when the photo no longer fills the frame on its own
+  const letterboxed = img ? img.width * scale < frameW - 0.5 || img.height * scale < frameH - 0.5 : false
 
   const clampAt = (p: { x: number; y: number }, s: number) => {
     if (!img) return p
@@ -101,7 +118,7 @@ export function ImageCropModal({
   }
   const onZoom = (z: number) => {
     setZoom(z)
-    setPos((p) => clampAt(p, base * z))
+    setPos((p) => clampAt(p, cover * z))
   }
 
   // Where the image actually sits, clamped as it is read rather than stored
@@ -121,9 +138,31 @@ export function ImageCropModal({
     c.width = outWidth
     c.height = outH
     const ctx = c.getContext('2d')!
+    // frame pixels to output pixels
+    const k = outWidth / frameW
+
+    // The backdrop, painted first and only visible where the photo does not
+    // reach. A blurred blow-up of the same photo rather than a flat colour,
+    // because a cover that fades into its own colours reads as one picture and
+    // two grey bars read as a mistake.
+    if (letterboxed) {
+      const fill = Math.max(outWidth / img.width, outH / img.height)
+      const bw = img.width * fill
+      const bh = img.height * fill
+      ctx.filter = 'blur(24px)'
+      // drawn slightly oversized so the blur does not pull the page's
+      // background in around the edges
+      ctx.drawImage(img, (outWidth - bw * 1.12) / 2, (outH - bh * 1.12) / 2, bw * 1.12, bh * 1.12)
+      ctx.filter = 'none'
+    }
+
+    // The photo itself, at exactly the position and size the frame showed.
+    // Positioning the whole image and letting the canvas clip it is the same
+    // arithmetic the preview does, so what was framed is what is written; the
+    // old source-rectangle form had to be kept in step with it by hand.
     const imgX = frameW / 2 + view.x - (img.width * scale) / 2
     const imgY = frameH / 2 + view.y - (img.height * scale) / 2
-    ctx.drawImage(img, -imgX / scale, -imgY / scale, frameW / scale, frameH / scale, 0, 0, outWidth, outH)
+    ctx.drawImage(img, imgX * k, imgY * k, img.width * scale * k, img.height * scale * k)
     onApply(c.toDataURL('image/jpeg', 0.9))
   }
 
@@ -153,6 +192,24 @@ export function ImageCropModal({
           className="relative max-w-full overflow-hidden rounded-md border border-line-card bg-cream-sunk touch-none"
           style={{ width: frameW, height: frameH, cursor: dragging ? 'grabbing' : 'grab' }}
         >
+          {/* The same blurred backdrop the export paints, so the frame is a
+              preview and not an approximation of one. */}
+          {img && letterboxed && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={src}
+              alt=""
+              aria-hidden="true"
+              draggable={false}
+              className="pointer-events-none absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2"
+              style={{
+                width: frameW * 1.12,
+                height: frameH * 1.12,
+                objectFit: 'cover',
+                filter: 'blur(18px)',
+              }}
+            />
+          )}
           {img && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -173,7 +230,7 @@ export function ImageCropModal({
           <span className="text-xs text-ink-300">−</span>
           <input
             type="range"
-            min="1"
+            min={minZoom}
             max="3"
             step="0.01"
             value={zoom}
