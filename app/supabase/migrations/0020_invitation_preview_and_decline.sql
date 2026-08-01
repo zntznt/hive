@@ -11,6 +11,20 @@
 -- invitation can be declined without an account, because requiring someone to
 -- sign up in order to say no is a way of not letting them.
 
+-- The bin columns, pulled forward from 0021.
+--
+-- The preview below filters on events.deleted_at, and 0021 is the migration
+-- that creates it: that file says so itself, it was written after the fact to
+-- recover a change applied straight to production. So when this was written
+-- the column was already there on the live database, and the recorded history
+-- has the two the wrong way round. It only shows up on a database built from
+-- these files, which is to say it showed up the first time anybody tried.
+-- Guarded, so it is a no-op wherever the column already exists, including
+-- 0021 itself.
+alter table public.events
+  add column if not exists deleted_at timestamptz,
+  add column if not exists deleted_by uuid references public.users(id);
+
 alter table public.invitations
   add column if not exists declined_at timestamptz;
 

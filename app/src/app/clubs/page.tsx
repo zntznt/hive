@@ -155,7 +155,9 @@ export default async function ClubsPage() {
                         fade into the card and any real cover came out muddy. */}
                     <span
                       aria-hidden="true"
-                      className={`block ${BANNER_ASPECT_CLASS} bg-cover bg-center`}
+                      className={`block ${BANNER_ASPECT_CLASS} ${
+                        club.banner_url ? 'bg-cover bg-center' : 'bg-repeat'
+                      }`}
                       style={
                         club.banner_url
                           ? { backgroundImage: `url(${club.banner_url})` }
