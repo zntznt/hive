@@ -6,6 +6,8 @@ export type Profile = {
   phone_whatsapp: string | null
   status: 'pending' | 'active' | 'disabled'
   is_app_admin: boolean
+  // when they signed up, which is how the verification queue orders itself
+  created_at: string | null
 }
 
 export type EventRow = {

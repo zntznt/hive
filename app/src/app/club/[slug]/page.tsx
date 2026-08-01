@@ -282,11 +282,6 @@ export default async function ClubPage({
       {isManager && (changeReqs ?? []).length > 0 && (
         <>
           <SectionHeader
-            action={
-              <Link href="/admin" className="inline-flex items-center gap-1 tap text-[12.5px] font-bold text-honey-700">
-                Revisar en Admin <Icon name="chevron-right" size={10} />
-              </Link>
-            }
           >
             Esperando a los admins · {(changeReqs ?? []).length}
           </SectionHeader>
@@ -353,11 +348,6 @@ export default async function ClubPage({
       {isManager && (joinReqs ?? []).length > 0 && isAdmin && (
         <>
           <SectionHeader
-            action={
-              <Link href="/admin" className="inline-flex items-center gap-1 tap text-[12.5px] font-bold text-honey-700">
-                Revisar en Admin <Icon name="chevron-right" size={10} />
-              </Link>
-            }
           >
             Solicitudes para unirse · {(joinReqs ?? []).length}
           </SectionHeader>

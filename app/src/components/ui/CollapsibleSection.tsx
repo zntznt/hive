@@ -28,7 +28,6 @@ import { Icon, type IconName } from './Icon'
 export function CollapsibleSection({
   label,
   summary,
-  meta,
   icon,
   tone,
   defaultOpen = false,
@@ -36,8 +35,10 @@ export function CollapsibleSection({
   className = '',
 }: {
   label: string
+  // What the row says about itself, closed and open alike. There used to be a
+  // second prop for the open state, which meant a caller could pass the one
+  // the closed row does not read and get a row reporting nothing at all.
   summary?: ReactNode
-  meta?: ReactNode
   icon?: IconName
   tone?: 'hot'
   defaultOpen?: boolean
@@ -77,7 +78,7 @@ export function CollapsibleSection({
           doing, and the only control left is the way back to closed. */}
       <div className="mb-2.5 flex items-baseline gap-2.5">
         <span className="eyebrow">{label}</span>
-        {meta && <span className="text-[11.5px] text-ink-300">{meta}</span>}
+        {summary && <span className="min-w-0 truncate text-[11.5px] text-ink-300">{summary}</span>}
         <button
           type="button"
           onClick={() => setOpen(false)}
