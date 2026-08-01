@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { CodeEntryStep } from '@/components/ui/CodeEntryStep'
+import { Icon } from '@/components/ui/Icon'
+import { parseIdentity, identityHelper, identityAction } from '@/lib/identity'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { requestSigninCodeFor, verifySigninCodeFor } from './actions'
 
@@ -27,6 +29,8 @@ export default function SignIn() {
   const [sent, setSent] = useState(false)
   const [sentAt, setSentAt] = useState<number | undefined>(undefined)
   const [sending, setSending] = useState(false)
+  // what the field currently reads as, recomputed on every keystroke
+  const id = parseIdentity(contact)
   const [error, setError] = useState<string | null>(null)
   const [viaWhatsapp, setViaWhatsapp] = useState(false)
   const [code, setCode] = useState('')
@@ -164,29 +168,60 @@ export default function SignIn() {
               organizado.
             </h1>
             <p className="mt-2 mb-5 text-sm text-on-dark-mute">Bienvenido al enjambre. Busquemos fecha.</p>
-            <div className="mb-3 flex flex-col gap-1.5">
+            <div className="mb-2 flex flex-col gap-1.5">
               <label className="text-[12.5px] font-semibold text-on-dark-mute" htmlFor="contact">
                 Tu correo o WhatsApp
               </label>
               <input
                 id="contact"
                 type="text"
-                inputMode="email"
-                autoComplete="email"
+                // follows what they are typing, so a number gets the number pad
+                inputMode={id.kind === 'phone' || id.kind === 'short' ? 'tel' : 'email'}
+                autoComplete="username"
                 required
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
-                placeholder="tu@correo.com  ·  +52 55 1234 5678"
-                className="rounded-md border border-charcoal-3 bg-charcoal-2 px-[14px] py-[13px] text-sm text-on-dark outline-none placeholder:text-on-dark-mute focus:border-honey-500"
+                placeholder="tu@correo.com  ·  55 1234 5678"
+                className={`min-h-[46px] rounded-md border-[1.5px] bg-charcoal-2 px-[14px] py-[13px] text-sm text-on-dark outline-none placeholder:text-on-dark-mute ${
+                  error ? 'border-danger' : contact.trim() ? 'border-honey-500' : 'border-charcoal-3'
+                }`}
               />
             </div>
-            <Button display block size="lg" disabled={sending}>
-              {sending ? 'Enviando…' : 'Mándame el código'}
+
+            {/* Which channel this is about to use, while they can still change
+                it. For a number it prints the normalized form, so the +52
+                nobody typed is visible before they commit rather than after
+                the message has gone somewhere else. Errors are answered on
+                submit, never while typing. */}
+            <div
+              className={`mb-3 flex min-h-[34px] items-start gap-2 text-xs leading-snug ${
+                error ? 'text-danger' : 'text-on-dark-mute'
+              }`}
+            >
+              {error ? (
+                <span className="mt-0.5 flex-shrink-0">
+                  <Icon name="xmark" size={12} />
+                </span>
+              ) : id.kind === 'email' ? (
+                <span className="mt-0.5 flex-shrink-0 text-honey-400">
+                  <Icon name="envelope" size={12} />
+                </span>
+              ) : id.kind === 'phone' ? (
+                <span className="mt-0.5 flex-shrink-0 text-honey-400">
+                  <Icon name="whatsapp" size={13} />
+                </span>
+              ) : null}
+              <span>{error ?? identityHelper(id)}</span>
+            </div>
+
+            {/* Never inert on a non-empty field: on a field that takes two
+                kinds of value, a dead button cannot tell you whether you typed
+                too few digits or the wrong kind of thing, so the submit is
+                accepted and answered in words. */}
+            <Button display block size="lg" disabled={sending || id.kind === 'empty'}>
+              {sending ? 'Enviando…' : identityAction(id)}
             </Button>
-            {error && <p className="mt-3 rounded-md bg-danger-bg p-3 text-xs text-danger">{error}</p>}
-            <p className="mt-4 text-center text-xs text-on-dark-mute">
-              Sin contraseñas. Te llega un código de 6 dígitos por WhatsApp o correo y entras.
-            </p>
+            <p className="mt-4 text-center text-xs text-on-dark-mute">Sin contraseñas.</p>
           </form>
         )}
       </div>
