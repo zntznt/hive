@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { requireProfile } from '@/lib/gate'
 import { Badge } from '@/components/ui/Badge'
 import { Page, PageHeader } from '@/components/ui/Page'
@@ -23,14 +22,11 @@ type AccountExtra = {
   phone_verified_at: string | null
 }
 
-// The group label: heavier than a section eyebrow because it is naming a set
-// of them, and it is the only thing giving this page a shape.
+// The group label. The page is four questions in a row and this is what
+// separates them, so it reads as a label rather than as a heading with content
+// of its own.
 function GroupHeader({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="mt-[26px] border-t border-line-card pt-[13px] font-display text-[15px] font-bold text-ink-900">
-      {children}
-    </h2>
-  )
+  return <p className="eyebrow mt-[26px] mb-2.5">{children}</p>
 }
 
 export default async function AccountPage() {
@@ -59,14 +55,11 @@ export default async function AccountPage() {
       {/* the order is who you are, how you get in, what you have saved, what
           reaches you, and the way out. Sections inside a group sit 18px
           apart, groups 28px, so the page has a shape before you read a word */}
-      <PageHeader
-        title="Mi cuenta"
-        action={
-          <Link href="/" className="tap inline-flex items-center shrink-0 text-sm font-semibold text-honey-700 underline">
-            inicio
-          </Link>
-        }
-      />
+      {/* The lede names the four things on the page, so the group labels below
+          are confirming an order you already have rather than announcing one.
+          The "inicio" link that used to sit up here was a third way back on a
+          screen that already has a tab bar and the phone's own back gesture. */}
+      <PageHeader title="Mi cuenta" lede="Tu bicho, cómo entras, cómo te avisamos y cómo te pagan." />
 
       <AvatarProfileForm
         userId={profile.id}
@@ -83,7 +76,7 @@ export default async function AccountPage() {
           values stay on the rows so you can check a setting without opening
           it. Nothing here collapses: the whole page is short and every
           section is something you might be part-way through. */}
-      <GroupHeader>Cómo Hive te encuentra</GroupHeader>
+      <GroupHeader>Cómo entras</GroupHeader>
 
       <section className="mt-2.5">
         <div className="flex flex-col gap-2">

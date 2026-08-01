@@ -8,12 +8,10 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
 import SignIn from './signin'
-import { signOut } from './actions'
 import { getPlateItems, plateCount, type PlateItem } from '@/lib/plate'
 import { Badge } from '@/components/ui/Badge'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { UserAvatar } from '@/components/ui/Avatar'
 import { HexAvatar } from '@/components/ui/HexAvatar'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { PlateItemRow } from '@/components/ui/PlateItemRow'
@@ -165,24 +163,31 @@ export default async function Home() {
 
   return (
     <Page>
-      <header className="mb-6 flex items-center justify-between gap-3">
+      {/* The wordmark, and who you are. Nothing else.
+       *
+       * This carried an avatar and a "salir" link, which put the one
+       * irreversible account action on the home screen at nav prominence,
+       * bold and underlined under your own name. Signing out lives in Tú with
+       * the rest of the account, where the reference puts it; the avatar is
+       * redundant beside a greeting that already names you. */}
+      <header className="mb-4 flex items-center justify-between gap-3">
         <BrandMark size="sm" />
-        <div className="flex items-center gap-2.5">
-          <UserAvatar user={profile} size={36} />
-          <div className="text-[12.5px] leading-tight text-ink-500">
-            <div>
-              hola, <span className="font-bold text-ink-900">{profile.display_name}</span>
-            </div>
-            {/* "cuenta" used to live here and is now the You tab. Signing out
-                stays, because it belongs next to who you are signed in as. */}
-            <form action={signOut} className="contents">
-              <button type="submit" className="tap font-bold text-ink-500 underline underline-offset-2">
-                salir
-              </button>
-            </form>
-          </div>
-        </div>
+        <span className="text-[13px] text-ink-500">
+          hola, <span className="font-bold text-ink-900">{profile.display_name}</span>
+        </span>
       </header>
+
+      {/* Search sits directly under the header, above everything. It is the
+          way into a screen the tab bar has no slot for, and burying it below
+          the away strip meant it moved down the page on the days there was
+          news and up on the days there was not. */}
+      <Link
+        href="/search"
+        className="mb-[18px] flex min-h-11 items-center gap-2.5 rounded-pill border-[1.5px] border-line-input bg-paper px-4 text-sm text-ink-300"
+      >
+        <Icon name="magnifying-glass" size={13} className="text-ink-500" />
+        Busca eventos, clubes, personas
+      </Link>
 
       {/* Since you were away: the last 48 hours of things that happened to
           you and need nothing from you. No unread state and no dismiss, it
@@ -209,16 +214,6 @@ export default async function Home() {
           </ul>
         </section>
       )}
-
-      {/* The way into /search. The tab bar has five slots and search is not one
-          of them: it is a thing you reach for, not a place you live. */}
-      <Link
-        href="/search"
-        className={`${away.length > 0 ? 'mt-[18px]' : ''} flex min-h-11 items-center gap-2.5 rounded-pill border-[1.5px] border-line-input bg-paper px-4 text-sm text-ink-300`}
-      >
-        <Icon name="magnifying-glass" size={13} className="text-ink-500" />
-        Busca eventos, clubs, personas
-      </Link>
 
       <section className="mt-[26px]">
         <SectionHeader
