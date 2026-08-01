@@ -48,6 +48,7 @@ export default function Photos({
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [open, setOpen] = useState<number | null>(null)
+  const [showAll, setShowAll] = useState(false)
   const router = useRouter()
   const toast = useToast()
 
@@ -89,6 +90,14 @@ export default function Photos({
 
   const shown = open != null ? photos[open] : null
 
+  // Three rows of tiles, and past that a count. A club that shot forty photos
+  // used to get fourteen rows of thumbnails between the roll call and the
+  // question of doing it again, which turns the album from a thing on the page
+  // into the page.
+  const cells = 9 - (canAdd ? 1 : 0)
+  const overflow = !showAll && photos.length > cells ? photos.length - (cells - 1) : 0
+  const visible = overflow ? photos.slice(0, cells - 1) : photos
+
   return (
     <>
       <div className="grid grid-cols-3 gap-1.5">
@@ -104,7 +113,7 @@ export default function Photos({
           </label>
         )}
 
-        {photos.map((p, i) => (
+        {visible.map((p, i) => (
           <button
             key={p.id}
             type="button"
@@ -116,6 +125,17 @@ export default function Photos({
             <img src={p.url} alt={`Foto de ${p.by}`} className="h-full w-full object-cover" loading="lazy" />
           </button>
         ))}
+
+        {overflow > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowAll(true)}
+            className="tap flex aspect-square flex-col items-center justify-center gap-0.5 rounded-md border border-line-card bg-cream-sunk"
+          >
+            <span className="font-display text-[17px] font-bold text-ink-900">+{overflow}</span>
+            <span className="text-[11.5px] font-bold text-ink-500">Ver todas</span>
+          </button>
+        )}
       </div>
 
       {!canAdd && reason && <p className="mt-2.5 text-xs leading-relaxed text-ink-300">{reason}</p>}

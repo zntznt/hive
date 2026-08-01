@@ -46,6 +46,9 @@ export type EventRow = {
   // direct link, which is the only way to restore it.
   deleted_at: string | null
   deleted_by: string | null
+  // when the organizer opened it, which while it is still looking for a date
+  // is the same thing as when the availability poll opened
+  created_at: string | null
 }
 
 export type Contribution = {

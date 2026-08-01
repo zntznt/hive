@@ -22,7 +22,7 @@ import { attendanceLine, type MyRsvp } from '@/lib/event-line'
 import { decideChangeRequest, decideJoinRequest } from '@/app/actions'
 import { ClubBar } from './club-bar'
 import { WhenPill } from '@/components/ui/WhenPill'
-import { isEventDay } from '@/lib/time'
+import { isEventDay, fmtSpan, fmtWeekdayDay, fmtDayMonth } from '@/lib/time'
 import { SummaryRow, DoorGroup } from '@/components/ui/Density'
 import { siteUrl } from '@/lib/site-url'
 
@@ -74,6 +74,11 @@ export default async function ClubPage({
   const events = ((evs ?? []) as EventRow[]).filter((e) => !cat || e.category_id === cat)
   const upcoming = events.filter((e) => !['done', 'cancelled'].includes(e.status))
   const past = events.filter((e) => ['done', 'cancelled'].includes(e.status))
+  // History reads by the night it was, not by the day somebody created the
+  // row. An event made in March for a June date belongs in June.
+  const held = [...past].sort(
+    (a, b) => Date.parse(b.chosen_start ?? '') - Date.parse(a.chosen_start ?? '') || 0
+  )
 
   const me = (roster ?? []).find((m) => m.user_id === profile.id)
   const isAdmin = me?.role === 'admin' || profile.is_app_admin
@@ -441,7 +446,52 @@ export default async function ClubPage({
         />
       </CollapsibleSection>
 
-      {/* Rule 7. The club's own history and its settings were sections of this
+      {/* History, as the last few nights rather than as a door.
+          "Eventos pasados · 14" is a number you cannot do anything with, and
+          it was hiding the one thing on a finished event that is still live:
+          money nobody has settled. Three rows, each saying what it was, when,
+          and whether it is finished. The door to the rest stays on the header,
+          where it does not compete with them. */}
+      {past.length > 0 && (
+        <section className="mb-[26px]">
+          <SectionHeader
+            action={
+              <Link
+                href={`/events?club=${club.id}&when=past`}
+                className="tap inline-flex items-center gap-1 text-[12.5px] font-bold text-honey-700"
+              >
+                Historial completo <Icon name="chevron-right" size={10} />
+              </Link>
+            }
+          >
+            Historial
+          </SectionHeader>
+          <div className="overflow-hidden rounded-lg border border-line-card bg-paper">
+            {held.slice(0, 3).map((e, i) => {
+              const owed = owedByEvent.get(e.id) ?? 0
+              return (
+                <Link
+                  key={e.id}
+                  href={`/e/${e.slug}`}
+                  className={`flex min-h-12 items-center gap-2 px-3.5 py-2.5 ${i ? 'border-t border-line-divider' : ''}`}
+                >
+                  <span className="min-w-0 truncate text-[13.5px] font-bold text-ink-900">{e.title}</span>
+                  {owed > 0 && (
+                    <span className="flex-shrink-0 rounded-pill bg-honey-100 px-2 py-[3px] text-[11px] font-extrabold text-honey-800">
+                      sin saldar {fmtMoney(owed)}
+                    </span>
+                  )}
+                  <span className="ml-auto flex-shrink-0 text-[12px] text-ink-300">
+                    {e.chosen_start ? fmtDayMonth(e.chosen_start) : 'sin fecha'}
+                  </span>
+                </Link>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Rule 7. The club's settings and its roster were sections of this
           page, indistinguishable from the things people come here for. They
           are doors, and they say so once, under a line. */}
       <DoorGroup label="El club">
@@ -450,12 +500,6 @@ export default async function ClubPage({
           label="Miembros"
           meta={<FaceStack people={rosterFaces} total={(roster ?? []).length} size={20} max={5} />}
           href={`/club/${slug}/members`}
-        />
-        <SummaryRow
-          icon="clock-rotate-left"
-          label="Eventos pasados"
-          meta={past.length ? String(past.length) : 'ninguno todavía'}
-          href={`/events?club=${club.id}&when=past`}
         />
       </DoorGroup>
 
@@ -568,6 +612,13 @@ function EvCard({
         </span>
         {cancelled ? (
           <Badge tone="disabled">cancelado</Badge>
+        ) : hot ? (
+          // On the day the pill carries the hours and the badge below carries
+          // the day, because "Hoy 20:00" in one pill leaves nowhere to say
+          // when it ends and you are about to need that.
+          <span className="flex-shrink-0 rounded-pill bg-honey-200 px-2.5 py-[5px] text-[11.5px] font-extrabold text-honey-900">
+            {fmtSpan(e.chosen_start, e.chosen_end)}
+          </span>
         ) : (
           <WhenPill at={e.status === 'scheduling' ? null : e.chosen_start} status={e.status} />
         )}
@@ -576,6 +627,14 @@ function EvCard({
           the pill above already said it, and saying it twice was how this row
           got to be two lines of readout. */}
       <div className="flex items-center gap-2.5 px-3.5 pb-3.5 text-[12.5px] text-ink-500">
+        {hot && e.chosen_start && (
+          <>
+            <span className="flex-shrink-0 rounded-pill bg-honey-500 px-2.5 py-[3px] text-[11px] font-extrabold text-charcoal">
+              Hoy
+            </span>
+            <span className="flex-shrink-0">{fmtWeekdayDay(e.chosen_start)}</span>
+          </>
+        )}
         <FaceStack people={faces} total={counts?.going} size={22} max={5} />
         <span className="min-w-0 truncate">{attendanceLine(counts?.going ?? 0, mine, counts?.answered ?? false)}</span>
       </div>

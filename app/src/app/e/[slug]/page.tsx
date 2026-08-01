@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { Icon, type IconName } from '@/components/ui/Icon'
-import { rsvpButtonClass, rsvpLabel, RSVP_OPTIONS } from '@/components/ui/RsvpToggle'
+import { rsvpLabel } from '@/components/ui/RsvpToggle'
 import { AddContributionButton, EditContributionButton } from './contribution-modal'
 import { CoOrganizerButton } from './co-organizer-modal'
 import { RequestJoinClubButton } from './request-join-button'
@@ -21,16 +21,17 @@ import Thread from './thread'
 import Photos, { type EventPhoto } from './photos'
 import { timeAgo } from '@/lib/relative-time'
 import { Button } from '@/components/ui/Button'
-import { Loud, QuietRow, OpenSection, SummaryRow, FoldedEmpties, DoorGroup } from '@/components/ui/Density'
-import { FaceStack } from '@/components/ui/FaceStack'
+import { Loud, OpenSection, SummaryRow, FoldedEmpties, DoorGroup } from '@/components/ui/Density'
 import { WhereCard } from './where-card'
 import { DetailsSheet } from '@/components/ui/DetailsSheet'
 import { AddExpenseButton } from './expense-modal'
 import { AddPollButton } from './poll-modal'
 import { AttendanceSheet, type RollCallPerson } from './attendance-sheet'
 import { ClosedReceipt, DuplicatePrompt } from './done-blocks'
+import { RsvpRow } from './rsvp-row'
+import { WhoIsComing, type Attendee } from './who-is-coming'
+import { PendingAnswers } from './pending-answers'
 import { duplicateWindow } from '@/lib/duplicate-window'
-import { nameList } from '@/lib/event-line'
 import { fmtDayMonth, fmtSpan, isEventDay } from '@/lib/time'
 
 function dayRange(start: string, end: string) {
@@ -193,7 +194,11 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const answered = new Set((rsvps ?? []).map((r) => r.user_id as string))
   const silent = (members ?? [])
     .filter((m) => !answered.has(m.user_id as string))
-    .map((m) => nameOf.get(m.user_id) ?? '·')
+    .map((m) => ({
+      id: m.user_id as string,
+      name: nameOf.get(m.user_id) ?? '·',
+      user: (userOf.get(m.user_id) ?? { display_name: '·' }) as AvatarUser,
+    }))
 
   // confirmed = "in" with no waitlist position; waitlisted = "in" parked behind capacity
   const confirmed = byStatus('in').filter((r) => r.waitlist_pos == null)
@@ -216,6 +221,15 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   // database uses to decide who fits (event_seats_taken).
   const seatedGuests = confirmed.reduce((n, r) => n + (guestCountByHost.get(r.user_id) ?? 0), 0)
   const seatsTaken = confirmed.length + seatedGuests
+
+  // One chip per person, and the guests they bring ride on their chip.
+  const attendees: Attendee[] = confirmed.map((r) => ({
+    key: r.user_id as string,
+    name: nameOf.get(r.user_id) ?? '·',
+    user: (userOf.get(r.user_id) ?? { display_name: nameOf.get(r.user_id) ?? '·' }) as AvatarUser,
+    plus: guestCountByHost.get(r.user_id) ?? 0,
+    mine: r.user_id === profile.id,
+  }))
 
   // The roll call list, for a done event. Everyone who said "voy" and every
   // guest they brought, each pre-marked present unless a previous roll call
@@ -357,11 +371,21 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   // a reminder, not a roster.
   const myUnfinished = contributions.find((c) => c.assigned_to === profile.id && !c.done) ?? null
 
-  // The receipt the where-card carries: who committed the club to this time,
-  // and that nobody needs telling separately.
-  const lockedNote = event.scheduled_at
-    ? `${nameOf.get(event.organizer_user_id) ?? 'Quien organiza'} fijó la hora ${timeAgo(event.scheduled_at)} · se avisó al club`
-    : null
+  // The receipt the where-card carries. Both phases have one, because both
+  // phases have somebody who did a thing and a next step nobody should have to
+  // ask about: once there is a time it is "who locked it and were we told",
+  // and before that it is "who opened the poll and when does it close".
+  const organizerName = nameOf.get(event.organizer_user_id) ?? 'Quien organiza'
+  const receipt: { icon: IconName; text: string } | null = event.scheduled_at
+    ? { icon: 'lock', text: `${organizerName} fijó la hora ${timeAgo(event.scheduled_at)} · se avisó a todos` }
+    : event.status === 'scheduling'
+      ? {
+          icon: 'pen',
+          text: `${organizerName} abrió la votación${
+            event.created_at ? ` ${timeAgo(event.created_at)}` : ''
+          } · cierra cuando elija horario`,
+        }
+      : null
 
   const isDone = event.status === 'done' && !event.deleted_at
   const rollCallTaken = !!event.attendance_taken_at
@@ -502,24 +526,16 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       )}
 
       {/* the loud block, after you have answered it. A decision you already
-          made should not keep shouting. */}
-      {loud === 'none' && event.status === 'scheduled' && myRsvp && !event.deleted_at && (
+          made should not keep shouting, and it should not be re-asked six rows
+          further down either: this row is the only RSVP control on the page. */}
+      {loud === 'none' && event.status === 'scheduled' && myRsvp && !event.deleted_at && !isDone && (
         <div className="mb-3.5">
-          <QuietRow
-            action={
-              <form action={setRsvp.bind(null, event.id, event.slug, myRsvp.status === 'in' ? 'out' : 'in')}>
-                <button className="tap text-[12.5px] font-bold text-honey-700">cambiar</button>
-              </form>
-            }
-          >
-            {myRsvp.status === 'in'
-              ? myWaitPos >= 0
-                ? `Estás en la lista de espera, puesto ${myWaitPos + 1}`
-                : `Vas${event.chosen_start ? `, ${dateChip}` : ''}`
-              : myRsvp.status === 'maybe'
-                ? 'Dijiste que quizás'
-                : 'Dijiste que no puedes'}
-          </QuietRow>
+          <RsvpRow
+            eventId={event.id}
+            slug={event.slug}
+            status={myRsvp.status as 'in' | 'maybe' | 'out'}
+            note={myWaitPos >= 0 ? `en la lista de espera, puesto ${myWaitPos + 1}` : null}
+          />
         </div>
       )}
 
@@ -529,7 +545,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         title={event.title}
         span={fmtSpan(event.chosen_start, event.chosen_end)}
         going={seatsTaken}
-        lockedNote={lockedNote}
+        receipt={receipt}
         status={event.status}
         chosenStart={event.chosen_start}
         today={isToday}
@@ -652,9 +668,8 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       {isDone && rollCallTaken && isOrganizer && (
         <DuplicatePrompt
           eventId={event.id}
-          faces={rollCall.filter((p) => p.present).map((p) => p.user)}
-          total={rollCall.filter((p) => p.present).length}
           place={event.location}
+          items={contributions.length}
           clubName={club?.name ?? null}
           carries={carriesOver}
           weeks={weekOptions}
@@ -667,52 +682,19 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             label="Quién va"
             meta={`${seatsTaken}${event.capacity != null ? ` de ${event.capacity}` : ''}`}
           >
-          {/* Faces before names before counts. "6 van" tells you how many;
-              seeing that Marta is one of them tells you whether to go. */}
-          {confirmed.length > 0 && (
-            <div className="flex flex-col gap-2.5 rounded-md border border-line-card bg-paper px-3.5 py-3">
-              <FaceStack
-                people={confirmed.map((r) => userOf.get(r.user_id) ?? { display_name: nameOf.get(r.user_id) ?? '·' })}
-                total={seatsTaken}
-                size={30}
-                max={7}
-              />
-              <span className="text-[13px] leading-snug text-ink-700">
-                {confirmed.map((r) => nameOf.get(r.user_id)).join(', ')}
-                {(guests ?? []).filter((g) => !g.promoted_to_user_id).length > 0 &&
-                  ` y ${(guests ?? []).filter((g) => !g.promoted_to_user_id).length} invitado${(guests ?? []).filter((g) => !g.promoted_to_user_id).length === 1 ? '' : 's'}`}
-              </span>
-              {/* Names, for the same reason the line above it names people:
-                  "2 personas no han dicho" is a number you cannot act on, and
-                  "Ana y Diego no han dicho" is a text message you can send. */}
-              {silent.length > 0 && (
-                <span className="text-[12.5px] font-bold text-honey-800">
-                  {nameList(silent)} {silent.length === 1 ? 'no ha dicho' : 'no han dicho'}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* The answer buttons stay for anyone who already answered and wants
-              to change it; the loud block above carries the first answer. They
-              go entirely once the event is over: an RSVP is a promise about
-              something that has not happened, and offering to change one for
-              last Thursday invites people to edit history the roll call is the
-              actual record of. (Cancelled is already excluded further up.) */}
-          {loud === 'none' && !isDone && (
-            <div className="flex gap-2">
-              {RSVP_OPTIONS.map((o) => (
-                <form key={o.v} action={setRsvp.bind(null, event.id, event.slug, o.v)} className="flex-1">
-                  <button className={rsvpButtonClass(myRsvp?.status === o.v)}>{o.l}</button>
-                </form>
-              ))}
-            </div>
-          )}
-
+          {/* The count first, in one line, then the people. "van 6 de 8" is
+              what you check; the chips are who. The two lines that used to say
+              this ("van 6/8 · no van 2 · quizás 1" and a comma list of names
+              120px above it) were one fact each, printed twice. */}
           <p className="text-[12.5px] text-ink-500">
             van {seatsTaken}
-            {event.capacity != null && `/${event.capacity}`} · no van {byStatus('out').length} · quizás {byStatus('maybe').length}
+            {event.capacity != null && ` de ${event.capacity}`}
+            {waitlisted.length > 0 && ` · ${waitlisted.length} en espera`}
+            {byStatus('out').length > 0 && ` · no van ${byStatus('out').length}`}
+            {byStatus('maybe').length > 0 && ` · quizás ${byStatus('maybe').length}`}
           </p>
+
+          <WhoIsComing people={attendees} />
 
 
           {event.allow_guests && myRsvp?.status === 'in' && (
@@ -767,6 +749,13 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           )}
           </OpenSection>
         </section>
+      )}
+
+      {/* Silence, by name, with the chase attached. It sits under "Quién va"
+          rather than inside it because it is a different question: that block
+          is who is coming, this one is who still owes an answer. */}
+      {event.status === 'scheduled' && !isDone && !event.deleted_at && (
+        <PendingAnswers eventId={event.id} slug={event.slug} people={silent} canRemind={!!isOrganizer} />
       )}
 
       <div className="mb-[26px] flex flex-col gap-2">

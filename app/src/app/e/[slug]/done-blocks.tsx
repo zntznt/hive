@@ -3,8 +3,6 @@
 import { useState } from 'react'
 import { Icon } from '@/components/ui/Icon'
 import { Button } from '@/components/ui/Button'
-import { FaceStack } from '@/components/ui/FaceStack'
-import { type AvatarUser } from '@/components/ui/Avatar'
 import { DuplicateModal, type CarryItem } from './duplicate-modal'
 
 // The two blocks a finished event grows, and the reason its page inverts.
@@ -40,47 +38,63 @@ export function ClosedReceipt({ by, on, held }: { by: string | null; on: string 
   )
 }
 
-// The loud slot once the record exists. It carries the faces, because the
-// offer is not "make another event", it is "these five, again".
+// The loud slot once the record exists.
+//
+// It used to carry the faces of everyone who came and a pair of buttons,
+// Duplicar and "Ahora no". Both were wrong. The faces made it look like an
+// invitation being sent to those five people, which is not what the button
+// does: it opens a form. And "Ahora no" is a decline button for a question
+// nobody asked, on an offer that costs nothing to ignore, so it was a second
+// thing to read on the way to the first.
+//
+// One glyph, one sentence that says exactly what carries over, one button, and
+// the promise that the button does not commit you to anything. Scrolling past
+// is the "no".
 export function DuplicatePrompt({
   eventId,
-  faces,
-  total,
   place,
+  items,
   clubName,
   carries,
   weeks,
 }: {
   eventId: string
-  faces: AvatarUser[]
-  total: number
   place: string | null
+  // how many things there are to bring, named as a count because the modal is
+  // where they get listed
+  items: number
   clubName: string | null
   carries: CarryItem[]
   weeks: string[]
 }) {
-  const [dismissed, setDismissed] = useState(false)
   const [confirming, setConfirming] = useState(false)
 
-  if (dismissed) return null
+  const keeps = [place, items > 0 ? `${items} ${items === 1 ? 'cosa que traer' : 'cosas que traer'}` : null]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
-    <section className="mb-[26px] rounded-lg border-[1.5px] border-honey-500 bg-honey-50 p-4">
-      <div className="flex items-start justify-between gap-2.5">
-        <h2 className="font-display text-lg font-bold leading-tight text-ink-900">¿Otra vez en dos semanas?</h2>
-        <FaceStack people={faces} total={total} size={26} max={5} />
-      </div>
-      <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-700">
-        {place ? `Mismo lugar (${place}), la misma gente` : 'La misma gente'}, y la lista de traer empieza en blanco.
-      </p>
-      {/* Opens the contract rather than creating anything. The button that
-          tells an entire club about a new event is not a button you press by
-          accident on the way past. */}
-      <div className="mt-3.5 flex gap-2.5">
-        <Button onClick={() => setConfirming(true)}>Duplicar</Button>
-        <Button variant="secondary" onClick={() => setDismissed(true)}>
-          Ahora no
-        </Button>
+    <section className="mb-[26px] flex gap-3 rounded-lg border border-honey-200 bg-honey-50 p-4">
+      <span
+        aria-hidden="true"
+        className="grid h-[38px] w-[34px] flex-shrink-0 place-items-center bg-honey-500 [clip-path:polygon(50%_0,100%_25%,100%_75%,50%_100%,0_75%,0_25%)]"
+      >
+        <Icon name="copy" size={16} className="text-charcoal" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <h2 className="font-display text-lg font-bold leading-tight text-ink-900">¿Otra vez?</h2>
+        <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-700">
+          La misma noche, una semana después.{keeps ? ` Se queda con ${keeps}.` : ''} Vas a ver exactamente qué se
+          lleva antes de que se cree nada.
+        </p>
+        {/* Opens the contract rather than creating anything. The button that
+            tells an entire club about a new event is not a button you press by
+            accident on the way past. */}
+        <div className="mt-3.5">
+          <Button block onClick={() => setConfirming(true)}>
+            Duplicar este evento
+          </Button>
+        </div>
       </div>
       {confirming && (
         <DuplicateModal

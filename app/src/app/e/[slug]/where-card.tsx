@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { type ReactNode } from 'react'
-import { Icon, MapPinIcon } from '@/components/ui/Icon'
+import { Icon, MapPinIcon, type IconName } from '@/components/ui/Icon'
 import { WhenPill } from '@/components/ui/WhenPill'
 
 // Where this is, in one block.
@@ -22,6 +22,10 @@ import { WhenPill } from '@/components/ui/WhenPill'
 //
 // No Mapa button anywhere. Where the map is embedded, the map is the way to
 // the map, so a pill pointing at it is a third thing answering one question.
+//
+// The map is the last thing in the card in both states. It is the one part
+// nobody reads, they look at it, so it sits under the lines you read and the
+// buttons you press rather than pushing them down the screen.
 
 function MapFrame({ location, title }: { location: string; title: string }) {
   return (
@@ -41,7 +45,7 @@ export function WhereCard({
   title,
   span,
   going,
-  lockedNote,
+  receipt,
   status,
   chosenStart,
   today,
@@ -56,9 +60,11 @@ export function WhereCard({
   // "20:00 a 23:00", from fmtSpan. Never a bare start.
   span: string
   going: number
-  // "Marta fijó la hora hace 2h · se avisó a todos", or null while it is still
-  // being decided. A receipt, not news.
-  lockedNote: string | null
+  // Who committed the club to this, and what happens next. "Marta fijó la hora
+  // hace 2h · se avisó a todos" once there is a time; "Marta abrió la votación
+  // hace 2h · cierra cuando elija horario" while there is not. A receipt, not
+  // news, which is why it is grey and sits under the actions.
+  receipt: { icon: IconName; text: string } | null
   status: string
   chosenStart: string | null
   today: boolean
@@ -91,12 +97,12 @@ export function WhereCard({
           Cambiar lugar
         </Link>
       )}
-      {lockedNote && (
+      {receipt && (
         <p className="flex items-start gap-2 px-3.5 pt-2.5 text-[12px] leading-snug text-ink-300">
           <span className="mt-0.5 flex-shrink-0">
-            <Icon name="lock" size={11} />
+            <Icon name={receipt.icon} size={11} />
           </span>
-          <span className="min-w-0">{lockedNote}</span>
+          <span className="min-w-0">{receipt.text}</span>
         </p>
       )}
       {calendar && <div className="px-3.5 pb-3 pt-2.5">{calendar}</div>}
@@ -108,6 +114,10 @@ export function WhereCard({
       >
         Cómo llegar <Icon name="arrow-up-right-from-square" size={11} />
       </a>
+      {/* Kept in both states, deliberately. The head says where to go and the
+          map says how far, and the day of the event is when you want both
+          most: hiding it then was the original defect. */}
+      <MapFrame location={location} title={title} />
     </>
   )
 
@@ -131,10 +141,6 @@ export function WhereCard({
             </span>
           </span>
         </div>
-        {/* Kept, deliberately. The banner says where to go and the map says
-            how far, and today is the day you want both most. Hiding it was
-            the original defect. */}
-        <MapFrame location={location} title={title} />
         {body}
       </div>
     )
@@ -142,9 +148,8 @@ export function WhereCard({
 
   return (
     <div className="mb-5 overflow-hidden rounded-lg border border-line-card bg-paper shadow-raised">
-      <MapFrame location={location} title={title} />
       {/* The name leads: a week out the question is whether you want to be
-          there on a Thursday, and the map above already showed you where. */}
+          there on a Thursday, not how to get to a street. */}
       <div className="flex items-start justify-between gap-2.5 px-3.5 pt-3">
         <span className="flex min-w-0 items-start gap-2">
           <MapPinIcon size={15} />
