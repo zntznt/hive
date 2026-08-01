@@ -38,7 +38,7 @@ function Fieldset({ legend, hint, children }: { legend: string; hint?: string; c
   )
 }
 
-// One of the three extras, closed until you want it.
+// One of the three extras: an offer until you take it, a fieldset once you do.
 //
 // These used to live under a card headed "Opcional": a checkbox, a number box
 // labelled "Cupo máx.", another checkbox next to it, and a datetime field.
@@ -46,43 +46,59 @@ function Fieldset({ legend, hint, children }: { legend: string; hint?: string; c
 // the honest read of that card was "settings", and most people set none of
 // them because none of them looked like they were for anything.
 //
-// So each one is a row that names the consequence rather than the field, and
-// the control only appears once you have said yes to the sentence. What it
-// says has to be what this app actually does: the deadline sends one reminder
-// to whoever has not answered, it does not drop maybes or move a waitlist, so
-// that is what the row says.
+// So each one is a row that names the consequence rather than the field. The
+// first pass made that row a disclosure, which is the wrong verb: a collapsed
+// section says "there is a thing here you are not looking at", and half of
+// these are then invisibly switched on. Adding one is a decision, so it turns
+// into a plain visible fieldset with a Quitar, and closing it is not a way of
+// hiding a value, it is a way of removing it.
+//
+// What each row says has to be what this app actually does: the deadline sends
+// one reminder to whoever has not answered, it does not drop maybes or move a
+// waitlist, so that is what its row says.
 function Extra({
   icon,
   title,
   consequence,
-  defaultOpen = false,
+  added,
+  onAdd,
+  onRemove,
   children,
 }: {
   icon: IconName
   title: string
   consequence: string
-  defaultOpen?: boolean
+  added: boolean
+  onAdd: () => void
+  onRemove: () => void
   children: React.ReactNode
 }) {
-  const [open, setOpen] = useState(defaultOpen)
-  return (
-    <div className="overflow-hidden rounded-md border border-line-card bg-paper">
+  if (!added) {
+    return (
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="tap flex min-h-[58px] w-full items-center gap-2.5 px-3.5 py-2.5 text-left"
+        onClick={onAdd}
+        className="tap flex min-h-[58px] w-full items-center gap-2.5 rounded-md border border-line-card bg-paper px-3.5 py-2.5 text-left"
       >
         <Icon name={icon} size={15} className="flex-shrink-0 text-honey-700" />
         <span className="min-w-0 flex-1">
           <span className="block text-[13.5px] font-bold text-ink-900">{title}</span>
           <span className="mt-0.5 block text-[12px] text-ink-500">{consequence}</span>
         </span>
-        <Icon name={open ? 'minus' : 'plus'} size={12} className="flex-shrink-0 text-honey-700" />
+        <Icon name="plus" size={12} className="flex-shrink-0 text-honey-700" />
       </button>
-      {/* Kept mounted so a value you typed is still submitted after you fold
-          the row back up. Closing a section is not the same as undoing it. */}
-      <div className={open ? 'border-t border-line-divider px-3.5 py-3' : 'hidden'}>{children}</div>
+    )
+  }
+  return (
+    <div className="rounded-md border border-line-card bg-paper px-3.5 py-3">
+      <div className="mb-2.5 flex items-center gap-2.5">
+        <Icon name={icon} size={15} className="flex-shrink-0 text-honey-700" />
+        <span className="min-w-0 flex-1 text-[13.5px] font-bold text-ink-900">{title}</span>
+        <button type="button" onClick={onRemove} className="tap flex-shrink-0 text-[12.5px] font-bold text-ink-500">
+          Quitar
+        </button>
+      </div>
+      {children}
     </div>
   )
 }
@@ -171,6 +187,17 @@ export default function EventForm({
   // picked, those fields are locked - editing them here wouldn't touch the
   // already-chosen chosen_start/chosen_end anyway.
   const showSchedWindow = !edit || initial?.status === 'scheduling'
+
+  // Which of the three extras this event has. On an edit all three arrive
+  // added, whatever their values: you came here to change the event, and
+  // hunting for the capacity field behind a plus sign is not that. On a new
+  // event none are, because most events need none of them.
+  // Removing one really removes it: the fields unmount, so nothing is
+  // submitted for them and the action writes null, which is what "quitar"
+  // has to mean on an event that already had a capacity.
+  const [cap, setCap] = useState(edit)
+  const [guests, setGuests] = useState(edit)
+  const [deadline, setDeadline] = useState(edit)
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -279,7 +306,9 @@ export default function EventForm({
           icon="users"
           title="Un límite de cuántos caben"
           consequence="Con lista de espera cuando se llene"
-          defaultOpen={initial?.capacity != null}
+          added={cap}
+          onAdd={() => setCap(true)}
+          onRemove={() => setCap(false)}
         >
           <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5 text-sm text-ink-700">
             <label className="flex items-center gap-2" htmlFor="capacity">
@@ -302,7 +331,9 @@ export default function EventForm({
           icon="user-plus"
           title="Que traigan a alguien"
           consequence="Una pareja, un par de amigos"
-          defaultOpen={!!initial?.allow_guests}
+          added={guests}
+          onAdd={() => setGuests(true)}
+          onRemove={() => setGuests(false)}
         >
           <div className="text-sm text-ink-700">
             <Checkbox name="allow_guests" label="Permitir invitados (+1)" defaultChecked={initial?.allow_guests} />
@@ -318,7 +349,9 @@ export default function EventForm({
           // What this app actually does at that moment. It does not drop
           // maybes and it does not move the waitlist, so it does not say so.
           consequence="A quien no haya contestado le llega un recordatorio"
-          defaultOpen={!!initial?.confirm_deadline}
+          added={deadline}
+          onAdd={() => setDeadline(true)}
+          onRemove={() => setDeadline(false)}
         >
           <Input
             id="confirm_deadline"

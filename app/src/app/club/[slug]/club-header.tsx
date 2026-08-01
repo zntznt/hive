@@ -91,8 +91,12 @@ export function ClubHeader({
   // the honeycomb texture, which is what the strip is for.
   return (
     <section className="relative mb-[18px] overflow-hidden rounded-lg border border-line-card bg-paper text-center">
+      {/* `cover` is for the photograph and only the photograph. The honeycomb
+          is a 28x49 tile meant to repeat, and stretching one copy of it across
+          the whole strip drew two fat vertical bars: a club with no cover was
+          wearing a smear rather than a texture. */}
       <div
-        className={`relative ${BANNER_ASPECT_CLASS} bg-cover bg-center`}
+        className={`relative ${BANNER_ASPECT_CLASS} ${bannerUrl ? 'bg-cover bg-center' : 'bg-repeat'}`}
         style={
           bannerUrl
             ? { backgroundImage: `url(${bannerUrl})` }

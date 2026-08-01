@@ -10,6 +10,42 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - No em dashes (`—`). Anywhere. Not in UI copy, not in code comments, not in commit messages, not in docs. Use a period, comma, parenthesis, or `·` instead. This is a hard rule.
 - Keep operational words literal (evento, gasto, encuesta, invitación). Theme/flavor only in empty states and microcopy, never in nav, buttons, money, or errors.
 
+# Look at the screen before you ship it
+
+There is a whole Hive on this machine. Use it. Deploying to see what a change looks like makes
+whoever opens the app the test harness, and every defect that survived a review here was one a
+rendered page shows in a second: an input the same colour as its background, a banner fading to
+mud, a map whose stylesheet never loaded, a cover cropped to a stripe. A type checker cannot see
+any of those and neither can a diff.
+
+```
+npm run sandbox:up      # postgres, auth, rest and storage, in docker
+npm run sandbox:seed    # demo club, and passwords so a browser can sign in
+npm run dev:sandbox     # the app, pointed at it
+npm run shoot -- /club/los-jueves --as marta
+```
+
+`shoot` signs in as any seeded account, opens a route, writes a png to `.sandbox-shots/` and prints
+the page's visible text plus any console errors. `--as jorge` for a plain member, `--as ana` for an
+account still pending, `--width 1024` for a desktop. Sign-in goes over the API rather than through
+the form, because the form wants a six digit code out of a mailbox.
+
+Nothing in the sandbox touches a deployed project. `.env.sandbox` holds the fixed local demo keys
+that `supabase start` prints on every machine; real credentials stay in `.env.local`.
+
+**What it does not check yet: client interactivity.** On a server-component page in this container
+React does not attach, so effects never run and a button press reaches nothing. Server output is
+faithful, which is what catches layout, copy and data bugs, but "I clicked it and it worked" is not
+something a shot can tell you. Two things that look like defects in a shot are this: the account's
+push row renders as an empty card, and any server action fired from a button appears to do nothing.
+Verify interactive changes on a device until this is fixed.
+
+`npm run sandbox:reset` rebuilds the database from `supabase/migrations` and is the only check that
+they can still build one. They could not, twice: a migration used an enum value in the transaction
+that added it, and another read a column that a later migration creates. Both had worked on
+production because production was built by applying them as they were written, which is not the
+same thing.
+
 # One fact, one function
 
 If two screens can show the same fact, exactly one function decides it. Before writing a formatter,

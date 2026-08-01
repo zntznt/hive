@@ -47,6 +47,7 @@ export function WhereCard({
   area,
   title,
   span,
+  window,
   going,
   receipt,
   status,
@@ -67,6 +68,9 @@ export function WhereCard({
   title: string
   // "20:00 a 23:00", from fmtSpan. Never a bare start.
   span: string
+  // "31 jul a 3 ago · noches", while a date is still being found. Null once
+  // there is a time, because then the span above is the answer.
+  window: string | null
   going: number
   // Who committed the club to this, and what happens next. "Marta fijó la hora
   // hace 2h · se avisó a todos" once there is a time; "Marta abrió la votación
@@ -176,6 +180,16 @@ export function WhereCard({
         </span>
         <WhenPill at={status === 'scheduling' ? null : chosenStart} status={status} className="flex-shrink-0" />
       </div>
+      {/* While a date is being found, "when" is the window people are painting
+          into, and the card said nothing about it: the pill read "Buscando
+          fecha" and the only place the actual dates appeared was the grid,
+          further down, as column headers. */}
+      {window && (
+        <p className="flex items-center gap-2 px-3.5 pt-2 text-[12.5px] text-ink-500">
+          <Icon name="calendar-days" size={12} className="flex-shrink-0 text-ink-300" />
+          {window}
+        </p>
+      )}
       {body}
     </div>
   )

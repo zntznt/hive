@@ -37,18 +37,32 @@ export default function PaymentMethodsForm({ methods }: { methods: PaymentMethod
     setNextKey((k) => k + 1)
   }
   function removeRow(key: number) {
-    setRows((rs) => rs.filter((r) => r.key !== key))
+    const next = rows.filter((r) => r.key !== key)
+    setRows(next)
+    // Removing is the one edit with nothing left to blur out of, so it commits
+    // straight away or the row comes back on reload.
+    commit(next)
   }
 
-  async function submit(formData: FormData) {
+  // No Save button on this screen, so this runs when a row is finished with:
+  // leaving a field, changing a kind, adding or removing a row. Not on every
+  // keystroke, because a half typed CLABE is not a payment method and the
+  // action would rightly refuse it.
+  async function commit(next: Row[] = rows) {
     setSaving(true)
     setError(null)
+    const fd = new FormData()
+    for (const r of next) {
+      if (!r.value.trim()) continue
+      fd.append('method_kind', r.kind)
+      fd.append('method_value', r.value.trim())
+    }
     try {
-      const res = await savePaymentMethods(formData)
+      const res = await savePaymentMethods(fd)
       // the action returns a refusal rather than throwing, so a failed save
       // must not toast success at someone whose methods did not change
       if (res && !res.ok) setError(res.error)
-      else toast('Formas de pago guardadas')
+      else toast('Listo')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar.')
     } finally {
@@ -59,14 +73,18 @@ export default function PaymentMethodsForm({ methods }: { methods: PaymentMethod
   return (
     <section className="mt-2.5">
       <SectionHeader>Cómo te pagan</SectionHeader>
-      <form action={submit} className="flex flex-col gap-2.5">
+      <form className="flex flex-col gap-2.5">
         {rows.map((row) => (
           <div key={row.key} className="flex items-start gap-2">
             <div className="w-[152px] shrink-0">
               <Select
                 name="method_kind"
                 value={row.kind}
-                onChange={(e) => updateRow(row.key, { kind: e.target.value })}
+                onChange={(e) => {
+                  const next = rows.map((r) => (r.key === row.key ? { ...r, kind: e.target.value } : r))
+                  setRows(next)
+                  commit(next)
+                }}
                 options={PAYMENT_METHOD_OPTIONS}
               />
             </div>
@@ -75,6 +93,7 @@ export default function PaymentMethodsForm({ methods }: { methods: PaymentMethod
                 name="method_value"
                 value={row.value}
                 onChange={(e) => updateRow(row.key, { value: e.target.value })}
+                onBlur={() => commit()}
                 placeholder="Número, alias, nota…"
               />
             </div>
@@ -92,9 +111,7 @@ export default function PaymentMethodsForm({ methods }: { methods: PaymentMethod
           <Icon name="plus" size={10} /> Agregar forma de pago
         </Button>
         {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
-        <Button type="submit" disabled={saving}>
-          {saving ? 'Guardando…' : 'Guardar formas de pago'}
-        </Button>
+        {saving && <p className="text-xs text-ink-300">Guardando…</p>}
       </form>
       <p className="mt-2.5 text-xs text-ink-300">
         Esto es lo que ve quien te queda a deber, para saber cómo pagarte. Solo lo ven las

@@ -38,7 +38,7 @@ create policy club_members_update on club_members for update
   using (is_club_admin(club_id)) with check (is_club_admin(club_id));
 
 -- ── club_role: add the organizer tier (invite/create-event rights short of admin) ──
-alter type club_role add value 'organizer';
+alter type club_role add value if not exists 'organizer';
 
 -- a club "manager" is an admin or organizer of that club (or the app admin);
 -- mirrors is_club_admin's shape but includes organizers, for the approvals
@@ -46,7 +46,12 @@ alter type club_role add value 'organizer';
 create or replace function is_club_manager(cid uuid) returns boolean
 language sql stable security definer set search_path = public as
 $$ select is_app_admin() or exists
-   (select 1 from club_members where club_id = cid and user_id = auth.uid() and role in ('admin', 'organizer')) $$;
+   -- compared as text on purpose. 'organizer' is added to club_role in this
+   -- same migration, and Postgres refuses to use a newly added enum value in
+   -- the transaction that added it, so the literal form makes this file
+   -- impossible to replay from scratch. It was applied statement by statement
+   -- the first time and nobody noticed until a fresh database was built.
+   (select 1 from club_members where club_id = cid and user_id = auth.uid() and role::text in ('admin', 'organizer')) $$;
 
 -- ── club join requests (guest requests to join via the public link) ────────
 create table club_join_requests (

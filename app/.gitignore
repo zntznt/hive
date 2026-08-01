@@ -42,3 +42,14 @@ next-env.d.ts
 
 # keep the example env tracked (real .env.local stays ignored)
 !.env.local.example
+# the sandbox's env is tracked on purpose: it holds only the fixed local demo
+# keys every `supabase start` prints, and the sandbox is meant to work from a
+# fresh clone with nothing to fetch
+!.env.sandbox
+
+# sandbox screenshots: the output of `npm run shoot`, never a deliverable
+/.sandbox-shots/
+
+# supabase local stack state
+/supabase/.branches/
+/supabase/.temp/
