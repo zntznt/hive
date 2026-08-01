@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Chip } from '@/components/ui/Chip'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
-import { Icon, MapPinIcon } from '@/components/ui/Icon'
+import { Icon, MapPinIcon, type IconName } from '@/components/ui/Icon'
 import { rsvpButtonClass, rsvpLabel, RSVP_OPTIONS } from '@/components/ui/RsvpToggle'
 import { AddContributionButton, EditContributionButton } from './contribution-modal'
 import { CoOrganizerButton } from './co-organizer-modal'
@@ -29,6 +29,7 @@ import { AddExpenseButton } from './expense-modal'
 import { AddPollButton } from './poll-modal'
 import { AttendanceSheet, type RollCallPerson } from './attendance-sheet'
 import { ClosedReceipt, DuplicatePrompt } from './done-blocks'
+import { duplicateWindow } from '@/lib/duplicate-window'
 import { nameList } from '@/lib/event-line'
 import { fmtDateTime, fmtDayMonth, fmtTime } from '@/lib/time'
 
@@ -312,6 +313,42 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   // under it. Once the record exists the slot is free, the photos take the top
   // (on a done event they are why anyone opens the page), and the loud action
   // becomes the question a good night actually raises.
+  // What a duplicate actually takes with it, spelled out for the confirmation.
+  // The modal is a contract, so this is built from the event's own row rather
+  // than from a sentence somebody wrote once and forgot to update.
+  const carriesOver: { icon: IconName; text: string }[] = [
+    { icon: 'heading', text: `El nombre, ${event.title}` },
+    event.location ? { icon: 'location-dot', text: event.location } : null,
+    category ? { icon: 'tag', text: category.name as string } : null,
+    event.capacity != null
+      ? {
+          icon: 'users' as const,
+          text: `cupo para ${event.capacity}${event.waitlist_enabled ? ', con lista de espera' : ', sin lista de espera'}`,
+        }
+      : null,
+    {
+      icon: 'user-plus',
+      text: event.allow_guests ? 'Se permiten invitados' : 'Sin invitados',
+    },
+    contributions.length > 0
+      ? {
+          icon: 'basket-shopping' as const,
+          text: `${contributions.length} ${contributions.length === 1 ? 'cosa' : 'cosas'} que traer, ${contributions
+            .slice(0, 3)
+            .map((c) => c.title)
+            .join(', ')}${contributions.length > 3 ? ` y ${contributions.length - 3} más` : ''}`,
+        }
+      : null,
+  ].filter((x): x is { icon: IconName; text: string } => !!x)
+
+  // Three candidate weeks: the one the action would pick, and the two after
+  // it. The organizer changes the week here rather than in the event form,
+  // because leaving takes the two lists off screen as they are being read.
+  const dupWindow = duplicateWindow(event.sched_start_date, event.sched_end_date)
+  const weekOptions = dupWindow
+    ? [0, 1, 2].map((n) => duplicateWindow(event.sched_start_date, event.sched_end_date, n)!.start)
+    : []
+
   const isDone = event.status === 'done' && !event.deleted_at
   const rollCallTaken = !!event.attendance_taken_at
   const photosBlock =
@@ -624,6 +661,9 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           faces={rollCall.filter((p) => p.present).map((p) => p.user)}
           total={rollCall.filter((p) => p.present).length}
           place={event.location}
+          clubName={club?.name ?? null}
+          carries={carriesOver}
+          weeks={weekOptions}
         />
       )}
 

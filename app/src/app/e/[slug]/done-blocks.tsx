@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState } from 'react'
 import { Icon } from '@/components/ui/Icon'
 import { Button } from '@/components/ui/Button'
 import { FaceStack } from '@/components/ui/FaceStack'
 import { type AvatarUser } from '@/components/ui/Avatar'
-import { duplicateEvent } from '@/app/actions'
+import { DuplicateModal, type CarryItem } from './duplicate-modal'
 
 // The two blocks a finished event grows, and the reason its page inverts.
 //
@@ -47,34 +47,22 @@ export function DuplicatePrompt({
   faces,
   total,
   place,
+  clubName,
+  carries,
+  weeks,
 }: {
   eventId: string
   faces: AvatarUser[]
   total: number
   place: string | null
+  clubName: string | null
+  carries: CarryItem[]
+  weeks: string[]
 }) {
   const [dismissed, setDismissed] = useState(false)
-  const [pending, startTransition] = useTransition()
-  const [error, setError] = useState<string | null>(null)
+  const [confirming, setConfirming] = useState(false)
 
   if (dismissed) return null
-
-  function go() {
-    setError(null)
-    startTransition(async () => {
-      try {
-        await duplicateEvent(eventId)
-      } catch (e) {
-        // The action ends in redirect(), which works by throwing. Catching
-        // that would swallow the navigation and leave the person staring at
-        // the old event wondering whether it worked.
-        if ((e as { digest?: string })?.digest?.startsWith('NEXT_REDIRECT')) throw e
-        // Duplicating is atomic, so there is no half-made event to recover
-        // from and nothing to design past a plain retry.
-        setError(e instanceof Error ? e.message : 'No se pudo duplicar el evento.')
-      }
-    })
-  }
 
   return (
     <section className="mb-[26px] rounded-lg border-[1.5px] border-honey-500 bg-honey-50 p-4">
@@ -85,15 +73,24 @@ export function DuplicatePrompt({
       <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-700">
         {place ? `Mismo lugar (${place}), la misma gente` : 'La misma gente'}, y la lista de traer empieza en blanco.
       </p>
+      {/* Opens the contract rather than creating anything. The button that
+          tells an entire club about a new event is not a button you press by
+          accident on the way past. */}
       <div className="mt-3.5 flex gap-2.5">
-        <Button onClick={go} disabled={pending}>
-          {pending ? 'Duplicando…' : 'Duplicar'}
-        </Button>
-        <Button variant="secondary" onClick={() => setDismissed(true)} disabled={pending}>
+        <Button onClick={() => setConfirming(true)}>Duplicar</Button>
+        <Button variant="secondary" onClick={() => setDismissed(true)}>
           Ahora no
         </Button>
       </div>
-      {error && <p className="mt-2.5 rounded-md bg-danger-bg p-2.5 text-xs text-danger">{error}</p>}
+      {confirming && (
+        <DuplicateModal
+          eventId={eventId}
+          clubName={clubName}
+          carries={carries}
+          weeks={weeks}
+          onClose={() => setConfirming(false)}
+        />
+      )}
     </section>
   )
 }

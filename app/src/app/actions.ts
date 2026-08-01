@@ -1503,7 +1503,7 @@ export async function remindNonResponders(eventId: string, slug: string) {
 // mesa" onto a date Marta has not agreed to yet would commit her to something
 // she never said yes to. The list is the useful part; the claims are cheap to
 // redo and belong to the people making them.
-export async function duplicateEvent(eventId: string) {
+export async function duplicateEvent(eventId: string, extraWeeks = 0) {
   const supabase = await supabaseServer()
   const {
     data: { user },
@@ -1516,22 +1516,13 @@ export async function duplicateEvent(eventId: string) {
   const { randomSlug } = await import('@/lib/slug')
   const slug = randomSlug()
 
-  // Push the old scheduling window forward in whole weeks until it starts in
-  // the future. Clubs meet on a weekday ("Los Jueves"), so keeping the weekday
-  // is what makes the copy feel right; the organizer can still change it.
+  // One function decides which week this lands in, because the confirmation
+  // modal already told the organizer which week it would be.
+  const { duplicateWindow } = await import('@/lib/duplicate-window')
   const { sched_start_date, sched_end_date } = src as { sched_start_date: string | null; sched_end_date: string | null }
-  let startDate = sched_start_date
-  let endDate = sched_end_date
-  if (startDate) {
-    const today = new Date()
-    today.setUTCHours(0, 0, 0, 0)
-    const start = new Date(`${startDate}T00:00:00Z`)
-    const span = endDate ? (new Date(`${endDate}T00:00:00Z`).getTime() - start.getTime()) / 86_400_000 : 0
-    while (start <= today) start.setUTCDate(start.getUTCDate() + 7)
-    startDate = start.toISOString().slice(0, 10)
-    const end = new Date(start.getTime() + span * 86_400_000)
-    endDate = end.toISOString().slice(0, 10)
-  }
+  const win = duplicateWindow(sched_start_date, sched_end_date, extraWeeks)
+  const startDate = win?.start ?? sched_start_date
+  const endDate = win?.end ?? sched_end_date
 
   const { data: created, error } = await supabase
     .from('events')
