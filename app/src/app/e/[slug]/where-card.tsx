@@ -21,11 +21,12 @@ import type { StringKey } from '@/lib/lang'
 //
 // With no place agreed there is no card at all, because a placeholder saying
 // nothing has been decided is a second way of saying what the line says. The
-// line still carries the window and the receipt: those answer WHEN and WHO,
-// not where, and dropping them with the card meant the state a new event
-// spends its whole life in, no date and no venue yet, said only "sin lugar
-// todavía" and stopped. Nobody could see which week was being painted into or
-// who had opened the vote.
+// line still carries the window, the receipt and the calendar hand-off: those
+// answer WHEN and WHO, not where, and dropping them with the card meant the
+// state a new event spends its whole life in, no date and no venue yet, said
+// only "sin lugar todavía" and stopped. Nobody could see which week was being
+// painted into, who had opened the vote, or, once a time was fixed, get the
+// thing into their calendar until somebody picked a venue.
 //
 // No Mapa button anywhere. Where the map is embedded, the map is the way to
 // the map, so a pill pointing at it is a third thing answering one question.
@@ -140,6 +141,13 @@ export function WhereCard({
         </div>
         {window && <WindowLine text={window} pad="px-0.5" />}
         {receipt && <ReceiptLine receipt={receipt} pad="px-0.5" />}
+        {/* An entry in a calendar needs a time, not a venue, and the caller
+            already gates this on there being one. Both hand-offs drop the
+            place on their own when there is none: the .ics omits its LOCATION
+            line and the Google URL omits the parameter. No bottom padding
+            here because nothing follows it, where in the card the directions
+            link does. */}
+        {calendar && <div className="px-0.5 pt-2.5">{calendar}</div>}
       </div>
     )
   }
