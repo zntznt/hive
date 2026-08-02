@@ -167,10 +167,12 @@ export default function SignIn() {
           </div>
         ) : (
           <form onSubmit={send} className="space-y-1">
-            <h1 className="font-display text-[30px] leading-[1.1] font-bold text-on-dark">
-              Tu club,
-              <br />
-              organizado.
+            {/* One sentence, not two halves around a <br />. The break was
+                doing layout with copy: English and Spanish do not break in the
+                same place, and a fragment cannot be translated on its own. The
+                width does the wrapping now. */}
+            <h1 className="max-w-[7em] font-display text-[30px] leading-[1.1] font-bold text-on-dark">
+              {tr('signin.tagline')}
             </h1>
             <p className="mt-2 mb-5 text-sm text-on-dark-mute">{tr('signin.welcome')}</p>
             <div className="mb-2 flex flex-col gap-1.5">
