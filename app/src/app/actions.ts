@@ -309,13 +309,24 @@ export async function setUserStatus(userId: string, status: 'active' | 'disabled
   revalidatePath('/admin')
 }
 
+// What counts as a club's name, decided once. Both callers ask this: the
+// modal that creates a club and the modal that renames one. They used to be
+// one `.trim()` each, which is fine until they disagree, and the constraint in
+// migration 0055 is the third opinion that would have caught it.
+const CLUB_NAME_MAX = 60
+function readClubName(formData: FormData): string {
+  return String(formData.get('name') ?? '')
+    .trim()
+    .slice(0, CLUB_NAME_MAX)
+}
+
 export async function createClub(formData: FormData) {
   const supabase = await supabaseServer()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) throw new Error('not signed in')
-  const name = String(formData.get('name') ?? '').trim()
+  const name = readClubName(formData)
   if (!name) return
   const { randomSlug } = await import('@/lib/slug')
   const slug = randomSlug()
@@ -441,12 +452,29 @@ export async function deleteCategory(clubId: string, clubSlug: string, categoryI
   revalidatePath(`/club/${clubSlug}`)
 }
 
-export async function updateClubAbout(clubId: string, clubSlug: string, formData: FormData) {
+// The club's name, description and links: one subject, one modal, one action.
+//
+// The name was set once when the club was created and then could not be
+// changed at all, which is a problem a club runs into about a month in. It
+// costs nothing to change: `clubs.slug` is a random string rather than a
+// slugified name, so no link breaks, and every screen reads the name live off
+// the row rather than keeping a copy.
+//
+// Returns an error string rather than throwing one, because a thrown message
+// does not survive a production build (see the note above the throws below).
+export async function updateClubProfile(
+  clubId: string,
+  clubSlug: string,
+  formData: FormData
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { t } = await getT()
   const supabase = await supabaseServer()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) throw new Error('not signed in')
+  if (!user) return { ok: false, error: t('err.session') }
+  const name = readClubName(formData)
+  if (!name) return { ok: false, error: t('err.club.nameMissing') }
   const description = String(formData.get('description') ?? '').trim()
   const labels = formData.getAll('link_label').map(String)
   const urls = formData.getAll('link_url').map(String)
@@ -457,18 +485,20 @@ export async function updateClubAbout(clubId: string, clubSlug: string, formData
   const perm = await clubPermission(supabase, user.id, clubId)
 
   if (perm.isAdmin) {
-    const { error } = await supabase.from('clubs').update({ description, links }).eq('id', clubId)
-    if (error) throw new Error(error.message)
+    const { error } = await supabase.from('clubs').update({ name, description, links }).eq('id', clubId)
+    if (error) return { ok: false, error: t('err.save') }
   } else {
     const { error } = await supabase.from('change_requests').insert({
       club_id: clubId,
       kind: 'about',
-      payload: { description, links },
+      payload: { name, description, links },
       requested_by: user.id,
     })
-    if (error) throw new Error(error.message)
+    if (error) return { ok: false, error: t('err.proposal.send') }
   }
   revalidatePath(`/club/${clubSlug}`)
+  revalidatePath('/clubs')
+  return { ok: true }
 }
 
 export async function updateClubBanner(clubId: string, clubSlug: string, bannerUrl: string) {

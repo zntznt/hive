@@ -45,7 +45,12 @@ export function Modal({
       style={{ background: 'rgba(43,38,32,.45)' }}
     >
       <div
-        className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-2xl bg-paper shadow-pop"
+        // text-left because this is not portaled: it renders where it was
+        // opened from, and the club header is `text-center`, so every modal
+        // opened from there came up with its form labels centred. A modal is
+        // its own surface and should not inherit the alignment of whatever
+        // opened it.
+        className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-2xl bg-paper text-left shadow-pop"
         style={{ maxWidth: width, animation: 'hive-pop .18s var(--ease)' }}
       >
         <div className="flex items-start justify-between gap-3 px-[22px] pb-3 pt-5">
