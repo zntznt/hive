@@ -461,10 +461,8 @@ export const ES = {
   'inv.membersOnly': 'Solo miembros del club',
   'inv.no': 'no puede',
   'inv.youWere': 'Te invitaron',
-  'inv.join': '¿te unes?',
   'inv.used': 'Esta invitación ya se usó',
   'inv.tooLate': 'Esta invitación ya venció',
-  'inv.checkEmail': 'Revisa tu correo',
   'inv.noted': 'Quedamos avisados',
   'inv.alreadyIn': 'Ya estás dentro',
   'inv.yourEmail': 'Tu correo',
@@ -507,12 +505,9 @@ export const ES = {
   'invite.findingDate': 'Todavía están buscando fecha entre todos.',
   'invite.noPlace': 'Falta definir el lugar.',
   'invite.nobodyYet': 'Nadie ha confirmado todavía',
-  'invite.askAnother': 'Pide otro a quien te invitó',
-  'invite.askAnotherF': 'Pide otra a quien te invitó',
   'invite.accept?': '¿Aceptas la invitación?',
   'invite.accept': 'Aceptar invitación',
   'invite.saidNo': 'Ya dijiste que no puedes. Deshacer',
-  'invite.willSee': 'Quien te invitó va a ver que no puedes.',
   'invite.changedMind': 'Cambié de opinión, sí voy',
   'invite.noForms': 'Sin contraseñas, sin formularios.',
 
@@ -545,9 +540,58 @@ export const ES = {
   'signin.checkEmailLink': 'Revisa tu correo. Te mandamos un enlace, ábrelo en este mismo navegador para volver aquí.',
   'invite.goingOne': '{n} persona va',
   'invite.goingMany': '{n} personas van',
-  'invite.linkLasts': 'Los enlaces duran 30 días.',
-  'invite.askPerson': 'Pídele otro a {name}',
   'invite.oneMoment': 'Un momento…',
+  'invite.telling': 'Avisando…',
+  'invite.cant': 'No voy a poder',
+
+  // -- the invitation landing, whole sentences ------------------------------
+  //
+  // Every branch of this screen is one key. It used to be built by
+  // concatenating a translated half with a Spanish half ("Ya tienes sesión
+  // iniciada. Al aceptar" + " te unes a «{club}»" + " y quien organiza va a
+  // ver tu nombre."), which is trap three from the design's language section
+  // and the reason an English phone read half in Spanish. A sentence in
+  // pieces cannot be reordered, and Spanish and English do not put the club
+  // in the same place.
+  'inv.notFound.hint': 'El enlace no es válido. Pide a quien organiza que te mande otro.',
+  'inv.sub.eventClub.by': '{name} te invitó con «{club}».',
+  'inv.sub.eventClub': 'Te invitaron con «{club}».',
+  'inv.sub.by': '{name} te invitó a unirte.',
+  'inv.sub': 'Te invitaron a unirte.',
+  'invite.spotsOne': 'queda 1 de {capacity} de cupo',
+  'invite.spotsMany': 'quedan {n} de {capacity} de cupo',
+  'invite.full': 'el cupo de {capacity} ya está lleno, entrarías a la lista de espera',
+  'invite.expired.by': 'Los enlaces duran 30 días. Pídele otro a {name} y entras sin problema.',
+  'invite.expired': 'Los enlaces duran 30 días. Pide otro a quien te invitó y entras sin problema.',
+  'inv.alreadyIn.club': 'Usaste esta invitación y ya eres parte de «{club}».',
+  'inv.alreadyIn.hint': 'Usaste esta invitación.',
+  'inv.goEvent': 'Ir al evento',
+  'inv.goClub': 'Ir al club',
+  'inv.used.by': 'Alguien más la abrió antes. Pídele otra a {name} si era para ti.',
+  'inv.used.hint': 'Alguien más la abrió antes. Pide otra a quien te invitó si era para ti.',
+  'inv.joinClub?': '¿Te unes a «{club}»?',
+  'inv.signedIn.club':
+    'Ya tienes sesión iniciada. Al aceptar te unes a «{club}» y quien organiza va a ver tu nombre.',
+  'inv.signedIn.event':
+    'Ya tienes sesión iniciada. Al aceptar quedas dentro y quien organiza va a ver tu nombre.',
+  'invite.declined.by': '{name} va a ver que no puedes. Si cambias de opinión, este enlace sigue sirviendo.',
+  'invite.declined': 'Quien te invitó va a ver que no puedes. Si cambias de opinión, este enlace sigue sirviendo.',
+  // {email} is bolded by splitting the rendered sentence on the slot, so the
+  // whole sentence still lives here and a translator can move the address.
+  'inv.sentTo': 'Te mandamos un enlace a {email}. Ábrelo en este mismo navegador.',
+  'inv.emailIntro': 'Pon tu correo y te mandamos un enlace para entrar. Sin contraseñas.',
+  'inv.phoneOnly':
+    'Te invitaron por WhatsApp. Por ahora se entra con correo, pon el tuyo y tu invitación queda ligada.',
+
+  // -- the club join link ---------------------------------------------------
+  'club.notFound.hint': 'El enlace no es válido. Pide a quien administra el club que te mande otro.',
+  'club.private.hint': 'Este club solo se une por invitación directa. Pide a alguien miembro que te invite.',
+  'club.join.sent':
+    'Revisa tu correo. Te mandamos un enlace: ábrelo en este mismo navegador para volver aquí y pedir tu ingreso.',
+  'club.request.intro':
+    'Manda tu solicitud para unirte. Quien administra el club la revisa antes de que entres.',
+  'club.request.action': 'Pedir unirme',
+  'club.request.sent': 'Tu solicitud se envió. Quien administra «{club}» la va a revisar.',
   'common.sending': 'Enviando…',
   'plate.toPay': 'Pagos · por hacer',
   'money.markPaid': 'Marcar como pagado',
@@ -710,9 +754,6 @@ export const ES = {
   'club.forOneMember': ' para su único miembro',
   'club.forNMembers': ' para sus {n} miembros',
   'form.askedAdminNoCat': 'Se lo pedimos a la administración del club. Mientras, el evento se crea sin categoría.',
-  'inv.signedIn': 'Ya tienes sesión iniciada. Al aceptar',
-  'inv.joinClub': ' te unes a «{club}»',
-  'inv.youreIn': ' quedas dentro',
   'inv.acceptJoins': 'Al aceptar te unes a «{club}».',
   'signin.noAccountEmailLong': 'Si ese correo no tiene cuenta en Hive, no llegará nada. Prueba con tu WhatsApp, o pide a quien organiza que te invite.',
   'club.roster.fromRsvp2': 'Una parte se cuenta desde los RSVP: eventos que terminaron antes de que se pasara lista.',
@@ -1270,10 +1311,8 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'inv.membersOnly': 'Club members only',
   'inv.no': 'nobody',
   'inv.youWere': "You're invited",
-  'inv.join': 'coming?',
   'inv.used': 'This invitation has already been used',
   'inv.tooLate': 'This invitation has expired',
-  'inv.checkEmail': 'Check your email',
   'inv.noted': 'Noted',
   'inv.alreadyIn': "You're already in",
   'inv.yourEmail': 'Your email',
@@ -1316,12 +1355,9 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'invite.findingDate': "They're still finding a date between them.",
   'invite.noPlace': 'The place is still to be decided.',
   'invite.nobodyYet': 'Nobody has confirmed yet',
-  'invite.askAnother': 'Ask whoever invited you for another',
-  'invite.askAnotherF': 'Ask whoever invited you for another',
   'invite.accept?': 'Accept the invitation?',
   'invite.accept': 'Accept invitation',
   'invite.saidNo': "You said you can't. Undo",
-  'invite.willSee': "Whoever invited you will see that you can't.",
   'invite.changedMind': "Changed my mind, I'm in",
   'invite.noForms': 'No passwords, no forms.',
 
@@ -1354,9 +1390,46 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'signin.checkEmailLink': 'Check your email. We sent you a link, open it in this same browser to come back here.',
   'invite.goingOne': '{n} person is going',
   'invite.goingMany': '{n} people are going',
-  'invite.linkLasts': 'Links last 30 days.',
-  'invite.askPerson': 'Ask {name} for another',
   'invite.oneMoment': 'One moment…',
+  'invite.telling': 'Letting them know…',
+  'invite.cant': "I can't make it",
+
+  'inv.notFound.hint': 'That link is not valid. Ask whoever organizes it to send you another.',
+  'inv.sub.eventClub.by': '{name} invited you along with «{club}».',
+  'inv.sub.eventClub': 'You were invited along with «{club}».',
+  'inv.sub.by': '{name} invited you to join.',
+  'inv.sub': 'You were invited to join.',
+  'invite.spotsOne': '1 spot left of {capacity}',
+  'invite.spotsMany': '{n} spots left of {capacity}',
+  'invite.full': 'all {capacity} spots are taken, you would go on the waitlist',
+  'invite.expired.by': 'Links last 30 days. Ask {name} for another and you are in.',
+  'invite.expired': 'Links last 30 days. Ask whoever invited you for another and you are in.',
+  'inv.alreadyIn.club': 'You used this invitation and you are already part of «{club}».',
+  'inv.alreadyIn.hint': 'You used this invitation.',
+  'inv.goEvent': 'Go to the event',
+  'inv.goClub': 'Go to the club',
+  'inv.used.by': 'Somebody else opened it first. Ask {name} for another if it was for you.',
+  'inv.used.hint': 'Somebody else opened it first. Ask whoever invited you for another if it was for you.',
+  'inv.joinClub?': 'Join «{club}»?',
+  'inv.signedIn.club':
+    'You are already signed in. Accepting joins you to «{club}», and whoever organizes it will see your name.',
+  'inv.signedIn.event':
+    'You are already signed in. Accepting puts you in, and whoever organizes it will see your name.',
+  'invite.declined.by': "{name} will see that you can't. If you change your mind, this link still works.",
+  'invite.declined': "Whoever invited you will see that you can't. If you change your mind, this link still works.",
+  'inv.sentTo': 'We sent a link to {email}. Open it in this same browser.',
+  'inv.emailIntro': 'Put in your email and we will send you a link to get in. No passwords.',
+  'inv.phoneOnly':
+    'You were invited over WhatsApp. For now you get in with email: put yours in and your invitation stays linked.',
+
+  'club.notFound.hint': 'That link is not valid. Ask whoever runs the club to send you another.',
+  'club.private.hint': 'This club is join-by-invitation only. Ask a member to invite you.',
+  'club.join.sent':
+    'Check your email. We sent you a link: open it in this same browser to come back here and ask to join.',
+  'club.request.intro':
+    'Send your request to join. Whoever runs the club reviews it before you are in.',
+  'club.request.action': 'Ask to join',
+  'club.request.sent': 'Your request is in. Whoever runs «{club}» will review it.',
   'common.sending': 'Sending…',
   'plate.toPay': 'Payments · to do',
   'money.markPaid': 'Mark as paid',
@@ -1519,9 +1592,6 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'club.forOneMember': ' for its only member',
   'club.forNMembers': ' for its {n} members',
   'form.askedAdminNoCat': "We've asked the club's admins. In the meantime the event is created without a category.",
-  'inv.signedIn': "You're already signed in. Accepting",
-  'inv.joinClub': ' joins you to «{club}»',
-  'inv.youreIn': ' puts you in',
   'inv.acceptJoins': 'Accepting joins you to «{club}».',
   'signin.noAccountEmailLong': 'If that email has no Hive account, nothing will arrive. Try your WhatsApp, or ask an organizer to invite you.',
   'club.roster.fromRsvp2': 'Some of it is counted from RSVPs: events that finished before roll call existed.',
