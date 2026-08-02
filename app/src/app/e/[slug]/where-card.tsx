@@ -20,7 +20,12 @@ import type { StringKey } from '@/lib/lang'
 // below. Same card, same facts, different question.
 //
 // With no place agreed there is no card at all, because a placeholder saying
-// nothing has been decided is a second way of saying what the line says.
+// nothing has been decided is a second way of saying what the line says. The
+// line still carries the window and the receipt: those answer WHEN and WHO,
+// not where, and dropping them with the card meant the state a new event
+// spends its whole life in, no date and no venue yet, said only "sin lugar
+// todavía" and stopped. Nobody could see which week was being painted into or
+// who had opened the vote.
 //
 // No Mapa button anywhere. Where the map is embedded, the map is the way to
 // the map, so a pill pointing at it is a third thing answering one question.
@@ -38,6 +43,37 @@ function MapFrame({ src, title }: { src: string; title: string }) {
       loading="lazy"
       referrerPolicy="no-referrer-when-downgrade"
     />
+  )
+}
+
+// The two lines that are not about where, so they render in all three states.
+//
+// They are components rather than markup repeated per branch for the usual
+// reason: the icon, the size and the tone are the fact that these two lines
+// are the same kind of thing, and a second copy would let the placeless state
+// drift into a slightly different grey.
+//
+// The horizontal padding comes from the caller because it is the one thing
+// that genuinely differs. Inside the card they are inset to the card's 14px;
+// with no card they sit on the page's own 2px, in line with the text above
+// them.
+function WindowLine({ text, pad }: { text: string; pad: string }) {
+  return (
+    <p className={`flex items-center gap-2 ${pad} pt-2 text-[12.5px] text-ink-500`}>
+      <Icon name="calendar-days" size={12} className="flex-shrink-0 text-ink-300" />
+      {text}
+    </p>
+  )
+}
+
+function ReceiptLine({ receipt, pad }: { receipt: { icon: IconName; text: string }; pad: string }) {
+  return (
+    <p className={`flex items-start gap-2 ${pad} pt-2.5 text-[12px] leading-snug text-ink-300`}>
+      <span className="mt-0.5 flex-shrink-0">
+        <Icon name={receipt.icon} size={11} />
+      </span>
+      <span className="min-w-0">{receipt.text}</span>
+    </p>
   )
 }
 
@@ -93,13 +129,17 @@ export function WhereCard({
 }) {
   if (!location) {
     return (
-      <div className="mb-[18px] flex items-center justify-between gap-2.5 px-0.5">
-        <span className="text-sm text-ink-300">{tr('event.noPlaceYet2')}</span>
-        {canEdit && (
-          <Link href={editHref} className="tap text-[12.5px] font-bold text-honey-700">
-            {tr('where.setPlace')}
-          </Link>
-        )}
+      <div className="mb-[18px]">
+        <div className="flex items-center justify-between gap-2.5 px-0.5">
+          <span className="text-sm text-ink-300">{tr('event.noPlaceYet2')}</span>
+          {canEdit && (
+            <Link href={editHref} className="tap text-[12.5px] font-bold text-honey-700">
+              {tr('where.setPlace')}
+            </Link>
+          )}
+        </div>
+        {window && <WindowLine text={window} pad="px-0.5" />}
+        {receipt && <ReceiptLine receipt={receipt} pad="px-0.5" />}
       </div>
     )
   }
@@ -119,14 +159,7 @@ export function WhereCard({
           {tr('event.changePlace')}
         </Link>
       )}
-      {receipt && (
-        <p className="flex items-start gap-2 px-3.5 pt-2.5 text-[12px] leading-snug text-ink-300">
-          <span className="mt-0.5 flex-shrink-0">
-            <Icon name={receipt.icon} size={11} />
-          </span>
-          <span className="min-w-0">{receipt.text}</span>
-        </p>
-      )}
+      {receipt && <ReceiptLine receipt={receipt} pad="px-3.5" />}
       {calendar && <div className="px-3.5 pb-3 pt-2.5">{calendar}</div>}
       <a
         href={directions}
@@ -189,12 +222,7 @@ export function WhereCard({
           into, and the card said nothing about it: the pill read "Buscando
           fecha" and the only place the actual dates appeared was the grid,
           further down, as column headers. */}
-      {window && (
-        <p className="flex items-center gap-2 px-3.5 pt-2 text-[12.5px] text-ink-500">
-          <Icon name="calendar-days" size={12} className="flex-shrink-0 text-ink-300" />
-          {window}
-        </p>
-      )}
+      {window && <WindowLine text={window} pad="px-3.5" />}
       {body}
     </div>
   )
