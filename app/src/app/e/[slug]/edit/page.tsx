@@ -3,8 +3,10 @@ import { requireProfile } from '@/lib/gate'
 import EventForm from '@/app/club/[slug]/new-event/event-form'
 import type { Place } from '@/components/ui/LocationPicker'
 import { AppBar } from '@/components/ui/AppBar'
+import { getT } from '@/lib/current-lang'
 
 export default async function EditEventPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { t: tr } = await getT()
   const { supabase, profile } = await requireProfile()
   const { slug } = await params
 
@@ -42,7 +44,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ slug
 
   return (
     <>
-      <AppBar title="Editar evento" subtitle={event.title} backHref={`/e/${slug}`} />
+      <AppBar title={tr('event.edit')} subtitle={event.title} backHref={`/e/${slug}`} />
       <main className="mx-auto w-full max-w-col px-4 pb-6">
       <EventForm
         clubId={club.id}

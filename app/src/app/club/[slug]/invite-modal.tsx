@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
+import { useT } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
@@ -27,6 +28,7 @@ export function InviteModal({
   open?: boolean
   onClose?: () => void
 }) {
+  const tr = useT()
   const [selfOpen, setSelfOpen] = useState(false)
   const controlled = openProp !== undefined
   const open = controlled ? openProp : selfOpen
@@ -70,7 +72,7 @@ export function InviteModal({
           open
           onClose={() => setOpen(false)}
           title={`Invitar a ${clubName}`}
-          subtitle="Si dejas un correo, la invitación se manda sola"
+          subtitle={tr('club.invite.auto')}
           footer={
             <>
               <Button variant="ghost" onClick={() => setOpen(false)}>
@@ -83,18 +85,18 @@ export function InviteModal({
           }
         >
           <div className="flex flex-col gap-3.5">
-            <Input label="Correo" type="email" placeholder="nombre@correo.com" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
-            <Input label="O WhatsApp" placeholder="+52 …" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <Input label={tr('club.invite.email')} type="email" placeholder={tr('club.invite.emailPh')} value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
+            <Input label={tr('club.invite.whatsapp')} placeholder="+52 …" value={phone} onChange={(e) => setPhone(e.target.value)} />
             <Select
-              label="Rol"
+              label={tr('club.invite.role')}
               value={role}
               onChange={(e) => setRole(e.target.value)}
               disabled={!isAdmin}
-              hint={isAdmin ? undefined : 'Los organizadores invitan miembros. Solo un admin asigna organizadores o admins.'}
+              hint={isAdmin ? undefined : tr('club.invite.note')}
             >
-              <option value="member">Miembro</option>
-              {isAdmin && <option value="organizer">Organizador</option>}
-              {isAdmin && <option value="admin">Admin</option>}
+              <option value="member">{tr('role.member')}</option>
+              {isAdmin && <option value="organizer">{tr('role.organizer')}</option>}
+              {isAdmin && <option value="admin">{tr('role.admin')}</option>}
             </Select>
           </div>
         </Modal>

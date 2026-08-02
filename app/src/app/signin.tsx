@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/Button'
+import { useT } from '@/components/ui/LangProvider'
+import type { StringKey } from '@/lib/lang'
 import { CodeEntryStep } from '@/components/ui/CodeEntryStep'
 import { Icon } from '@/components/ui/Icon'
 import { parseIdentity, identityHelper, identityAction } from '@/lib/identity'
@@ -15,16 +17,19 @@ function looksLikeEmail(v: string) {
   return v.includes('@')
 }
 
-function humanize(raw: string) {
+// Takes the translator: this is a plain function, not a component, and a hook
+// in here is a rules-of-hooks violation waiting to fire.
+function humanize(raw: string, tr: (k: StringKey) => string) {
   const s = raw.toLowerCase()
   if (s.includes('expired') || s.includes('invalid') || s.includes('not found') || s === 'missing_code' || s.includes('otp'))
-    return 'Ese enlace ya se usó o ya venció. Cada enlace sirve una sola vez (a veces el correo lo abre solo antes que tú). Pide uno nuevo.'
+    return tr('signin.linkUsed')
   if (s.includes('rate') || s.includes('security purposes'))
-    return 'Muchos intentos seguidos. Espera un minuto y vuelve a pedir el enlace.'
+    return tr('signin.tooMany')
   return raw
 }
 
 export default function SignIn() {
+  const tr = useT()
   const [contact, setContact] = useState('')
   const [sent, setSent] = useState(false)
   const [sentAt, setSentAt] = useState<number | undefined>(undefined)
@@ -47,7 +52,7 @@ export default function SignIn() {
     const msg = query ?? fromHash
     if (msg) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setError(humanize(msg.replace(/\+/g, ' ')))
+      setError(humanize(msg.replace(/\+/g, ' '), tr))
       window.history.replaceState(null, '', '/')
     }
   }, [])
@@ -71,14 +76,14 @@ export default function SignIn() {
       // Our own action returns a plain string; the Supabase error object this
       // used to also have to handle went with the magic link.
       if ('error' in result && result.error) {
-        setError(humanize(result.error))
+        setError(humanize(result.error, tr))
         return
       }
       setViaWhatsapp(!byEmail)
       setSentAt(Date.now())
       setSent(true)
     } catch {
-      setError('No pudimos completar el envío. Revisa tu conexión e intenta de nuevo.')
+      setError(tr('signin.sendFailed'))
     } finally {
       setSending(false)
     }
@@ -98,7 +103,7 @@ export default function SignIn() {
       // the session cookie is already written; a full load picks it up
       window.location.assign(res.next)
     } catch {
-      setError('No pudimos completar el envío. Revisa tu conexión e intenta de nuevo.')
+      setError(tr('signin.sendFailed'))
     } finally {
       setSending(false)
     }
@@ -119,7 +124,7 @@ export default function SignIn() {
         {sent ? (
           <div className="space-y-4">
             <h1 className="font-display text-2xl font-bold text-on-dark">
-              {viaWhatsapp ? 'Revisa tu WhatsApp' : 'Revisa tu correo'}
+              {viaWhatsapp ? tr('signin.checkWa') : tr('signin.checkEmail')}
             </h1>
             <>
                 <CodeEntryStep
@@ -135,7 +140,7 @@ export default function SignIn() {
                     setCode('')
                     setError(null)
                   }}
-                  backLabel={viaWhatsapp ? 'Cambiar número' : 'Cambiar correo'}
+                  backLabel={viaWhatsapp ? tr('signin.changeNumber') : tr('signin.changeEmail')}
                 />
                 {/* Load-bearing, not a courtesy. Hive has no sign-up, so a
                     contact we do not hold is sent nothing at all, and known
@@ -144,8 +149,8 @@ export default function SignIn() {
                     That puts the entire explanation here. */}
                 <p className="text-xs text-on-dark-mute">
                   {viaWhatsapp
-                    ? 'Si ese número no tiene cuenta en Hive, no llegará nada. Prueba con tu correo.'
-                    : 'Si ese correo no tiene cuenta en Hive, no llegará nada. Prueba con tu WhatsApp, o pide a quien organiza que te invite.'}
+                    ? tr('signin.noAccountPhone')
+                    : tr('signin.noAccountEmailLong')}
                 </p>
               </>
             <button
@@ -167,7 +172,7 @@ export default function SignIn() {
               <br />
               organizado.
             </h1>
-            <p className="mt-2 mb-5 text-sm text-on-dark-mute">Bienvenido al enjambre. Busquemos fecha.</p>
+            <p className="mt-2 mb-5 text-sm text-on-dark-mute">{tr('signin.welcome')}</p>
             <div className="mb-2 flex flex-col gap-1.5">
               <label className="text-[12.5px] font-semibold text-on-dark-mute" htmlFor="contact">
                 Tu correo o WhatsApp
@@ -181,7 +186,7 @@ export default function SignIn() {
                 required
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
-                placeholder="tu@correo.com  ·  55 1234 5678"
+                placeholder={tr('signin.ph')}
                 className={`min-h-[46px] rounded-md border-[1.5px] bg-charcoal-2 px-[14px] py-[13px] text-sm text-on-dark outline-none placeholder:text-on-dark-mute ${
                   error ? 'border-danger' : contact.trim() ? 'border-honey-500' : 'border-charcoal-3'
                 }`}
@@ -221,7 +226,7 @@ export default function SignIn() {
             <Button display block size="lg" disabled={sending || id.kind === 'empty'}>
               {sending ? 'Enviando…' : identityAction(id)}
             </Button>
-            <p className="mt-4 text-center text-xs text-on-dark-mute">Sin contraseñas.</p>
+            <p className="mt-4 text-center text-xs text-on-dark-mute">{tr('signin.noPasswords')}</p>
           </form>
         )}
       </div>

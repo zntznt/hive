@@ -1,3 +1,4 @@
+import { t as translate, tf as format, type Lang } from './lang'
 // What a club card says about itself.
 //
 // Two screens draw a club: the Clubs tab and Home's "tus clubs". They used to
@@ -68,8 +69,8 @@ export function clubFooter(events: CardEvent[], lastActivity: string | null, now
 // "Tranquilo desde abril." A month is the right grain: a club that last met in
 // April does not need to know it was the 12th, and the sentence stays short
 // enough to sit on one line next to its action.
-export function quietSince(iso: string | null): string {
-  if (!iso) return 'Todavía sin eventos.'
+export function quietSince(iso: string | null, lang: Lang = 'es'): string {
+  if (!iso) return translate(lang, 'club.noEventsYet')
   const month = new Intl.DateTimeFormat('es-MX', { month: 'long', timeZone: TZ }).format(new Date(iso))
-  return `Tranquilo desde ${month}.`
+  return format(lang, 'clubs.quietSince', { month })
 }

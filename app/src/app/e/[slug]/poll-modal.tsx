@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
+import { useT } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
 import { Input, Checkbox } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
@@ -10,6 +11,7 @@ import { createPoll } from '@/app/actions'
 import { Icon } from '@/components/ui/Icon'
 
 export function AddPollButton({ eventId, slug }: { eventId: string; slug: string }) {
+  const tr = useT()
   const [open, setOpen] = useState(false)
   const [question, setQuestion] = useState('')
   const [options, setOptions] = useState(['', '', '', ''])
@@ -30,7 +32,7 @@ export function AddPollButton({ eventId, slug }: { eventId: string; slug: string
     startTransition(async () => {
       await createPoll(eventId, slug, fd)
       setOpen(false)
-      toast('La encuesta está viva.')
+      toast(tr('poll.alive'))
       setQuestion('')
       setOptions(['', '', '', ''])
       router.refresh()
@@ -42,26 +44,26 @@ export function AddPollButton({ eventId, slug }: { eventId: string; slug: string
   return (
     <>
       <button onClick={() => setOpen(true)} className="tap text-[12.5px] font-bold text-honey-700">
-        <Icon name="plus" size={10} /> Añadir
+        <Icon name="plus" size={10} /> {tr('common.add')}
       </button>
       {open && (
         <Modal
           open
           onClose={() => setOpen(false)}
-          title="Nueva encuesta"
+          title={tr('poll.new')}
           footer={
             <>
               <Button variant="ghost" onClick={() => setOpen(false)}>
-                Cancelar
+                {tr('common.cancel')}
               </Button>
               <Button disabled={pending || !question.trim() || validOptions < 2} onClick={submit}>
-                Crear encuesta
+                {tr('poll.create')}
               </Button>
             </>
           }
         >
           <div className="flex flex-col gap-3.5">
-            <Input label="Pregunta" value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="¿A qué jugamos?" autoFocus />
+            <Input label={tr('poll.question')} value={question} onChange={(e) => setQuestion(e.target.value)} placeholder={tr('poll.ph')} autoFocus />
             <div className="flex flex-col gap-2">
               {options.map((o, i) => (
                 <Input
@@ -73,9 +75,9 @@ export function AddPollButton({ eventId, slug }: { eventId: string; slug: string
               ))}
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <Checkbox label="varias opciones" checked={multi} onChange={(e) => setMulti(e.target.checked)} />
-              <Checkbox label="anónima" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} />
-              <Checkbox label="resultados al cerrar" checked={afterClose} onChange={(e) => setAfterClose(e.target.checked)} />
+              <Checkbox label={tr('poll.multi')} checked={multi} onChange={(e) => setMulti(e.target.checked)} />
+              <Checkbox label={tr('poll.anon')} checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} />
+              <Checkbox label={tr('poll.resultsAtClose')} checked={afterClose} onChange={(e) => setAfterClose(e.target.checked)} />
             </div>
           </div>
         </Modal>

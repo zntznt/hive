@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { Modal } from '@/components/ui/Modal'
+import { useT } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { createClub } from '@/app/actions'
@@ -9,6 +10,7 @@ import { createClub } from '@/app/actions'
 // Home's "crear un club" opens in place (design: Home.jsx modal); on success
 // createClub redirects straight to the new club's page.
 export function CreateClubButton() {
+  const tr = useT()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [pending, startTransition] = useTransition()
@@ -31,28 +33,28 @@ export function CreateClubButton() {
         onClick={() => setOpen(true)}
         className="tap inline-flex min-h-11 flex-shrink-0 items-center gap-1.5 rounded-pill border-[1.5px] border-line-input bg-paper px-3.5 text-[13px] font-extrabold text-ink-700"
       >
-        <span aria-hidden="true">+</span> Crear club
+        <span aria-hidden="true">+</span> {tr('club.create')}
       </button>
       {open && (
         <Modal
           open
           onClose={() => setOpen(false)}
-          title="Crear un club"
-          subtitle="Vas a ser su primer admin"
+          title={tr('club.create.modal')}
+          subtitle={tr('club.create.firstAdmin')}
           footer={
             <>
               <Button variant="ghost" onClick={() => setOpen(false)}>
                 Cancelar
               </Button>
               <Button disabled={pending || !name.trim()} onClick={submit}>
-                {pending ? 'Creando…' : 'Crear club'}
+                {pending ? tr('club.creating') : tr('club.create')}
               </Button>
             </>
           }
         >
           <div className="flex flex-col gap-1.5">
-            <Input label="Nombre del club" value={name} onChange={(e) => setName(e.target.value)} placeholder="Los Jueves" autoFocus />
-            <p className="mt-1 text-xs text-ink-300">Después: invita gente y crea tu primer evento.</p>
+            <Input label={tr('club.name')} value={name} onChange={(e) => setName(e.target.value)} placeholder={tr('club.name.ph')} autoFocus />
+            <p className="mt-1 text-xs text-ink-300">{tr('club.create.next')}</p>
           </div>
         </Modal>
       )}

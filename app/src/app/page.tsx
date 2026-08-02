@@ -26,6 +26,8 @@ import { timeAgo } from '@/lib/relative-time'
 import { WhenPill } from '@/components/ui/WhenPill'
 import { FaceStack } from '@/components/ui/FaceStack'
 import { clubFooter, quietSince, type CardEvent, type ClubFooter } from '@/lib/club-card'
+import { getT } from '@/lib/current-lang'
+import type { StringKey } from '@/lib/lang'
 import { type AvatarUser } from '@/components/ui/Avatar'
 
 type UpcomingEvent = {
@@ -60,18 +62,30 @@ function plateKey(item: PlateItem) {
 // Icon tile + headline copy per plate item kind. Home only previews the plate
 // (link to the event), the interactive claim/confirm/done actions live on
 // /plate itself.
-function plateRowContent(item: PlateItem): { icon: IconName; tone: 'honey' | 'sage' | 'danger' | 'neutral'; title: string } {
+function plateRowContent(
+  item: PlateItem,
+  t: (k: StringKey) => string,
+  tf: (k: StringKey, v: Record<string, string | number>) => string
+): { icon: IconName; tone: 'honey' | 'sage' | 'danger' | 'neutral'; title: string } {
   switch (item.kind) {
     case 'pay':
-      return { icon: 'money-bill-transfer', tone: 'danger', title: `Le debes ${peso(item.amountCents)} a ${item.toName}` }
+      return {
+        icon: 'money-bill-transfer',
+        tone: 'danger',
+        title: tf('plate.owe', { amount: peso(item.amountCents), name: item.toName }),
+      }
     case 'confirm':
-      return { icon: 'circle-check', tone: 'honey', title: `${item.fromName} dice que te pagó ${peso(item.amountCents)}` }
+      return {
+        icon: 'circle-check',
+        tone: 'honey',
+        title: tf('plate.paidYou', { name: item.fromName, amount: peso(item.amountCents) }),
+      }
     case 'answer':
       return item.asks === 'availability'
-        ? { icon: 'calendar-plus', tone: 'honey', title: 'Marca cuándo puedes' }
+        ? { icon: 'calendar-plus', tone: 'honey', title: t('plate.availability') }
         : item.asks === 'rsvp'
-          ? { icon: 'circle-info', tone: 'honey', title: '¿Vas a ir?' }
-          : { icon: 'square-poll-vertical', tone: 'honey', title: item.pollLabel ?? 'Falta tu voto' }
+          ? { icon: 'circle-info', tone: 'honey', title: t('plate.rsvp') }
+          : { icon: 'square-poll-vertical', tone: 'honey', title: item.pollLabel ?? t('plate.vote') }
     case 'task':
       return { icon: 'clipboard', tone: 'sage', title: item.qty ? `${item.title} · ${item.qty}` : item.title }
     case 'bring':
@@ -86,6 +100,7 @@ function rsvpChip(eventStatus: string, myStatus?: string, waitlisted?: boolean) 
 }
 
 export default async function Home() {
+  const { t, tf , lang } = await getT()
   const supabase = await supabaseServer()
   // getClaims() verifies locally (ES256), no Auth round trip
   const { data: claimsData } = await supabase.auth.getClaims()
@@ -220,7 +235,7 @@ export default async function Home() {
       <header className="mb-[18px]">
         <BrandMark size="sm" />
         <h1 className="mt-2.5 font-display text-[22px] font-extrabold leading-tight text-ink-900">
-          hola, {profile.display_name}
+          {tf('home.greeting', { name: profile.display_name })}
         </h1>
       </header>
 
@@ -233,7 +248,7 @@ export default async function Home() {
         className="mb-[18px] flex min-h-11 items-center gap-2.5 rounded-pill border-[1.5px] border-line-input bg-paper px-4 text-sm text-ink-300"
       >
         <Icon name="magnifying-glass" size={13} className="text-ink-500" />
-        Busca eventos, clubes, personas
+        {t('common.search')}
       </Link>
 
       {/* Since you were away: the last 48 hours of things that happened to
@@ -242,7 +257,7 @@ export default async function Home() {
       {away.length > 0 && (
         <section className="rounded-lg bg-cream-sunk px-3.5 py-3">
           <p className="mb-2 text-[11px] font-bold uppercase tracking-[.04em] text-ink-300">
-            Mientras no estabas
+            {t('home.away')}
           </p>
           <ul className="flex flex-col gap-1.5">
             {away.map((a) => (
@@ -254,7 +269,7 @@ export default async function Home() {
                     className={a.kind === 'cancelled' ? 'text-danger' : 'text-honey-700'}
                   />
                   <span className="min-w-0 flex-1 truncate">{a.text}</span>
-                  <span className="flex-shrink-0 text-[11px] text-ink-300">{timeAgo(a.at)}</span>
+                  <span className="flex-shrink-0 text-[11px] text-ink-300">{timeAgo(a.at, lang)}</span>
                 </Link>
               </li>
             ))}
@@ -266,17 +281,17 @@ export default async function Home() {
         <SectionHeader
           action={
             <Link href="/plate" className="inline-flex items-center gap-1 tap text-[12.5px] font-bold text-honey-700">
-              Ver todo <Icon name="chevron-right" size={10} />
+              {t('common.seeAll')} <Icon name="chevron-right" size={10} />
             </Link>
           }
         >
-          En tu plato · {total}
+          {t('home.plate')} · {total}
         </SectionHeader>
-        {total === 0 && <p className="text-[13px] text-ink-500">Todo en orden. Nada te necesita ahorita.</p>}
+        {total === 0 && <p className="text-[13px] text-ink-500">{t('home.plate.clear')}</p>}
         {total > 0 && (
           <div className="flex flex-col gap-2">
             {shownPlate.map((item) => {
-              const { icon, tone, title } = plateRowContent(item)
+              const { icon, tone, title } = plateRowContent(item, t, tf)
               const action =
                 item.kind === 'pay' ? (
                   <SettleUpFlow
@@ -288,7 +303,7 @@ export default async function Home() {
                     amountCents={item.amountCents}
                     toPaymentMethods={payMethodsFor(item.toUserId)}
                   >
-                    Pagar
+                    {t('money.pay')}
                   </SettleUpFlow>
                 ) : item.kind === 'confirm' ? (
                   <ConfirmPaymentModal
@@ -299,7 +314,7 @@ export default async function Home() {
                     method={item.method}
                     proofSignedUrl={item.proofSignedUrl}
                   >
-                    Confirmar
+                    {t('money.confirm')}
                   </ConfirmPaymentModal>
                 ) : item.kind === 'answer' ? (
                   // nothing to mark done: the row is the question, and the
@@ -329,7 +344,7 @@ export default async function Home() {
             })}
             {total > shownPlate.length && (
               <Link href="/plate" className="tap inline-flex w-fit items-center gap-1 text-[12.5px] font-bold text-ink-500">
-                +{total - shownPlate.length} más en tu plato <Icon name="chevron-right" size={10} />
+                {tf('home.plate.more', { n: total - shownPlate.length })} <Icon name="chevron-right" size={10} />
               </Link>
             )}
           </div>
@@ -341,14 +356,14 @@ export default async function Home() {
           <SectionHeader
             action={
               <Link href={`/events?person=${profile.id}&when=past`} className="inline-flex items-center gap-1 tap text-[12.5px] font-bold text-honey-700">
-                Tu historial <Icon name="chevron-right" size={10} />
+                {t('home.history')} <Icon name="chevron-right" size={10} />
               </Link>
             }
           >
-            Lo que viene
+            {t('home.upcoming')}
           </SectionHeader>
           {upcoming.length === 0 ? (
-            <EmptyState icon="calendar-days" hint="Nada en puerta todavía." />
+            <EmptyState icon="calendar-days" hint={t('home.upcoming.empty')} />
           ) : (
             <div className="flex flex-col gap-2">
               {upcoming.map((e) => (
@@ -379,12 +394,12 @@ export default async function Home() {
       )}
 
       <section className="mt-[26px]">
-        <SectionHeader>Tus clubes</SectionHeader>
+        <SectionHeader>{t('home.clubs')}</SectionHeader>
         {clubs.length === 0 ? (
           <EmptyState
             icon="bugs"
-            title="Todavía no estás en ningún club"
-            hint="Pide a quien organiza que te invite."
+            title={t('home.clubs.empty.title')}
+            hint={t('home.clubs.empty.short')}
           />
         ) : (
           <div className="flex flex-col gap-2">
@@ -417,7 +432,7 @@ export default async function Home() {
                           ? (footer.event.area ?? footer.event.location ?? footer.event.title)
                           : footer?.kind === 'next'
                             ? footer.event.title
-                            : quietSince(footer?.since ?? null)}
+                            : quietSince(footer?.since ?? null, lang)}
                       </span>
                     </span>
                   </span>

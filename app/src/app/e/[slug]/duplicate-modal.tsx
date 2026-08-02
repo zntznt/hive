@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { Modal } from '@/components/ui/Modal'
+import { useT } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { duplicateEvent } from '@/app/actions'
@@ -79,16 +80,17 @@ export function DuplicateModal({
   weeks: string[]
   onClose: () => void
 }) {
+  const tr = useT()
   const [extraWeeks, setExtraWeeks] = useState(0)
   const [picking, setPicking] = useState(false)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
   const fresh: { icon: IconName; text: string }[] = [
-    { icon: 'minus', text: 'Quién va, todos vuelven a confirmar' },
-    { icon: 'minus', text: 'La disponibilidad, la encuesta empieza vacía' },
-    { icon: 'minus', text: 'Quién trae qué, la lista pasa sin dueño' },
-    { icon: 'minus', text: 'Los invitados, nadie arrastra sus +1' },
+    { icon: 'minus', text: tr('dup.rsvps') },
+    { icon: 'minus', text: tr('dup.availability') },
+    { icon: 'minus', text: tr('dup.contribs') },
+    { icon: 'minus', text: tr('dup.guests') },
     { icon: 'minus', text: 'Gastos y balances' },
     { icon: 'minus', text: 'Las encuestas' },
   ]
@@ -101,7 +103,7 @@ export function DuplicateModal({
       } catch (e) {
         // the action ends in redirect(), which works by throwing
         if ((e as { digest?: string })?.digest?.startsWith('NEXT_REDIRECT')) throw e
-        setError(e instanceof Error ? e.message : 'No se pudo duplicar el evento.')
+        setError(e instanceof Error ? e.message : tr('dup.failed'))
       }
     })
   }
@@ -110,12 +112,12 @@ export function DuplicateModal({
     <Modal
       open
       onClose={pending ? undefined : onClose}
-      title="Duplicar este evento"
+      title={tr('event.dup.title')}
       subtitle={clubName ? `En ${clubName}` : undefined}
       footer={
         <>
           <Button variant="ghost" disabled={pending} onClick={onClose}>
-            Cancelar
+            {tr('common.cancel')}
           </Button>
           <Button disabled={pending} onClick={create}>
             {pending ? 'Creando…' : 'Crearlo'}
@@ -126,7 +128,7 @@ export function DuplicateModal({
       <div className="flex flex-col gap-3">
         {weeks.length > 0 && (
           <div className="rounded-md border-[1.5px] border-honey-500 bg-honey-50 p-3.5">
-            <p className="mb-1 text-[11.5px] font-extrabold uppercase tracking-[.06em] text-honey-800">Fecha nueva</p>
+            <p className="mb-1 text-[11.5px] font-extrabold uppercase tracking-[.06em] text-honey-800">{tr('event.dup.newDate')}</p>
             <div className="flex items-start justify-between gap-2.5">
               <p className="min-w-0 text-sm leading-relaxed text-ink-700">
                 Va a buscar fecha la semana del{' '}
@@ -146,7 +148,7 @@ export function DuplicateModal({
             </div>
             {picking && (
               <div className="mt-2.5 border-t border-honey-200 pt-2.5">
-                <p className="mb-2 text-xs text-ink-700">¿En qué semana la busca?</p>
+                <p className="mb-2 text-xs text-ink-700">{tr('event.dup.week')}</p>
                 <div className="flex flex-wrap gap-[7px]">
                   {weeks.map((w, i) => (
                     <button
@@ -166,20 +168,20 @@ export function DuplicateModal({
                   ))}
                 </div>
                 <p className="mt-2 text-[11.5px] leading-relaxed text-ink-300">
-                  El día lo siguen eligiendo los miembros dentro de esa semana. Esto solo dice dónde buscar.
+                  {tr('dup.weekNote')}
                 </p>
               </div>
             )}
           </div>
         )}
 
-        <List tone="keep" label="Se mantiene" lines={carries} />
+        <List tone="keep" label={tr('event.dup.kept')} lines={carries} />
 
         <List
           tone="reset"
-          label="Empieza de cero"
+          label={tr('event.dup.fresh')}
           lines={fresh}
-          hint="Nadie está apuntado y nada está apartado todavía. Es lo normal en una noche nueva, no es que se haya salido todo el mundo."
+          hint={tr('event.dup.hint')}
         />
 
         {/* Last, because it is the one part that cannot be undone. */}
@@ -188,7 +190,7 @@ export function DuplicateModal({
             <Icon name="bullhorn" size={12} />
           </span>
           <span>
-            Al crearlo se le avisa a todo el club de inmediato, por correo y WhatsApp. No hay paso de borrador y el
+            {tr('dup.notice')}
             aviso no se puede retirar.
           </span>
         </div>

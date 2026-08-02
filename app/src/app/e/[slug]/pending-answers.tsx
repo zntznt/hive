@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { FaceStack } from '@/components/ui/FaceStack'
 import { Button } from '@/components/ui/Button'
+import { useT } from '@/components/ui/LangProvider'
 import { remindNonResponders } from '@/app/actions'
 
 // The people who have not answered, by name, with the one move that helps.
@@ -28,6 +29,7 @@ export function PendingAnswers({
   people: { id: string; name: string; user: AvatarUser }[]
   canRemind: boolean
 }) {
+  const tr = useT()
   const [sent, setSent] = useState(false)
   const [pending, startTransition] = useTransition()
 
@@ -46,7 +48,7 @@ export function PendingAnswers({
         {/* What silence is not: it is not a no, and it is not a maybe. Spelling
             that out is the difference between chasing people and re-reading a
             count. */}
-        <p className="text-[13px] text-ink-500">Ni sí, ni no, ni disponibilidad.</p>
+        <p className="text-[13px] text-ink-500">{tr('event.pending.none')}</p>
         <div className="flex flex-col gap-1.5">
           {people.map((p) => (
             <span
@@ -63,7 +65,7 @@ export function PendingAnswers({
             // One nudge per person per event, ever, is a rule the server keeps.
             // The button says so rather than letting an organizer tap it four
             // times wondering whether anything left the building.
-            <p className="text-[12.5px] text-ink-500">Ya les llegó el recordatorio. Solo se manda una vez.</p>
+            <p className="text-[12.5px] text-ink-500">{tr('event.pending.reminded')}</p>
           ) : (
             <Button
               block

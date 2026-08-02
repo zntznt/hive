@@ -85,7 +85,7 @@ export default function AvatarProfileForm({
       setPhotoUrl(url)
       await save({ photoUrl: url })
     } catch (e) {
-      setError(e instanceof Error ? `No se pudo subir la foto. ${e.message}` : 'No se pudo subir la foto. Intenta de nuevo.')
+      setError(e instanceof Error ? `No se pudo subir la foto. ${e.message}` : t(lang, 'account.photo.failed'))
     } finally {
       setUploading(false)
     }
@@ -99,7 +99,7 @@ export default function AvatarProfileForm({
     const p = next.photoUrl !== undefined ? next.photoUrl : photoUrl
     const n = next.name ?? name
     if (!n.trim()) {
-      setError('Necesitas un nombre visible.')
+      setError(t(lang, 'common.needName'))
       return
     }
     setSaving(true)
@@ -114,7 +114,7 @@ export default function AvatarProfileForm({
       await updateProfile(fd)
       toast('Listo')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo guardar.')
+      setError(e instanceof Error ? e.message : t(lang, 'common.notSaved'))
     } finally {
       setSaving(false)
     }
@@ -147,7 +147,7 @@ export default function AvatarProfileForm({
             footnote to them. */}
         <label className="tap mt-3 flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-pill border-[1.5px] border-line-input bg-paper px-3.5 text-[13px] font-bold text-ink-700">
           {photoUrl && <HexAvatar name={name} size={26} src={photoUrl} />}
-          {uploading ? t(lang, 'saving') : photoUrl ? t(lang, 'account.photo.change') : t(lang, 'account.photo')}
+          {uploading ? t(lang, 'common.saving') : photoUrl ? t(lang, 'account.photo.change') : t(lang, 'account.photo')}
           <input
             ref={fileRef}
             type="file"
@@ -188,7 +188,7 @@ export default function AvatarProfileForm({
         </div>
         {language}
         {error && <p className="mt-2.5 rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
-        {saving && <p className="mt-2 text-xs text-ink-300">{t(lang, 'saving')}</p>}
+        {saving && <p className="mt-2 text-xs text-ink-300">{t(lang, 'common.saving')}</p>}
       </section>
 
       {cropSrc && (

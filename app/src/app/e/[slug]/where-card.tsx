@@ -3,6 +3,7 @@ import { type ReactNode } from 'react'
 import { Icon, MapPinIcon, type IconName } from '@/components/ui/Icon'
 import { WhenPill } from '@/components/ui/WhenPill'
 import { mapEmbedUrl, directionsUrl } from '@/lib/place'
+import type { StringKey } from '@/lib/lang'
 
 // Where this is, in one block.
 //
@@ -41,6 +42,8 @@ function MapFrame({ src, title }: { src: string; title: string }) {
 }
 
 export function WhereCard({
+  tf,
+  tr,
   location,
   lat,
   lng,
@@ -57,6 +60,8 @@ export function WhereCard({
   editHref,
   calendar,
 }: {
+  tf: (k: StringKey, v: Record<string, string | number>) => string
+  tr: (k: StringKey) => string
   location: string | null
   // The pin, when the organizer dropped one. It outranks the text: the
   // preview centres on it and the directions route to it, so what people see
@@ -89,7 +94,7 @@ export function WhereCard({
   if (!location) {
     return (
       <div className="mb-[18px] flex items-center justify-between gap-2.5 px-0.5">
-        <span className="text-sm text-ink-300">Sin lugar todavía</span>
+        <span className="text-sm text-ink-300">{tr('event.noPlaceYet2')}</span>
         {canEdit && (
           <Link href={editHref} className="tap text-[12.5px] font-bold text-honey-700">
             Poner un lugar
@@ -111,7 +116,7 @@ export function WhereCard({
     <>
       {canEdit && (
         <Link href={editHref} className="tap block px-3.5 pt-2.5 text-[13px] font-bold text-honey-700">
-          Cambiar lugar
+          {tr('event.changePlace')}
         </Link>
       )}
       {receipt && (
@@ -129,7 +134,7 @@ export function WhereCard({
         rel="noreferrer"
         className="tap flex min-h-11 items-center justify-center gap-1.5 border-t border-line-divider text-sm font-bold text-honey-700"
       >
-        Cómo llegar <Icon name="arrow-up-right-from-square" size={11} />
+        {tr('event.directions')} <Icon name="arrow-up-right-from-square" size={11} />
       </a>
       {/* Kept in both states, deliberately. The head says where to go and the
           map says how far, and the day of the event is when you want both
@@ -174,7 +179,7 @@ export function WhereCard({
             <span className="block text-[15px] font-extrabold text-ink-900">{location}</span>
             <span className="mt-0.5 block text-[12.5px] text-ink-500">
               {area ? `${area} · ` : ''}
-              {going} van
+              {tf('event.goingCount', { n: going })}
             </span>
           </span>
         </span>

@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { Icon } from '@/components/ui/Icon'
 import { Button } from '@/components/ui/Button'
+import { useT, useTf, useLang } from '@/components/ui/LangProvider'
+import { fmtDayMonth } from '@/lib/time'
 import { DuplicateModal, type CarryItem } from './duplicate-modal'
 
 // The two blocks a finished event grows, and the reason its page inverts.
@@ -21,18 +23,16 @@ import { DuplicateModal, type CarryItem } from './duplicate-modal'
 // Falls back to the night itself for events closed before the app started
 // writing this down, rather than inventing a name.
 export function ClosedReceipt({ by, on, held }: { by: string | null; on: string | null; held: string | null }) {
+  const tr = useT()
+  const tf = useTf()
+  const lang = useLang()
   const when = on ?? held
-  const label = new Intl.DateTimeFormat('es-MX', {
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'America/Mexico_City',
-  })
   return (
     <div className="mb-3.5 flex items-center gap-2.5 rounded-md bg-cream-sunk px-3.5 py-2.5 text-[13.5px] text-ink-500">
       <Icon name="circle-check" size={15} className="flex-shrink-0 text-sage-600" />
       <span className="min-w-0 truncate">
-        {by ? `Cerrado por ${by}` : 'Evento celebrado'}
-        {when ? ` · ${label.format(new Date(when))}` : ''}
+        {by ? tf('event.closedBy', { name: by }) : tr('event.held')}
+        {when ? ` · ${fmtDayMonth(when, lang)}` : ''}
       </span>
     </div>
   )
@@ -67,6 +67,7 @@ export function DuplicatePrompt({
   carries: CarryItem[]
   weeks: string[]
 }) {
+  const tr = useT()
   const [confirming, setConfirming] = useState(false)
 
   const keeps = [place, items > 0 ? `${items} ${items === 1 ? 'cosa que traer' : 'cosas que traer'}` : null]
@@ -82,7 +83,7 @@ export function DuplicatePrompt({
         <Icon name="copy" size={16} className="text-charcoal" />
       </span>
       <div className="min-w-0 flex-1">
-        <h2 className="font-display text-lg font-bold leading-tight text-ink-900">¿Otra vez?</h2>
+        <h2 className="font-display text-lg font-bold leading-tight text-ink-900">{tr('event.again')}</h2>
         <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-700">
           La misma noche, una semana después.{keeps ? ` Se queda con ${keeps}.` : ''} Vas a ver exactamente qué se
           lleva antes de que se cree nada.
@@ -92,7 +93,7 @@ export function DuplicatePrompt({
             accident on the way past. */}
         <div className="mt-3.5">
           <Button block onClick={() => setConfirming(true)}>
-            Duplicar este evento
+            {tr('dup.title')}
           </Button>
         </div>
       </div>

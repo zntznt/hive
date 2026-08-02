@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { rsvpButtonClass, RSVP_OPTIONS } from '@/components/ui/RsvpToggle'
 import { setRsvp } from '@/app/actions'
+import { useT } from '@/components/ui/LangProvider'
+import type { StringKey } from '@/lib/lang'
 
 // Your answer, after you have given it.
 //
@@ -17,10 +19,11 @@ import { setRsvp } from '@/app/actions'
 // blindly, because there are three answers and a toggle can only reach two:
 // tapping "cambiar" on "quizás" used to file you as going.
 
-const FACE: Record<string, { icon: IconName; text: string; tone: string }> = {
-  in: { icon: 'check', text: 'Vas a ir', tone: 'text-ink-900' },
-  maybe: { icon: 'circle-dot', text: 'Dijiste que quizás', tone: 'text-ink-900' },
-  out: { icon: 'xmark', text: 'Dijiste que no puedes', tone: 'text-ink-500' },
+// Keys, not sentences: module-level copy freezes the first language rendered.
+const FACE: Record<string, { icon: IconName; key: StringKey; tone: string }> = {
+  in: { icon: 'check', key: 'event.saidYouGo', tone: 'text-ink-900' },
+  maybe: { icon: 'circle-dot', key: 'event.saidMaybe', tone: 'text-ink-900' },
+  out: { icon: 'xmark', key: 'event.saidNo', tone: 'text-ink-500' },
 }
 
 export function RsvpRow({
@@ -36,6 +39,7 @@ export function RsvpRow({
   // because it is the rest of the sentence about what your "voy" got you.
   note?: string | null
 }) {
+  const tr = useT()
   const [open, setOpen] = useState(false)
   const face = FACE[status]
 
@@ -44,7 +48,7 @@ export function RsvpRow({
       <div className="flex gap-2 rounded-lg border border-line-card bg-paper p-2">
         {RSVP_OPTIONS.map((o) => (
           <form key={o.v} action={setRsvp.bind(null, eventId, slug, o.v)} className="flex-1">
-            <button className={rsvpButtonClass(status === o.v)}>{o.l}</button>
+            <button className={rsvpButtonClass(status === o.v)}>{tr(o.k)}</button>
           </form>
         ))}
       </div>
@@ -55,7 +59,7 @@ export function RsvpRow({
     <div className="flex min-h-[52px] items-center gap-2.5 rounded-lg border border-line-card bg-paper px-3.5 py-2.5">
       <Icon name={face.icon} size={14} className="flex-shrink-0 text-ink-500" />
       <span className={`min-w-0 flex-1 text-[14px] font-bold ${face.tone}`}>
-        {face.text}
+        {tr(face.key)}
         {note && <span className="font-normal text-ink-500"> · {note}</span>}
       </span>
       <button onClick={() => setOpen(true)} className="tap flex-shrink-0 text-[12.5px] font-bold text-honey-700">

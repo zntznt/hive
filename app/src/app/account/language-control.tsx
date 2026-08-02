@@ -30,7 +30,7 @@ export function LanguageControl({ value, lang }: { value: Lang | null; lang: Lan
     setChoice(v)
     startTransition(async () => {
       await setLanguage(v)
-      toast(t(lang, 'saved'))
+      toast(t(lang, 'common.saved'))
     })
   }
 

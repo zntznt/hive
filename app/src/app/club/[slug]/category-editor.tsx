@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
+import { useT } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
 import { Input, EmojiField } from '@/components/ui/Input'
 import { ChipButton } from '@/components/ui/Chip'
@@ -12,7 +13,8 @@ import { Icon } from '@/components/ui/Icon'
 type Category = { id: string; name: string; emoji: string | null }
 
 export function AddCategoryButton({ clubId, slug, isAdmin }: { clubId: string; slug: string; isAdmin: boolean }) {
-  return <CategoryModal clubId={clubId} slug={slug} isAdmin={isAdmin} trigger={<span className="inline-flex items-center gap-1"><Icon name="plus" size={10} /> Categoría</span>} />
+  const tr = useT()
+  return <CategoryModal clubId={clubId} slug={slug} isAdmin={isAdmin} trigger={<span className="inline-flex items-center gap-1"><Icon name="plus" size={10} /> {tr('club.cat')}</span>} />
 }
 
 export function EditCategoryButton({ clubId, slug, isAdmin, category }: { clubId: string; slug: string; isAdmin: boolean; category: Category }) {
@@ -34,6 +36,7 @@ function CategoryModal({
   trigger: React.ReactNode
   small?: boolean
 }) {
+  const tr = useT()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState(category?.name ?? '')
   const [emoji, setEmoji] = useState(category?.emoji ?? '🎲')
@@ -63,7 +66,7 @@ function CategoryModal({
   return (
     <>
       {small ? (
-        <button aria-label="Editar categoría" onClick={() => setOpen(true)} className="tap -ml-0.5 px-1 text-[11px] text-ink-300">
+        <button aria-label={tr('club.cat.edit')} onClick={() => setOpen(true)} className="tap -ml-0.5 px-1 text-[11px] text-ink-300">
           {trigger}
         </button>
       ) : (
@@ -75,7 +78,7 @@ function CategoryModal({
         <Modal
           open
           onClose={() => setOpen(false)}
-          title={category ? 'Editar categoría' : 'Nueva categoría'}
+          title={category ? tr('club.cat.edit') : tr('club.cat.new')}
           footer={
             <>
               {category && (
@@ -84,18 +87,18 @@ function CategoryModal({
                 </Button>
               )}
               <Button disabled={pending || !name.trim()} onClick={save}>
-                {isAdmin ? (category ? 'Guardar' : 'Añadir categoría') : 'Enviar para aprobación'}
+                {isAdmin ? (category ? 'Guardar' : tr('club.cat.add')) : tr('club.about.submit')}
               </Button>
             </>
           }
         >
           <div className="flex items-end gap-2.5">
             <div>
-              <label className="mb-1.5 block text-[12.5px] font-semibold text-ink-700">Emoji</label>
+              <label className="mb-1.5 block text-[12.5px] font-semibold text-ink-700">{tr('club.cat.emoji')}</label>
               <EmojiField value={emoji} onChange={setEmoji} />
             </div>
             <div className="flex-1">
-              <Input label="Nombre de la categoría" placeholder="Juegos de mesa" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+              <Input label={tr('club.cat.name')} placeholder={tr('club.cat.ph')} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
             </div>
           </div>
         </Modal>

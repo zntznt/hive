@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
+import { useT } from '@/components/ui/LangProvider'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { useToast } from '@/components/ui/Toast'
 import { addCoOrganizer } from '@/app/actions'
@@ -11,6 +12,7 @@ import { Icon } from '@/components/ui/Icon'
 type Candidate = { user_id: string; user: AvatarUser }
 
 export function CoOrganizerButton({ eventId, slug, candidates }: { eventId: string; slug: string; candidates: Candidate[] }) {
+  const tr = useT()
   const [open, setOpen] = useState(false)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
@@ -31,9 +33,9 @@ export function CoOrganizerButton({ eventId, slug, candidates }: { eventId: stri
         <Icon name="plus" size={10} /> Co-organizador
       </button>
       {open && (
-        <Modal open onClose={() => setOpen(false)} title="Añadir co-organizador" subtitle="Puede editar el evento y gestionar quién va">
+        <Modal open onClose={() => setOpen(false)} title={tr('event.coorg.add')} subtitle={tr('event.coorg.can')}>
           <div className="flex flex-col gap-2">
-            {candidates.length === 0 && <p className="text-sm text-ink-500">No hay más miembros del club para invitar.</p>}
+            {candidates.length === 0 && <p className="text-sm text-ink-500">{tr('event.coorg.none')}</p>}
             {candidates.map((c) => (
               <button
                 key={c.user_id}
@@ -43,11 +45,11 @@ export function CoOrganizerButton({ eventId, slug, candidates }: { eventId: stri
               >
                 <UserAvatar user={c.user} size={28} />
                 {c.user.display_name}
-                <span className="inline-flex items-center gap-1 ml-auto text-[12.5px] font-bold text-honey-700">Invitar <Icon name="chevron-right" size={10} /></span>
+                <span className="inline-flex items-center gap-1 ml-auto text-[12.5px] font-bold text-honey-700">{tr('event.invite')} <Icon name="chevron-right" size={10} /></span>
               </button>
             ))}
           </div>
-          <p className="mt-3 text-xs text-ink-300">Solo organizadores y admins del club pueden co-organizar. La invitación se avisa por correo y WhatsApp.</p>
+          <p className="mt-3 text-xs text-ink-300">{tr('event.coorg.note')}</p>
         </Modal>
       )}
     </>

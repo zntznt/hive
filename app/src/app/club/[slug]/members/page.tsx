@@ -9,6 +9,7 @@ import { AppBar } from '@/components/ui/AppBar'
 import { MemberRow } from '../member-row'
 import { InviteModal } from '../invite-modal'
 import { updateClubJoinMode, revokeInvitation } from '@/app/actions'
+import { getT } from '@/lib/current-lang'
 
 // The roster, on its own screen.
 //
@@ -31,6 +32,7 @@ type AttendanceRow = {
 }
 
 export default async function ClubMembersPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { t: tr } = await getT()
   const { slug } = await params
   const { supabase, profile } = await requireProfile()
 
@@ -70,7 +72,7 @@ export default async function ClubMembersPage({ params }: { params: Promise<{ sl
 
   return (
     <>
-      <AppBar title="Miembros" backHref={`/club/${slug}`} />
+      <AppBar title={tr('club.members')} backHref={`/club/${slug}`} />
       <main className="mx-auto w-full max-w-col px-4 pb-6 pt-5">
         <SectionHeader
           action={isManager ? <InviteModal clubId={club.id} slug={slug} clubName={club.name} isAdmin={isAdmin} /> : null}
@@ -104,10 +106,10 @@ export default async function ClubMembersPage({ params }: { params: Promise<{ sl
                 <span className="flex min-w-0 items-center gap-2.5">
                   <HexAvatar name={inv.email ?? inv.phone ?? '?'} size={28} />
                   <span className="min-w-0 truncate text-ink-500">{inv.email ?? inv.phone}</span>
-                  {inv.declined_at ? <Badge tone="disabled">no puede</Badge> : <Badge>invitado</Badge>}
+                  {inv.declined_at ? <Badge tone="disabled">{tr('club.join.no')}</Badge> : <Badge>invitado</Badge>}
                 </span>
                 <form action={revokeInvitation.bind(null, inv.id, `/club/${slug}/members`)} className="flex-shrink-0">
-                  <button className="tap text-[12.5px] font-bold text-ink-500">Revocar</button>
+                  <button className="tap text-[12.5px] font-bold text-ink-500">{tr('club.revoke')}</button>
                 </form>
               </div>
             ))}
@@ -115,7 +117,7 @@ export default async function ClubMembersPage({ params }: { params: Promise<{ sl
 
         {isAdmin && (
           <section className="mb-[26px]">
-            <SectionHeader>Enlace para unirse</SectionHeader>
+            <SectionHeader>{tr('club.joinLink')}</SectionHeader>
             <div className="flex items-center justify-between gap-2 rounded-md border border-line-card bg-paper px-[13px] py-[11px] text-sm">
               <span className="truncate text-ink-500">/c/{club.join_token}</span>
               <CopyButton path={`/c/${club.join_token}`} />
@@ -133,10 +135,10 @@ export default async function ClubMembersPage({ params }: { params: Promise<{ sl
                 defaultValue={club.join_mode}
                 className="rounded-md border border-line-input bg-paper p-1.5 text-xs"
               >
-                <option value="invite_only">solo con invitación</option>
-                <option value="anyone_with_link">cualquiera con el enlace (pide aprobación)</option>
+                <option value="invite_only">{tr('club.join.invite')}</option>
+                <option value="anyone_with_link">{tr('club.join.anyone')}</option>
               </select>
-              <button className="tap min-h-11 rounded-md border border-line-input px-3 text-xs font-bold">Guardar</button>
+              <button className="tap min-h-11 rounded-md border border-line-input px-3 text-xs font-bold">{tr('common.save')}</button>
             </form>
           </section>
         )}

@@ -6,6 +6,7 @@ import { AppBar, type MenuItem } from '@/components/ui/AppBar'
 import { useToast } from '@/components/ui/Toast'
 import { setEventStatus, setEventDeleted, requestEventDeletion } from '@/app/actions'
 import { DuplicateModal, type CarryItem } from './duplicate-modal'
+import { useT } from '@/components/ui/LangProvider'
 
 // The event's whole lifecycle, collected into one menu.
 //
@@ -44,6 +45,7 @@ export default function EventAppBar({
   // recap, which is a different placement of the same thing.
   duplicate?: { clubName: string | null; carries: CarryItem[]; weeks: string[] }
 }) {
+  const tr = useT()
   const [pending, startTransition] = useTransition()
   const toast = useToast()
   const router = useRouter()
@@ -61,21 +63,21 @@ export default function EventAppBar({
       await navigator.clipboard.writeText(`${location.origin}/e/${slug}`)
       toast('Enlace copiado')
     } catch {
-      toast('No se pudo copiar. Mantén presionado el enlace.')
+      toast(tr('event.copyFailed'))
     }
   }
 
   const bin = (deleted: boolean) =>
     startTransition(async () => {
       await setEventDeleted(eventId, slug, deleted)
-      toast(deleted ? 'Va a la papelera. 30 días para recuperarlo.' : 'Recuperado')
+      toast(deleted ? tr('event.toBin') : 'Recuperado')
       router.refresh()
     })
 
   const askBin = (restore: boolean) =>
     startTransition(async () => {
       await requestEventDeletion(eventId, slug, restore)
-      toast('Se lo pedimos a la administración del club')
+      toast(tr('event.askedAdmin'))
       router.refresh()
     })
 
@@ -103,15 +105,15 @@ export default function EventAppBar({
       },
     isOrganizer &&
       status === 'scheduled' && {
-        label: 'Cancelar evento',
+        label: tr('event.cancelEvent'),
         icon: 'ban',
         danger: true,
         disabled: pending,
-        onClick: () => setStatus('cancelled', 'Evento cancelado. Se avisó a quienes iban.'),
+        onClick: () => setStatus('cancelled', tr('event.cancelledNotice')),
       },
     isClubAdmin &&
       !isDeleted && {
-        label: 'Eliminar evento',
+        label: tr('event.deleteEvent'),
         icon: 'trash',
         danger: true,
         disabled: pending,
@@ -136,7 +138,7 @@ export default function EventAppBar({
         subtitle={clubName ?? undefined}
         subtitleHref={clubSlug ? `/club/${clubSlug}` : undefined}
         backHref={clubSlug ? `/club/${clubSlug}` : '/events'}
-        action={isOrganizer ? { label: 'Invitar', icon: 'user-plus', href: `/e/${slug}/invites` } : undefined}
+        action={isOrganizer ? { label: tr('event.invite'), icon: 'user-plus', href: `/e/${slug}/invites` } : undefined}
         menu={menu}
       />
       {duplicating && duplicate && (

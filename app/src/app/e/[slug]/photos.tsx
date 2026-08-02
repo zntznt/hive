@@ -8,6 +8,7 @@ import { dataUrlToBlob } from '@/lib/upload'
 import { useToast } from '@/components/ui/Toast'
 import { Icon } from '@/components/ui/Icon'
 import { Modal } from '@/components/ui/Modal'
+import { useT, useLang } from '@/components/ui/LangProvider'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { timeAgo } from '@/lib/relative-time'
 
@@ -45,6 +46,8 @@ export default function Photos({
   canAdd: boolean
   reason?: string
 }) {
+  const lang = useLang()
+  const tr = useT()
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [open, setOpen] = useState<number | null>(null)
@@ -70,7 +73,7 @@ export default function Photos({
         toast(files.length === 1 ? 'Foto agregada.' : `${files.length} fotos agregadas.`)
         router.refresh()
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'No se pudo subir la foto.')
+        setError(err instanceof Error ? err.message : tr('photos.uploadFailed'))
       }
     })
   }
@@ -83,7 +86,7 @@ export default function Photos({
         toast('Foto quitada.')
         router.refresh()
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'No se pudo quitar la foto.')
+        setError(err instanceof Error ? err.message : tr('photos.removeFailed'))
       }
     })
   }
@@ -108,7 +111,7 @@ export default function Photos({
             }`}
           >
             <Icon name="camera" size={16} />
-            <span className="text-[11.5px] font-bold">{pending ? 'Subiendo…' : 'Agregar'}</span>
+            <span className="text-[11.5px] font-bold">{pending ? tr('common.saving') : tr('photos.add')}</span>
             <input type="file" accept="image/*" multiple className="hidden" onChange={onFiles} disabled={pending} />
           </label>
         )}
@@ -141,7 +144,7 @@ export default function Photos({
       {!canAdd && reason && <p className="mt-2.5 text-xs leading-relaxed text-ink-300">{reason}</p>}
       {photos.length === 0 && canAdd && (
         <p className="mt-2.5 text-xs leading-relaxed text-ink-300">
-          Todavía no hay fotos. Las que subas las ve quien estuvo en el evento.
+          {tr('photos.empty')}
         </p>
       )}
       {error && <p className="mt-2.5 rounded-md bg-danger-bg p-3 text-xs text-danger">{error}</p>}
@@ -151,7 +154,7 @@ export default function Photos({
           open
           onClose={() => setOpen(null)}
           title={shown.by}
-          subtitle={timeAgo(shown.at)}
+          subtitle={timeAgo(shown.at, lang)}
           footer={
             <>
               {photos.length > 1 && (
@@ -193,7 +196,7 @@ export default function Photos({
             <img src={shown.url} alt={`Foto de ${shown.by}`} className="max-h-[60vh] w-full rounded-md object-contain" />
             <span className="flex items-center gap-2.5 text-[12.5px] text-ink-500">
               <UserAvatar user={shown.byUser} size={24} />
-              La subió {shown.by} · {timeAgo(shown.at)}
+              La subió {shown.by} · {timeAgo(shown.at, lang)}
             </span>
           </div>
         </Modal>

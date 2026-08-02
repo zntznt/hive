@@ -9,6 +9,7 @@ import { Icon, MapPinIcon } from '@/components/ui/Icon'
 import { WhenPill } from '@/components/ui/WhenPill'
 import { EventFilters } from './event-filters'
 import { isEventDay } from '@/lib/time'
+import { getT } from '@/lib/current-lang'
 
 // Cross-club event browser: the single "event viewer" page. Reached from Home,
 // Club history, and Plate's "still owed" links via query presets (?club=, ?when=,
@@ -63,6 +64,7 @@ export default async function EventsPage({
   }>
 }) {
   const { supabase, profile } = await requireProfile()
+  const { t, tf } = await getT()
   const sp = await searchParams
   const club = sp.club ?? 'all'
   const cat = sp.cat ?? 'all'
@@ -192,77 +194,77 @@ export default async function EventsPage({
           has to explain that a list item is tappable, the problem is the list.
           The "inicio" link that used to sit here was a third way back on a
           screen that already has a tab bar and the phone's own back gesture. */}
-      <PageHeader title="Eventos" lede="Todo lo que han hecho tus clubes." />
+      <PageHeader title={t('events.title')} lede={t('events.lede')} />
 
       <EventFilters
         groups={[
           {
             key: 'club',
-            label: 'Club',
+            label: t('events.filter.club'),
             none: 'all',
             current: club,
             clearHref: withFilter('club', ''),
-            options: opts('club', [{ value: 'all', label: 'Todos' }, ...clubs.map((c) => ({ value: c.id, label: c.name }))], 'all'),
+            options: opts('club', [{ value: 'all', label: t('events.filter.all') }, ...clubs.map((c) => ({ value: c.id, label: c.name }))], 'all'),
           },
           {
             key: 'cat',
-            label: 'Categoría',
+            label: t('events.filter.cat'),
             none: 'all',
             current: cat,
             clearHref: withFilter('cat', ''),
-            options: opts('cat', [{ value: 'all', label: 'Todas' }, ...categoryNames.map((n) => ({ value: n, label: n }))], 'all'),
+            options: opts('cat', [{ value: 'all', label: t('events.filter.allF') }, ...categoryNames.map((n) => ({ value: n, label: n }))], 'all'),
           },
           {
             key: 'person',
-            label: 'Quién fue',
+            label: t('events.filter.person'),
             none: 'all',
             current: person,
             clearHref: withFilter('person', ''),
             options: opts(
               'person',
               [
-                { value: 'all', label: 'Cualquiera' },
-                ...people.map((p) => ({ value: p.id, label: p.id === profile.id ? 'Tú' : p.name })),
+                { value: 'all', label: t('events.filter.anyone') },
+                ...people.map((p) => ({ value: p.id, label: p.id === profile.id ? t('events.filter.you') : p.name })),
               ],
               'all'
             ),
           },
           {
             key: 'when',
-            label: 'Cuándo',
+            label: t('events.filter.when'),
             none: 'all',
             current: when,
             clearHref: withFilter('when', ''),
             options: opts(
               'when',
               [
-                { value: 'all', label: 'Cualquier fecha' },
-                { value: 'upcoming', label: 'Próximos' },
-                { value: 'past', label: 'Pasados' },
+                { value: 'all', label: t('events.filter.anyDate') },
+                { value: 'upcoming', label: t('events.filter.upcoming') },
+                { value: 'past', label: t('events.filter.past') },
               ],
               'all'
             ),
           },
           {
             key: 'place',
-            label: 'Lugar',
+            label: t('events.filter.place'),
             none: 'all',
             current: place,
             clearHref: withFilter('place', ''),
-            options: opts('place', [{ value: 'all', label: 'Cualquiera' }, ...places.map((p) => ({ value: p, label: p }))], 'all'),
+            options: opts('place', [{ value: 'all', label: t('events.filter.anyone') }, ...places.map((p) => ({ value: p, label: p }))], 'all'),
           },
           {
             key: 'sort',
-            label: 'Ordenar',
+            label: t('events.filter.sort'),
             none: 'newest',
             current: sort,
             clearHref: withFilter('sort', ''),
             options: opts(
               'sort',
               [
-                { value: 'newest', label: 'Más recientes' },
-                { value: 'oldest', label: 'Más antiguos' },
-                { value: 'owed', label: 'Más se debe' },
+                { value: 'newest', label: t('events.filter.newest') },
+                { value: 'oldest', label: t('events.filter.oldest') },
+                { value: 'owed', label: t('events.filter.mostOwed') },
               ],
               'newest'
             ),
@@ -278,7 +280,7 @@ export default async function EventsPage({
         </span>
         {grandTotalOwed > 0 && (
           <span>
-            {person === 'all' ? 'pendiente en total' : person === profile.id ? 'todavía debes' : `${personName} todavía debe`}{' '}
+            {person === 'all' ? t('events.owed.total') : person === profile.id ? t('events.owed.you') : tf('events.owed.person', { name: personName ?? '' })}{' '}
             {/* Red is only money *you* owe. Filtered to somebody else, or not
                 filtered at all, this is a club's outstanding total and not a
                 debt of yours, and colouring it red made every screen carrying
@@ -292,7 +294,7 @@ export default async function EventsPage({
 
       <div className="flex flex-col gap-2.5">
         {shown.length === 0 && (
-          <EmptyState icon="magnifying-glass" title="No hay eventos que coincidan." hint="Afloja algún filtro." />
+          <EmptyState icon="magnifying-glass" title={t('events.empty.title')} hint={t('events.empty.hint')} />
         )}
         {shown.map((e) => {
           const clubInfo = e.club_id ? clubById.get(e.club_id) : undefined
@@ -306,13 +308,13 @@ export default async function EventsPage({
 
           let statusBadge = null
           if (e.status === 'cancelled') {
-            statusBadge = <Badge tone="disabled">cancelado</Badge>
+            statusBadge = <Badge tone="disabled">{t('event.cancelled')}</Badge>
           } else if (myRsvp?.status === 'in' && myRsvp.waitlist_pos != null) {
-            statusBadge = <Badge>en espera</Badge>
+            statusBadge = <Badge>{t('event.waitlisted')}</Badge>
           } else if (myRsvp?.status === 'in' && past) {
-            statusBadge = <Badge tone="active">fuiste</Badge>
+            statusBadge = <Badge tone="active">{t('event.youWent')}</Badge>
           } else if (myRsvp?.status === 'in') {
-            statusBadge = <Badge tone="mine">vas</Badge>
+            statusBadge = <Badge tone="mine">{t('event.youGo')}</Badge>
           }
 
           // Rule 9: the shape comes from what is on it, not from what it is.
@@ -363,7 +365,7 @@ export default async function EventsPage({
                   <div className="mt-0.5 flex items-center gap-1 text-[12.5px] text-ink-500">
                     <MapPinIcon />
                     <span className={`truncate ${tonight ? 'font-bold text-ink-900' : ''}`}>
-                      {(tonight ? (e.area ?? e.location) : e.location) ?? 'sin lugar'} · {attendees.length} fueron
+                      {(tonight ? (e.area ?? e.location) : e.location) ?? t('events.noPlace')} · {tf('events.went', { n: attendees.length })}
                     </span>
                   </div>
                 </div>

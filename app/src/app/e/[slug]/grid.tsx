@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/Toast'
 import { Badge } from '@/components/ui/Badge'
 import { timeAgo } from '@/lib/relative-time'
 import { mexicoInstant, mexicoDay, fmtWeekdayDay, fmtTime } from '@/lib/time'
+import { useT, useLang } from '@/components/ui/LangProvider'
 
 type Props = {
   eventId: string
@@ -64,6 +65,8 @@ export default function Grid({
   waitingOn,
   nudgedAt,
 }: Props) {
+  const lang = useLang()
+  const tr = useT()
   // Who has still never been nudged. The button exists only for these.
   const unreached = waitingOn.filter((m) => !m.nudged)
 
@@ -250,7 +253,7 @@ export default function Grid({
                 mode === m ? 'bg-paper text-ink-900 shadow-card' : 'text-ink-500'
               }`}
             >
-              {m === 'paint' ? 'Marcar la mía' : 'Fijar la hora'}
+              {m === 'paint' ? tr('grid.markMine') : tr('grid.fixTime')}
             </button>
           ))}
         </div>
@@ -258,8 +261,8 @@ export default function Grid({
 
       <p className="mb-1 text-sm text-ink-500">
         {mode === 'pick'
-          ? 'Arrastra sobre el día para elegir el rango exacto.'
-          : 'Mantén y arrastra sobre un día. Cuanto más honey, más gente puede.'}
+          ? tr('grid.dragDay')
+          : tr('grid.holdDrag')}
       </p>
       <p className="mb-2 text-[11.5px] text-ink-300">
         <Icon name="globe" size={10} /> Horario de Ciudad de México (GMT-6)
@@ -275,7 +278,7 @@ export default function Grid({
         <div />
         {days.map((d) => (
           <div key={d} className="pb-1 font-bold">
-            {fmtWeekdayDay(mexicoDay(d))}
+            {fmtWeekdayDay(mexicoDay(d), lang)}
           </div>
         ))}
         {Array.from({ length: rows }).map((_, r) => {
@@ -329,10 +332,10 @@ export default function Grid({
             ? pick
               ? // days[] holds the raw yyyy-mm-dd, which is what this line was
                 // printing back at the organizer about to commit the date
-                `${fmtWeekdayDay(mexicoDay(days[pick.day]))} · ${fmtTime(slotDate(pick.day, pick.a))} a ${fmtTime(
+                `${fmtWeekdayDay(mexicoDay(days[pick.day]), lang)} · ${fmtTime(slotDate(pick.day, pick.a), lang)} a ${fmtTime(
                   new Date(slotDate(pick.day, pick.b).getTime() + slotMinutes * 60_000)
                 )}`
-              : 'Nada elegido todavía.'
+              : tr('grid.nothingPicked')
             : `${marked} ${marked === 1 ? 'hueco marcado' : 'huecos marcados'}${
                 pending ? ' · guardando…' : saved ? ' · guardado' : ''
               }`}
@@ -346,7 +349,7 @@ export default function Grid({
           onClick={() => commitPick(pick.day, pick.a, pick.b)}
           className="mt-2 w-full rounded-md bg-honey-500 py-3 text-sm font-extrabold text-charcoal shadow-lip disabled:opacity-50"
         >
-          Fijar este rango
+          {tr('event.fixRange')}
         </button>
       )}
 
@@ -377,7 +380,7 @@ export default function Grid({
                 onClick={() =>
                   startTransition(async () => {
                     const res = await remindMissingAvailability(eventId, slug)
-                    toast(res.queued > 0 ? `Les recordamos a ${res.queued}` : 'Ya les habíamos recordado')
+                    toast(res.queued > 0 ? `Les recordamos a ${res.queued}` : tr('grid.alreadyReminded'))
                     router.refresh()
                   })
                 }
@@ -399,22 +402,22 @@ export default function Grid({
               <span key={m.id} className="flex items-center gap-1.5 rounded-pill bg-cream-sunk py-0.5 pl-0.5 pr-2.5">
                 <UserAvatar user={m.user} size={22} />
                 <span className="text-[12px] font-semibold text-ink-700">{m.user.display_name}</span>
-                {m.nudged && <Badge tone="success">recordado</Badge>}
+                {m.nudged && <Badge tone="success">{tr('event.remembered')}</Badge>}
               </span>
             ))}
           </div>
 
           <p className="mt-2.5 text-[11.5px] leading-relaxed text-ink-300">
             {unreached.length === 0
-              ? `Ya se les recordó${nudgedAt ? ` ${timeAgo(nudgedAt)}` : ''}. Solo se manda una vez a cada quien, así que no vuelve a salir.`
-              : 'Se manda solo cuando pasa la fecha límite para confirmar. Solo llega una vez a cada quien.'}
+              ? `Ya se les recordó${nudgedAt ? ` ${timeAgo(nudgedAt, lang)}` : ''}. Solo se manda una vez a cada quien, así que no vuelve a salir.`
+              : tr('grid.autoReminder')}
           </p>
         </div>
       )}
 
       {mode === 'pick' && best.length > 0 && (
         <div className="mt-5">
-          <SectionHeader>Mejores huecos</SectionHeader>
+          <SectionHeader>{tr('event.bestSlots')}</SectionHeader>
           <ul className="flex flex-col gap-1.5">
             {best.map((s) => (
               <li
@@ -425,7 +428,7 @@ export default function Grid({
                   {/* both ends through fmtTime: hhmm is the 24 hour label the
                       grid's own axis uses, and next to a 12 hour start it read
                       "7:00 p.m. a 21:00" */}
-                  {fmtWeekdayDay(slotDate(s.day, s.a))} {fmtTime(slotDate(s.day, s.a))}
+                  {fmtWeekdayDay(slotDate(s.day, s.a), lang)} {fmtTime(slotDate(s.day, s.a), lang)}
                   {' a '}
                   {fmtTime(new Date(slotDate(s.day, s.b).getTime() + slotMinutes * 60_000))}
                   <span className="ml-2 text-ink-300">

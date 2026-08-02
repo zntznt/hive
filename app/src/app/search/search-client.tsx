@@ -7,6 +7,7 @@ import { HexAvatar } from '@/components/ui/HexAvatar'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Icon } from '@/components/ui/Icon'
+import { useT } from '@/components/ui/LangProvider'
 
 export type SearchClub = { slug: string; name: string; members: number; upcoming: number }
 export type SearchEvent = { slug: string; title: string; club: string; when: string; place: string | null }
@@ -27,6 +28,7 @@ export default function SearchClient({
   events: SearchEvent[]
   people: SearchPerson[]
 }) {
+  const tr = useT()
   const [q, setQ] = useState('')
   const ref = useRef<HTMLInputElement>(null)
   const router = useRouter()
@@ -144,7 +146,7 @@ export default function SearchClient({
                 avatar={<HexAvatar name={c.name} size={32} />}
                 title={c.name}
                 sub={`${c.members} ${c.members === 1 ? 'miembro' : 'miembros'} · ${c.upcoming} ${
-                  c.upcoming === 1 ? 'próximo' : 'próximos'
+                  c.upcoming === 1 ? tr('search.upcomingCountOne') : tr('search.upcomingCount')
                 }`}
               />
             ))}

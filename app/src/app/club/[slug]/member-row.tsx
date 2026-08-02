@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
+import { useT, useLang } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
 import { updateMemberRole, removeMember, requestMemberRemoval } from '@/app/actions'
 import { timeAgo } from '@/lib/relative-time'
@@ -44,6 +45,8 @@ export function MemberRow({
   recordedEvents?: number
   estimatedEvents?: number
 }) {
+  const lang = useLang()
+  const tr = useT()
   const name = user.display_name
   const [pending, startTransition] = useTransition()
   const [confirmRemove, setConfirmRemove] = useState(false)
@@ -59,10 +62,10 @@ export function MemberRow({
   const estimated = (estimatedEvents ?? 0) > 0
   const mixed = estimated && (recordedEvents ?? 0) > 0
   const countNote = !estimated
-    ? 'Cada una la registró quien organizó, después del evento.'
+    ? tr('club.roster.recorded')
     : mixed
-      ? 'Una parte se cuenta desde los RSVP: eventos que terminaron antes de que se pasara lista.'
-      : 'Se cuenta desde los RSVP. En esos eventos nadie pasó lista, así que es quien dijo que iba.'
+      ? tr('club.roster.fromRsvp2')
+      : tr('club.roster.allRsvp2')
 
   function changeRole(next: Role) {
     startTransition(async () => {
@@ -85,7 +88,7 @@ export function MemberRow({
           <span className="text-[11.5px] text-ink-300">
             {eventsAttended ? (
               <>
-                {timeAgo(lastAttendedAt ?? null)} ·{' '}
+                {timeAgo(lastAttendedAt ?? null, lang)} ·{' '}
                 {/* a real 44px target, with the extra height cancelled by
                     negative margin so it clears the hit floor without
                     changing the line it sits on */}
@@ -103,7 +106,7 @@ export function MemberRow({
                 </button>
               </>
             ) : (
-              'sin asistencias todavía'
+              tr('club.roster.none')
             )}
           </span>
           {explaining && (
@@ -146,7 +149,7 @@ export function MemberRow({
               }
               className="tap text-[12.5px] font-bold text-ink-500 disabled:opacity-50"
             >
-              {requestedRemoval ? 'Solicitud enviada' : 'Solicitar remoción'}
+              {requestedRemoval ? 'Solicitud enviada' : tr('club.roster.remove')}
             </button>
           ) : null}
         </span>

@@ -7,11 +7,13 @@ import { HexAvatar } from '@/components/ui/HexAvatar'
 import { dataUrlToBlob, uploadBanner } from '@/lib/upload'
 import { updateClubAvatar } from '@/app/actions'
 import { Icon } from '@/components/ui/Icon'
+import { useT } from '@/components/ui/LangProvider'
 
 // Reuses the club-manager-writable "banners" storage bucket/policy (folder =
 // club id) for the club picture too, just under a distinct filename prefix -
 // avoids a whole new bucket+policy pair for one more club-scoped image.
 export function AvatarUpload({ clubId, slug, clubName, avatarUrl, size = 40 }: { clubId: string; slug: string; clubName: string; avatarUrl: string | null; size?: number }) {
+  const tr = useT()
   const [pickedSrc, setPickedSrc] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
@@ -42,7 +44,7 @@ export function AvatarUpload({ clubId, slug, clubName, avatarUrl, size = 40 }: {
           area around it is the full 44px, extending down and to the right
           where there is nothing else to hit. */}
       <label
-        title="Cambiar foto del club"
+        title={tr('club.avatar.change')}
         className="tap absolute -bottom-3.5 -right-4 grid h-11 w-11 cursor-pointer place-items-center"
       >
         <span className="grid h-[26px] w-[26px] place-items-center rounded-full bg-paper text-ink-700 shadow-card">
@@ -56,7 +58,7 @@ export function AvatarUpload({ clubId, slug, clubName, avatarUrl, size = 40 }: {
           aspect={0.92}
           shape="hex"
           outWidth={512}
-          title="Encuadra la foto del club"
+          title={tr('club.avatar.crop')}
           onCancel={() => setPickedSrc(null)}
           onApply={apply}
         />

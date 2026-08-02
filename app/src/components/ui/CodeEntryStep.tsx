@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from './Button'
 import { Icon } from './Icon'
+import { useT } from '@/components/ui/LangProvider'
 
 // The app's ONE 6-digit code input.
 //
@@ -75,6 +76,7 @@ export function CodeEntryStep({
   backLabel?: string
   onResend?: () => void
 }) {
+  const tr = useT()
   const c = SKIN[surface]
   const digits = value.slice(0, 6).split('')
   const focusAt = digits.length
@@ -165,7 +167,7 @@ export function CodeEntryStep({
               autoComplete="one-time-code"
               maxLength={6}
               autoFocus
-              aria-label="Código de 6 dígitos"
+              aria-label={tr('ui.code.label')}
               className="absolute inset-0 h-full w-full border-none bg-transparent tracking-[2em] text-transparent caret-transparent outline-none"
             />
           )}
@@ -187,7 +189,7 @@ export function CodeEntryStep({
             <span className={`mt-0.5 ${c.mute}`}>
               <Icon name="clock" size={12} />
             </span>
-            <span className={c.mute}>{left === 0 ? 'Ya venció. Pide uno nuevo.' : `Vence en ${expiry}.`}</span>
+            <span className={c.mute}>{left === 0 ? tr('ui.code.expired') : `Vence en ${expiry}.`}</span>
           </>
         ) : null}
       </div>

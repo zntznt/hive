@@ -1,3 +1,4 @@
+import { t as translate, tf as format, type Lang, type StringKey } from './lang'
 // The one sentence an event row says about people.
 //
 // The club page said "van 0 · quizás 0" and Home said nothing at all. Two
@@ -29,18 +30,21 @@ export function nameList(names: string[], max = 3): string {
   return `${shown.join(', ')} ${conj} ${last}`
 }
 
-export function attendanceLine(going: number, mine: MyRsvp, anyAnswer: boolean): string {
-  if (!anyAnswer) return 'Nadie ha contestado'
-  if (mine === 'in') return going > 1 ? `Vas, y ${going - 1} más` : 'Vas'
+// `lang` defaults to Spanish so a caller that has not been given one still
+// gets the app's own language rather than a key.
+export function attendanceLine(going: number, mine: MyRsvp, anyAnswer: boolean, lang: Lang = 'es'): string {
+  const t = (k: StringKey) => translate(lang, k)
+  const f = (k: StringKey, v: Record<string, string | number>) => format(lang, k, v)
+  if (!anyAnswer) return t('line.nobodyAnswered')
+  if (mine === 'in') return going > 1 ? f('line.youAndMore', { n: going - 1 }) : t('line.youGo')
   // "van 0" is a count where a sentence belongs, and it reads as a mistake
   // next to a row of no faces. Nobody has said yes yet is the actual news.
   if (going === 0) {
-    if (mine === 'maybe') return 'Nadie va todavía, dijiste quizás'
-    if (mine === 'out') return 'Nadie va todavía, tú tampoco'
-    return 'Nadie va todavía'
+    if (mine === 'maybe') return t('line.nobodyYetMaybe')
+    if (mine === 'out') return t('line.nobodyYetYouOut')
+    return t('line.nobodyYet')
   }
-  const van = `van ${going}`
-  if (mine === 'maybe') return `${van}, dijiste quizás`
-  if (mine === 'out') return `${van}, tú no`
-  return `${van}, no has dicho`
+  if (mine === 'maybe') return f('line.goingMaybe', { n: going })
+  if (mine === 'out') return f('line.goingYouOut', { n: going })
+  return f('line.goingUnanswered', { n: going })
 }

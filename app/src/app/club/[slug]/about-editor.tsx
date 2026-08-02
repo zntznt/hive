@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
+import { useT } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
 import { Textarea, Input } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
@@ -24,6 +25,7 @@ export function AboutEditor({
   description: string
   links: LinkRow[]
 }) {
+  const tr = useT()
   const [open, setOpen] = useState(false)
   const [desc, setDesc] = useState(description)
   const [rows, setRows] = useState<LinkRow[]>(links.length ? links : [])
@@ -52,48 +54,48 @@ export function AboutEditor({
     startTransition(async () => {
       await updateClubAbout(clubId, slug, fd)
       setOpen(false)
-      toast(isAdmin ? 'Acerca de actualizado.' : 'Enviado a los admins para aprobar.')
+      toast(isAdmin ? 'Acerca de actualizado.' : tr('club.about.sent'))
       router.refresh()
     })
   }
 
   return (
     <>
-      <button aria-label="Editar acerca de" onClick={() => setOpen(true)} className="tap flex-shrink-0 p-0.5 text-xs text-ink-300">
+      <button aria-label={tr('club.about.edit')} onClick={() => setOpen(true)} className="tap flex-shrink-0 p-0.5 text-xs text-ink-300">
         <Icon name="pen" size={12} />
       </button>
       {open && (
         <Modal
           open
           onClose={() => setOpen(false)}
-          title="Editar acerca de"
-          subtitle={isAdmin ? undefined : 'Un admin va a aprobar tus cambios'}
+          title={tr('club.about.edit')}
+          subtitle={isAdmin ? undefined : tr('club.about.willApprove')}
           footer={
             <>
               <Button variant="ghost" onClick={() => setOpen(false)}>
                 Cancelar
               </Button>
               <Button disabled={pending} onClick={submit}>
-                {isAdmin ? 'Guardar' : 'Enviar para aprobación'}
+                {isAdmin ? 'Guardar' : tr('club.about.submit')}
               </Button>
             </>
           }
         >
           <div className="flex flex-col gap-3.5">
-            <Textarea label="Descripción" value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} />
+            <Textarea label={tr('club.about.desc')} value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} />
             <div>
-              <label className="mb-1.5 block text-[12.5px] font-semibold text-ink-700">Enlaces</label>
+              <label className="mb-1.5 block text-[12.5px] font-semibold text-ink-700">{tr('club.about.links')}</label>
               <div className="flex flex-col gap-2">
                 {rows.map((r, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <Input
                       value={r.label}
-                      placeholder="Etiqueta"
+                      placeholder={tr('club.about.linkLabel')}
                       onChange={(e) => updateLink(i, { label: e.target.value })}
                       className="w-[38%] flex-none"
                     />
                     <Input value={r.url} placeholder="link.com/…" onChange={(e) => updateLink(i, { url: e.target.value })} className="flex-1" />
-                    <button aria-label="Quitar enlace" onClick={() => removeLink(i)} className="tap flex-shrink-0 text-ink-300">
+                    <button aria-label={tr('club.about.removeLink')} onClick={() => removeLink(i)} className="tap flex-shrink-0 text-ink-300">
                       <Icon name="xmark" size={12} />
                     </button>
                   </div>

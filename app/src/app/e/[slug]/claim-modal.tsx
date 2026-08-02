@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
+import { useT } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { claimContribution, promoteNextWaitlisted } from '@/app/actions'
@@ -11,6 +12,7 @@ import { Icon } from '@/components/ui/Icon'
 // Claiming is a commitment: there's no un-claim in the app, so the design's
 // "the club is counting on you" confirmation guard is load-bearing here.
 export function ClaimContributionButton({ id, slug, title, eventTitle }: { id: string; slug: string; title: string; eventTitle: string }) {
+  const tr = useT()
   const [open, setOpen] = useState(false)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
@@ -20,7 +22,7 @@ export function ClaimContributionButton({ id, slug, title, eventTitle }: { id: s
     startTransition(async () => {
       await claimContribution(id, slug)
       setOpen(false)
-      toast('Apuntado. El club cuenta contigo.')
+      toast(tr('event.claimed'))
       router.refresh()
     })
   }
@@ -28,21 +30,21 @@ export function ClaimContributionButton({ id, slug, title, eventTitle }: { id: s
   return (
     <>
       <Button size="sm" onClick={() => setOpen(true)}>
-        Me lo pido
+        {tr('claim.mine')}
       </Button>
       {open && (
         <Modal
           open
           onClose={() => setOpen(false)}
-          title="¿Lo traes tú?"
+          title={tr('event.claim.ask')}
           subtitle={`${title} · ${eventTitle}`}
           footer={
             <>
               <Button variant="ghost" onClick={() => setOpen(false)}>
-                Todavía no
+                {tr('plate.later')}
               </Button>
               <Button disabled={pending} onClick={confirm}>
-                Sí, yo lo traigo
+                {tr('claim.yes')}
               </Button>
             </>
           }
@@ -52,7 +54,7 @@ export function ClaimContributionButton({ id, slug, title, eventTitle }: { id: s
               <Icon name="triangle-exclamation" size={13} />
             </span>
             <p className="text-[13.5px] leading-relaxed text-ink-700">
-              En cuanto te lo apuntes, el club cuenta contigo. Solo quien organiza puede reasignarlo después.
+              {tr('claim.note')}
             </p>
           </div>
         </Modal>
@@ -64,6 +66,7 @@ export function ClaimContributionButton({ id, slug, title, eventTitle }: { id: s
 // The organizer's "open a spot": capacity goes up by one and the first in
 // line gets seated and notified.
 export function PromoteNextButton({ eventId, slug, nextName }: { eventId: string; slug: string; nextName: string }) {
+  const tr = useT()
   const [pending, startTransition] = useTransition()
   const router = useRouter()
   const toast = useToast()
@@ -81,7 +84,7 @@ export function PromoteNextButton({ eventId, slug, nextName }: { eventId: string
         })
       }
     >
-      Abrir un lugar (sube al siguiente)
+      {tr('claim.openSpot')}
     </Button>
   )
 }

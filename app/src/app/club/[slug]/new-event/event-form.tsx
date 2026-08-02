@@ -9,6 +9,7 @@ import { Dropdown } from '@/components/ui/Dropdown'
 import { Segmented } from '@/components/ui/Segmented'
 import { LocationPicker, type Place } from '@/components/ui/LocationPicker'
 import { Icon, type IconName } from '@/components/ui/Icon'
+import { useT } from '@/components/ui/LangProvider'
 
 // Read back in Mexico City, to match how the value was stored. getHours() runs
 // in UTC while this renders on the server and in the visitor's zone after it
@@ -50,18 +51,19 @@ function Fieldset({ legend, hint, children }: { legend: string; hint?: string; c
 // Five is the ceiling. Past that it stops being "bring somebody" and becomes a
 // second invitation list, which belongs to the club and not to one evening.
 function GuestStepper({ defaultValue }: { defaultValue: number }) {
+  const t = useT()
   const [n, setN] = useState(Math.min(5, Math.max(1, defaultValue)))
   return (
     <div className="text-sm text-ink-700">
       <input type="hidden" name="max_guests_per_member" value={String(n)} />
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span>cada miembro puede traer</span>
+        <span>{t('form.guests.each')}</span>
         <span className="inline-flex items-center gap-1">
           <button
             type="button"
             onClick={() => setN((v) => Math.max(1, v - 1))}
             disabled={n <= 1}
-            aria-label="uno menos"
+            aria-label={t('form.guests.less')}
             className="grid h-11 w-11 place-items-center rounded-md border border-line-input bg-paper text-ink-700 disabled:opacity-40"
           >
             <Icon name="minus" size={12} />
@@ -73,22 +75,22 @@ function GuestStepper({ defaultValue }: { defaultValue: number }) {
             type="button"
             onClick={() => setN((v) => Math.min(5, v + 1))}
             disabled={n >= 5}
-            aria-label="uno más"
+            aria-label={t('form.guests.more')}
             className="grid h-11 w-11 place-items-center rounded-md border border-line-input bg-paper text-ink-700 disabled:opacity-40"
           >
             <Icon name="plus" size={12} />
           </button>
         </span>
       </div>
-      <p className="mt-1.5 text-xs text-ink-300">Cada invitado ocupa un lugar del cupo, igual que un miembro.</p>
+      <p className="mt-1.5 text-xs text-ink-300">{t('form.guests.hint')}</p>
     </div>
   )
 }
 
 // One of the three extras: an offer until you take it, a fieldset once you do.
 //
-// These used to live under a card headed "Opcional": a checkbox, a number box
-// labelled "Cupo máx.", another checkbox next to it, and a datetime field.
+// These used to live under a card headed t('common.optional'): a checkbox, a number box
+// labelled t('form.cap.max'), another checkbox next to it, and a datetime field.
 // Four controls in a row, none of them saying what happens if you use it, so
 // the honest read of that card was "settings", and most people set none of
 // them because none of them looked like they were for anything.
@@ -193,6 +195,7 @@ export default function EventForm({
   recentPlaces?: Place[]
   initial?: Initial
 }) {
+  const t = useT()
   const edit = !!initial
   const [error, formAction, pending] = useActionState(
     edit ? updateEvent.bind(null, initial!.id, slug) : createEvent.bind(null, clubId, slug),
@@ -227,7 +230,7 @@ export default function EventForm({
       } else {
         setCategoryId('')
         setNewName('')
-        setCatNote('Se lo pedimos a la administración del club. Mientras, el evento se crea sin categoría.')
+        setCatNote(t('form.askedAdminNoCat'))
       }
     })
 
@@ -249,22 +252,22 @@ export default function EventForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-[18px]">
-      <Input id="title" name="title" label="Título" required placeholder="Noche de juegos" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <Input id="title" name="title" label={t('form.title')} required placeholder={t('form.title.ph')} value={title} onChange={(e) => setTitle(e.target.value)} />
 
       <div>
         <Dropdown
           name={categoryId === NEW ? 'category_new' : 'category_id'}
-          label="Categoría"
+          label={t('form.category')}
           value={categoryId}
           onChange={(v) => {
             setCategoryId(v)
             setCatNote(null)
           }}
-          placeholder="Sin categoría"
+          placeholder={t('form.category.none')}
           options={[
             { value: '', label: 'Sin categoría' },
             ...cats.map((c) => ({ value: c.id, label: `${c.emoji ? `${c.emoji} ` : ''}${c.name}` })),
-            { value: NEW, label: 'Nueva categoría…' },
+            { value: NEW, label: t('form.catNew') },
           ]}
         />
         {categoryId === NEW && (
@@ -272,9 +275,9 @@ export default function EventForm({
             <div className="flex-1">
               <Input
                 id="new_category"
-                label="Nombre de la categoría"
+                label={t('form.category.name')}
                 value={newName}
-                placeholder="Cata de vinos"
+                placeholder={t('form.category.ph')}
                 onChange={(e) => setNewName(e.target.value)}
               />
             </div>
@@ -293,7 +296,7 @@ export default function EventForm({
 
       <LocationPicker
         name="location"
-        label="Lugar (opcional)"
+        label={t('form.place')}
         defaultValue={initial?.location ?? ''}
         defaultPoint={initial?.lat != null && initial?.lng != null ? { lat: initial.lat, lng: initial.lng } : null}
         saved={savedPlaces}
@@ -301,18 +304,18 @@ export default function EventForm({
       />
 
       {showSchedWindow && (
-        <Fieldset legend="Buscar fecha" hint="La ventana de fechas y horas donde los miembros marcan cuándo pueden.">
+        <Fieldset legend={t('form.findDate')} hint={t('form.window')}>
           <div className="flex gap-3">
             <div className="flex-1">
-              <Input id="sched_start_date" name="sched_start_date" type="date" label="Desde" required defaultValue={initial?.sched_start_date ?? undefined} />
+              <Input id="sched_start_date" name="sched_start_date" type="date" label={t('form.from')} required defaultValue={initial?.sched_start_date ?? undefined} />
             </div>
             <div className="flex-1">
-              <Input id="sched_end_date" name="sched_end_date" type="date" label="Hasta" required defaultValue={initial?.sched_end_date ?? undefined} />
+              <Input id="sched_end_date" name="sched_end_date" type="date" label={t('form.to')} required defaultValue={initial?.sched_end_date ?? undefined} />
             </div>
           </div>
           <div className="mt-2.5 flex gap-3">
             <div className="flex-1">
-              <Select id="time_min" name="time_min" label="De" defaultValue={initial?.sched_time_min ?? 1140}>
+              <Select id="time_min" name="time_min" label={t('form.timeFrom')} defaultValue={initial?.sched_time_min ?? 1140}>
                 {HOURS.slice(0, 24).map((h) => (
                   <option key={h.value} value={h.value}>
                     {h.label}
@@ -321,7 +324,7 @@ export default function EventForm({
               </Select>
             </div>
             <div className="flex-1">
-              <Select id="time_max" name="time_max" label="A" defaultValue={initial?.sched_time_max ?? 1380}>
+              <Select id="time_max" name="time_max" label={t('form.timeTo')} defaultValue={initial?.sched_time_max ?? 1380}>
                 {HOURS.slice(1).map((h) => (
                   <option key={h.value} value={h.value}>
                     {h.label}
@@ -330,17 +333,17 @@ export default function EventForm({
               </Select>
             </div>
           </div>
-          {/* was a <select> labelled "Celdas", which is a word about our grid,
+          {/* was a <select> labelled t('form.cells'), which is a word about our grid,
               not about their evening. Two options hidden behind a tap, and
               nothing said what picking one did. */}
           <div className="mt-2.5">
             <Segmented
               name="slot_minutes"
-              label="Qué tan fino se marca"
+              label={t('form.grain')}
               defaultValue={initial?.sched_slot_minutes ?? 60}
               options={[
-                { value: 30, label: 'Cada 30 min', note: 'Más preciso. La cuadrícula sale al doble de larga.' },
-                { value: 60, label: 'Cada hora', note: 'Se marca rápido. Suficiente para la mayoría de los planes.' },
+                { value: 30, label: 'Cada 30 min', note: t('form.grain.fine') },
+                { value: 60, label: 'Cada hora', note: t('form.grain.hint') },
               ]}
             />
           </div>
@@ -348,19 +351,19 @@ export default function EventForm({
       )}
 
       <div className="flex flex-col gap-2">
-        <p className="eyebrow px-0.5">Agrega si lo necesitas</p>
+        <p className="eyebrow px-0.5">{t('form.extras')}</p>
 
         <Extra
           icon="users"
-          title="Un límite de cuántos caben"
-          consequence="Con lista de espera cuando se llene"
+          title={t('form.cap.offer')}
+          consequence={t('form.cap.consequence')}
           added={cap}
           onAdd={() => setCap(true)}
           onRemove={() => setCap(false)}
         >
           <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5 text-sm text-ink-700">
             <label className="flex items-center gap-2" htmlFor="capacity">
-              Cupo
+              {t('form.cap.label')}
               <input
                 id="capacity"
                 name="capacity"
@@ -371,18 +374,18 @@ export default function EventForm({
                 className="w-20 rounded-md border border-line-input bg-paper p-2 text-ink-900"
               />
             </label>
-            <Checkbox name="waitlist_enabled" label="lista de espera" defaultChecked={initial?.waitlist_enabled} />
+            <Checkbox name="waitlist_enabled" label={t('form.waitlist')} defaultChecked={initial?.waitlist_enabled} />
           </div>
           {/* The reason these two controls are one block. Without it the
               waitlist reads as an unrelated setting that happens to be
               nearby. */}
-          <p className="mt-2 text-xs text-ink-300">Sin cupo el evento nunca se llena, y nadie espera.</p>
+          <p className="mt-2 text-xs text-ink-300">{t('form.cap.hint')}</p>
         </Extra>
 
         <Extra
           icon="user-plus"
-          title="Que traigan a alguien"
-          consequence="Una pareja, un par de amigos"
+          title={t('form.guests.offer')}
+          consequence={t('form.guests.consequence')}
           added={guests}
           onAdd={() => setGuests(true)}
           onRemove={() => setGuests(false)}
@@ -397,10 +400,10 @@ export default function EventForm({
 
         <Extra
           icon="clock"
-          title="Una fecha para confirmar"
+          title={t('form.deadline.offer')}
           // What this app actually does at that moment. It does not drop
           // maybes and it does not move the waitlist, so it does not say so.
-          consequence="A quien no haya contestado le llega un recordatorio"
+          consequence={t('form.deadline.consequence')}
           added={deadline}
           onAdd={() => setDeadline(true)}
           onRemove={() => setDeadline(false)}
@@ -409,7 +412,7 @@ export default function EventForm({
             id="confirm_deadline"
             name="confirm_deadline"
             type="datetime-local"
-            label="Confirmar antes de"
+            label={t('form.deadline.label')}
             defaultValue={toDatetimeLocal(initial?.confirm_deadline ?? null)}
           />
           <p className="mt-1.5 text-xs text-ink-300">
@@ -423,17 +426,17 @@ export default function EventForm({
         </p>
       </div>
 
-      <Select id="join_policy" name="join_policy" label="Quién puede entrar con el enlace" defaultValue={initial?.join_policy ?? 'club_members_only'}>
-        <option value="club_members_only">solo miembros del club</option>
-        <option value="anyone_with_link">cualquiera con el enlace</option>
-        <option value="invite_only">solo con invitación</option>
+      <Select id="join_policy" name="join_policy" label={t('form.join')} defaultValue={initial?.join_policy ?? 'club_members_only'}>
+        <option value="club_members_only">{t('form.join.members')}</option>
+        <option value="anyone_with_link">{t('form.join.link')}</option>
+        <option value="invite_only">{t('form.join.invite')}</option>
       </Select>
 
       {error && <p className="rounded-md bg-danger-bg px-3.5 py-3 text-sm text-danger">{error}</p>}
 
       {/* The button says what pressing it does. A new event with a scheduling
           window does not exist on a date yet, it exists as a question to the
-          club, and "Crear evento" was hiding that. */}
+          club, and t('form.create') was hiding that. */}
       <Button block display size="lg" disabled={pending || !title.trim()}>
         {pending
           ? 'Guardando…'
@@ -443,7 +446,7 @@ export default function EventForm({
               ? 'Crear y pedir horarios'
               : 'Crear evento'}
       </Button>
-      {!title.trim() && <p className="-mt-2 text-center text-xs text-ink-300">Dale un título primero.</p>}
+      {!title.trim() && <p className="-mt-2 text-center text-xs text-ink-300">{t('form.title.missing')}</p>}
     </form>
   )
 }

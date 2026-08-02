@@ -1,3 +1,4 @@
+import type { Lang } from './lang'
 // One clock for the whole app.
 //
 // Hive runs in Mexico and every screen says so, but half the date formatting
@@ -13,21 +14,28 @@
 export const MX_TZ = 'America/Mexico_City'
 export const MX_OFFSET = '-06:00'
 
-const fmt = (opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('es-MX', { ...opts, timeZone: MX_TZ })
-
-const DATE_TIME = fmt({ weekday: 'long', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
-const DAY_MONTH = fmt({ day: 'numeric', month: 'short' })
-const TIME = fmt({ hour: 'numeric', minute: '2-digit' })
-const WEEKDAY_DAY = fmt({ weekday: 'short', day: 'numeric' })
-const MONTH_YEAR = fmt({ month: 'short', year: 'numeric' })
+// The zone is Mexico whatever the language: an event at 8pm is at 8pm in
+// Mexico City for a reader in London too, and shifting it to their clock would
+// be telling them the wrong hour to turn up. Only the WORDS follow the
+// language, which is why the locale is a parameter and the timeZone is not.
+//
+// Defaulting to Spanish keeps every existing caller correct: this is the app's
+// own language, not a fallback for a missing translation.
+const fmt = (opts: Intl.DateTimeFormatOptions, lang: Lang = 'es') =>
+  new Intl.DateTimeFormat(lang === 'en' ? 'en-US' : 'es-MX', { ...opts, timeZone: MX_TZ })
 
 const at = (iso: string | Date) => (iso instanceof Date ? iso : new Date(iso))
 
-export const fmtDateTime = (iso: string | Date) => DATE_TIME.format(at(iso))
-export const fmtDayMonth = (iso: string | Date) => DAY_MONTH.format(at(iso))
-export const fmtTime = (iso: string | Date) => TIME.format(at(iso))
-export const fmtWeekdayDay = (iso: string | Date) => WEEKDAY_DAY.format(at(iso))
-export const fmtMonthYear = (iso: string | Date) => MONTH_YEAR.format(at(iso))
+export const fmtDateTime = (iso: string | Date, lang: Lang = 'es') =>
+  fmt({ weekday: 'long', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }, lang).format(at(iso))
+export const fmtDayMonth = (iso: string | Date, lang: Lang = 'es') =>
+  fmt({ day: 'numeric', month: 'short' }, lang).format(at(iso))
+export const fmtTime = (iso: string | Date, lang: Lang = 'es') =>
+  fmt({ hour: 'numeric', minute: '2-digit' }, lang).format(at(iso))
+export const fmtWeekdayDay = (iso: string | Date, lang: Lang = 'es') =>
+  fmt({ weekday: 'short', day: 'numeric' }, lang).format(at(iso))
+export const fmtMonthYear = (iso: string | Date, lang: Lang = 'es') =>
+  fmt({ month: 'short', year: 'numeric' }, lang).format(at(iso))
 
 // Every time this app shows is a span, never a start.
 //

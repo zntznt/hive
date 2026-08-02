@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/Button'
 import { BugAvatar } from '@/components/ui/BugAvatar'
 import { BeeLoader } from '@/components/ui/BeeLoader'
 import NudgeAdmins from './nudge-admins'
+import { getT } from '@/lib/current-lang'
 
 export default async function PendingPage() {
+  const { t: tr } = await getT()
   const supabase = await supabaseServer()
   const { data: claimsData } = await supabase.auth.getClaims()
   const uid = claimsData?.claims?.sub
@@ -48,12 +50,12 @@ export default async function PendingPage() {
           <BugAvatar bug="bug" size={68} color={disabled ? 'var(--cream-sunk)' : 'var(--honey-300)'} />
         </div>
         <h1 className="font-display text-xl font-bold text-ink-900">
-          {disabled ? 'Tu cuenta está desactivada' : 'Estás en la fila'}
+          {disabled ? tr('pending.disabled') : tr('pending.title')}
         </h1>
         <p className="mt-2.5 text-sm text-ink-500">
           {disabled
-            ? 'Por ahora no puedes entrar a tus clubes ni a los eventos. Si crees que es un error, escríbele a quien administra Hive.'
-            : 'Quien administra Hive tiene que aprobar tu cuenta. Te avisamos en cuanto esté lista; ya sabemos que llegaste.'}
+            ? tr('pending.disabled.body')
+            : tr('pending.body')}
         </p>
         {!disabled && (
           <>
@@ -68,7 +70,7 @@ export default async function PendingPage() {
                 : ' Eres quien sigue.'}
             </p>
             <div className="mb-5.5 mt-5">
-              <BeeLoader label="Zumbando en la fila…" />
+              <BeeLoader label={tr('pending.buzz')} />
             </div>
             <div className="mb-5 flex justify-center">
               <NudgeAdmins alreadyNudged={nudgedRecently} />
@@ -76,7 +78,7 @@ export default async function PendingPage() {
           </>
         )}
         <form action={signOut} className={disabled ? 'mt-6' : undefined}>
-          <Button variant="secondary">Cerrar sesión</Button>
+          <Button variant="secondary">{tr('danger.signout')}</Button>
         </form>
       </div>
     </main>
