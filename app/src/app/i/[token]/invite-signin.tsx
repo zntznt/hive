@@ -129,7 +129,7 @@ export default function InviteSignIn({
           style={{ backgroundImage: 'var(--honeycomb)', backgroundColor: 'var(--cream)' }}
         >
           <div className="mb-4">
-            <BrandMark size="sm" variant="hex" showWordmark={false} />
+            <BrandMark size="sm" showWordmark={false} />
           </div>
           <p className="eyebrow text-honey-700">{tr('inv.youWere')}</p>
           <h1 className="mt-1 font-display text-[26px] font-bold leading-tight text-ink-900">{headerTitle}</h1>

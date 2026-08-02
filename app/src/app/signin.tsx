@@ -118,7 +118,7 @@ export default function SignIn() {
           for as long as it existed. The rule is in `@layer base` now. */}
       <div className="rounded-2xl bg-charcoal px-7 py-8 shadow-pop">
         <div className="mb-6">
-          <BrandMark variant="invert" />
+          <BrandMark tone="cream" />
         </div>
 
         {sent ? (

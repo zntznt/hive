@@ -55,10 +55,60 @@ Kept from the previous pass. The club roster row carries an attendance figure th
 have. It survives because it is the one number that answers "is this person actually part of this
 club", which is the question a roster is opened to answer.
 
-## 4 · `EmptyState`'s default icon (carried over)
+## 4 · `EmptyState`'s default icon (carried over, and now actually true)
 
-Kept from the previous pass. The design's default is `jar`; the build's default is per-caller with
-`jar` as the fallback, so a section that has a better glyph uses it.
+The design's default is `jar`, and the entry that used to sit here said the build's default was
+per-caller with `jar` as the fallback. The second half was wrong: the default in the code was
+`bugs`, the placeholder lockup glyph, so any caller that named no icon got the old brand mark in an
+empty state. It is `jar` now, matching the design, and callers still override it where they have a
+better glyph. The one caller that named `bugs` on purpose was the Home screen's empty clubs list;
+it uses `hashtag`, which is what the Clubs tab's own empty state already used for the same fact.
+
+## 5 · `BrandMark`'s smallest size is 32px, not the kit's 28 (branding handoff)
+
+`Branding handoff.md` says never to draw the full mark below 32px: three dots inside a ring need
+about four distinguishable bands across the width, and below 32 they silt into a blob. The kit's
+own `BrandMark.jsx` puts `size="sm"` at 28 and draws the full mark there anyway, and `Home.jsx`
+calls it, so the reference implementation breaks the sheet's own rule.
+
+The build honours the rule twice over. `sm` is 32, so the smallest lockup still gets the full mark,
+and the component picks the cut from the height it is drawn at rather than trusting the call site,
+so no screen can ask for the blob. Below 32 it renders the silhouette automatically. The one place
+that wants a mark smaller than a lockup, the third step of the install card, passes a number and
+gets the silhouette without having to know that is what it is asking for.
+
+## 6 · `variant` became `tone` plus `showWordmark` (branding handoff)
+
+The old prop had four members, `lockup | hex | glyph | invert`, and two of them said the same thing
+in different words: `hex` picked the hexagon-shaped plate and `glyph` dropped the wordmark, so
+"mark alone" was spelled `variant="hex" showWordmark={false}` at every call site. With the plate
+gone there is no hexagon variant to pick, because the mark is the hexagon.
+
+What is left is two independent facts, so they are two props: `tone` is the surface (ink on light,
+cream on dark, `inherit` for a mark sitting in a run of icons that take the row's colour) and
+`showWordmark` is whether this is the lockup or the mark. The kit's `plate` variant is not ported:
+it exists there to preview an app icon, and the app icons are PNGs in `public/assets/pwa/`. Nothing
+in the UI may render the mark on a plate, so nothing should be able to ask for one.
+
+## 7 · `BeeLoader` shows the full mark at 32, not a smaller silhouette (branding handoff)
+
+The handoff says the loader should use the mark, should not rotate, and should settle for a quiet
+opacity pulse. All three are done. The size is an argued choice: rendered side by side, the
+silhouette at 20, 24 and 28 reads as a dark blob next to a line of 12px text, while the full mark
+at 32 reads as Hive *and* is visually lighter, because the cut-out field is most of its area. So
+the loader sits exactly at the threshold rather than below it.
+
+The component keeps its name. It is the kit's own name for this thing, and renaming it would churn
+call sites for nothing. The bee in the name is the wink in `Zumbando…`, not a bee in the mark.
+
+## 8 · `head.html` and the PWA `README.md` are not copied into `public/`
+
+Everything else in `assets/brand/` and `assets/pwa/` went in verbatim. Those two are documentation,
+and `public/` is served verbatim at a URL, so shipping them would put an HTML fragment and a
+markdown file on the open web for no reader. `head.html`'s tags are implemented in
+`app/src/app/layout.tsx` and verified there (below); the README's durable rules, the two cuts, the
+three tile fractions, and "regenerate, never resize", are in `docs/08-brand-and-tone.md`, which is
+where the next person will look.
 
 ---
 
@@ -197,3 +247,35 @@ of the door.
 
 `shoot.mjs` works. Every screen in this pass was checked against its reference
 with it.
+
+---
+
+# The install tags, checked in a running app
+
+`Branding handoff.md` step 5 asks for the one thing the design side could not
+do from a prototype: confirm that `assets/pwa/head.html`'s tags are actually in
+the served document. They are, and every file they name is actually served.
+
+Checked against `sandbox:app`, in the DOM rather than in the source, because
+Next builds this head from `generateMetadata()` and a `viewport` export rather
+than from literal tags, and the question is what arrives, not what was written:
+
+- `link rel=manifest` to `/assets/pwa/manifest.webmanifest`, `display:
+  standalone`, honey `theme_color` and paper `background_color`, and an icon
+  with `purpose: maskable`.
+- `meta theme-color` `#EBA937`.
+- Favicons at 32 and 16, and `shortcut icon` at 48.
+- **`link rel=apple-touch-icon` to the 180 tile.** This is the one that cannot
+  be left out: iOS ignores the manifest's icons entirely and screenshots the
+  page instead, so a missing tag does not fail, it quietly puts a picture of
+  the sign-in screen on somebody's home screen.
+- `apple-mobile-web-app-capable` *and* the standardised
+  `mobile-web-app-capable`, the title, and `status-bar-style: default`.
+- All nine tiles, the manifest and the three brand SVGs return 200 with the
+  right content type.
+
+The mark itself is checked the same way, in the DOM: the rendered `getBBox()`
+fits the viewBox (a path under a stale viewBox clips about a third of the
+hexagon and does not throw), the drawn box is the hexagon's 0.866 ratio, the
+path carries `fill-rule="evenodd"` and has its five subpaths, and no mark on
+the page sits on a filled plate.

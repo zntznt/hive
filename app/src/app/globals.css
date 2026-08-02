@@ -327,12 +327,29 @@ textarea::placeholder {
   color: var(--text-faint);
 }
 
-@keyframes hive-beepath {
-  from {
-    background-position: 0 0;
+/* BeeLoader's pulse. It fades rather than turns: a rotating hexagon reads as a
+ * loading spinner borrowed from another product, and the mark is a container,
+ * not a wheel. It never reaches zero, so the shape stays legible the whole way
+ * through and the pulse reads as breathing rather than blinking. */
+@keyframes hive-pulse {
+  0%,
+  100% {
+    opacity: 1;
   }
-  to {
-    background-position: 22px 0;
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.hive-pulse {
+  animation: hive-pulse 1.4s ease-in-out infinite;
+}
+
+/* Anyone who has asked for less motion gets the mark held still. The label
+ * beside it is what carries the meaning, so nothing is lost. */
+@media (prefers-reduced-motion: reduce) {
+  .hive-pulse {
+    animation: none;
   }
 }
 
