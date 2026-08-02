@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/Button'
-import { useT } from '@/components/ui/LangProvider'
+import { useLang, useT } from '@/components/ui/LangProvider'
 import type { StringKey } from '@/lib/lang'
 import { CodeEntryStep } from '@/components/ui/CodeEntryStep'
 import { Icon } from '@/components/ui/Icon'
@@ -30,6 +30,7 @@ function humanize(raw: string, tr: (k: StringKey) => string) {
 
 export default function SignIn() {
   const tr = useT()
+  const lang = useLang()
   const [contact, setContact] = useState('')
   const [sent, setSent] = useState(false)
   const [sentAt, setSentAt] = useState<number | undefined>(undefined)
@@ -162,7 +163,7 @@ export default function SignIn() {
               }}
               className="tap text-xs text-on-dark-mute underline"
             >
-              ¿No te llegó? Pídelo de nuevo
+              {tr('signin.resendLong')}
             </button>
           </div>
         ) : (
@@ -177,7 +178,7 @@ export default function SignIn() {
             <p className="mt-2 mb-5 text-sm text-on-dark-mute">{tr('signin.welcome')}</p>
             <div className="mb-2 flex flex-col gap-1.5">
               <label className="text-[12.5px] font-semibold text-on-dark-mute" htmlFor="contact">
-                Tu correo o WhatsApp
+                {tr('signin.field')}
               </label>
               <input
                 id="contact"
@@ -218,7 +219,7 @@ export default function SignIn() {
                   <Icon name="whatsapp" size={13} />
                 </span>
               ) : null}
-              <span>{error ?? identityHelper(id)}</span>
+              <span>{error ?? identityHelper(id, lang)}</span>
             </div>
 
             {/* Never inert on a non-empty field: on a field that takes two
@@ -226,14 +227,14 @@ export default function SignIn() {
                 too few digits or the wrong kind of thing, so the submit is
                 accepted and answered in words. */}
             <Button display block size="lg" disabled={sending || id.kind === 'empty'}>
-              {sending ? 'Enviando…' : identityAction(id)}
+              {sending ? tr('signin.sending') : identityAction(id, lang)}
             </Button>
             <p className="mt-4 text-center text-xs text-on-dark-mute">{tr('signin.noPasswords')}</p>
           </form>
         )}
       </div>
       <p className="mt-3.5 text-center text-[11.5px] text-ink-300">
-        ¿Te invitaron por WhatsApp? Usa el enlace que te llegó.
+        {tr('signin.invited')}
       </p>
     </main>
   )
