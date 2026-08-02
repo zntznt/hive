@@ -101,7 +101,7 @@ export default async function Expenses({
       <ul className="mb-3 flex flex-col gap-1.5">
         {expenses.map((e) => (
           <li key={e.id}>
-            <Card pad="sm" className="flex items-center justify-between gap-2 text-sm">
+            <Card pad="row" className="flex items-center justify-between gap-2 text-sm">
               <span className="min-w-0 truncate text-ink-900">
                 {e.note} <span className="text-ink-300">{tf('money.paidBy', { name: nameOf.get(e.payer_user_id) ?? '·' })}</span>
               </span>
@@ -153,7 +153,7 @@ export default async function Expenses({
           <ul className="mb-3 flex flex-col gap-1.5">
             {suggestions.map((t, i) => (
               <li key={i}>
-                <Card pad="sm" className="flex items-center justify-between text-sm">
+                <Card pad="row" className="flex items-center justify-between text-sm">
                   <span className="text-ink-700">
                     {t.from.name} → {t.to.name} · <b>{fmtMoney(t.amount_cents)}</b>
                   </span>
@@ -195,7 +195,7 @@ export default async function Expenses({
           <ul className="flex flex-col gap-1.5">
             {pending.map((s) => (
               <li key={s.id}>
-                <Card pad="sm" className="flex items-center justify-between border-honey-200 bg-honey-50 text-sm">
+                <Card pad="row" className="flex items-center justify-between border-honey-200 bg-honey-50 text-sm">
                   <span className="text-ink-700">
                     {tf('money.saysPaid', { from: nameOf.get(s.from_user) ?? '·', amount: fmtMoney(s.amount_cents), to: nameOf.get(s.to_user) ?? '·' })}
                     {s.method && <span className="text-ink-500"> · {(PAYMENT_METHOD_KEYS[s.method] ? tr(PAYMENT_METHOD_KEYS[s.method]) : s.method)}</span>}

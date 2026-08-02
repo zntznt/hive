@@ -12,6 +12,22 @@ import { FaceStack } from './FaceStack'
 // not fix it. Shape variance does, which is why these deliberately differ in
 // height and in kind rather than being one row component with props.
 
+// The surface the density rows are drawn on, written once.
+//
+// It is deliberately not `Card`. A Card is a 18px radius and 14px or 20px of
+// padding, which is an object in its own right; these are lines in a list, so
+// they take the 13px radius and sit tighter, and a run of them has to read as
+// one block rather than as a stack of little panels. Two of them are also
+// `<Link>`s, which Card cannot be.
+//
+// What was worth removing is the repetition, not the difference: the paper,
+// the hairline and the radius were typed out per component, so a third row
+// would have been a third guess at the same surface. The vertical padding
+// stays per row and is the only thing that varies, because a summary is one
+// line held open by min-h and a quote wraps to two and needs the extra pixel.
+const ROW = 'rounded-md border bg-paper px-3.5'
+const ROW_LINE = `${ROW} border-line-card`
+
 // --- rule 1: one loud block per page ---------------------------------------
 
 // The single thing on the page that answers "what do I do here" in a glance.
@@ -69,7 +85,7 @@ export function QuoteLine({
   return (
     <Link
       href={href}
-      className="flex items-start gap-2.5 rounded-md border border-line-card bg-paper px-3.5 py-2.5"
+      className={`${ROW_LINE} flex items-start gap-2.5 py-2.5`}
     >
       <UserAvatar user={user} size={24} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -145,9 +161,7 @@ export function SummaryRow({
       {(href || arrow) && <Icon name="chevron-right" size={10} className="flex-shrink-0 text-ink-300" />}
     </>
   )
-  const cls = `flex min-h-[46px] items-center gap-[11px] rounded-md border bg-paper px-3.5 py-2 ${
-    hot ? 'border-honey-500' : 'border-line-card'
-  }`
+  const cls = `${ROW} ${hot ? 'border-honey-500' : 'border-line-card'} flex min-h-[46px] items-center gap-[11px] py-2`
   return href ? (
     <Link href={href} className={cls}>
       {inner}

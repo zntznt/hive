@@ -44,6 +44,19 @@
   --sage-300: #9baf7e;
   --sage-600: #5f7346;
 
+  /* ---- Avatar tiles are the one palette that is NOT here ----
+     They live in `src/lib/avatar-colors.ts`, and deliberately, because a
+     member's chosen colour is written to the database as a hex string. A
+     token cannot reach a value already sitting in a row, so declaring them
+     here would give the app a second list that looks authoritative, cannot
+     govern the first, and can only drift from it. One list, in the file that
+     both avatar components read.
+
+     Three of the eight hold the same values as --honey-500, --honey-400 and
+     --sage-300, so retuning those means retuning those three too. That is
+     stated at the top of avatar-colors.ts, which is where somebody changing
+     an avatar colour is already looking. */
+
   /* ---- Semantic (conventional & unthemed) ---- */
   --success: #2f7d4f;
   --success-bg: #e7f3ec;

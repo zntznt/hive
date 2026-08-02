@@ -326,7 +326,7 @@ export default async function ClubPage({
                       ? t('club.about.editLink')
                       : (CHANGE_KIND_KEY[r.kind] ? t(CHANGE_KIND_KEY[r.kind]) : r.kind)
               return (
-                <Card key={r.id} pad="sm" className="border-honey-200 bg-honey-50">
+                <Card key={r.id} pad="row" className="border-honey-200 bg-honey-50">
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <span className="min-w-0 text-sm font-bold text-ink-900">
                       {(CHANGE_KIND_KEY[r.kind] ? t(CHANGE_KIND_KEY[r.kind]) : r.kind)} · {requester?.display_name ?? '·'}
@@ -381,7 +381,7 @@ export default async function ClubPage({
             {(joinReqs ?? []).map((r) => {
               const requester = r.users as unknown as AvatarUser | null
               return (
-                <Card key={r.id} pad="sm" className="flex items-center justify-between border-honey-200 bg-honey-50">
+                <Card key={r.id} pad="row" className="flex items-center justify-between border-honey-200 bg-honey-50">
                   <span className="flex min-w-0 items-center gap-2.5">
                     <UserAvatar user={requester ?? { display_name: '·' }} size={28} />
                     <span className="text-sm text-ink-900">{requester?.display_name ?? '·'}</span>

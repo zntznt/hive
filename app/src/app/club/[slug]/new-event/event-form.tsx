@@ -10,6 +10,7 @@ import { Segmented } from '@/components/ui/Segmented'
 import { LocationPicker, type Place } from '@/components/ui/LocationPicker'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { useT } from '@/components/ui/LangProvider'
+import { MX_TZ } from '@/lib/time'
 
 // Read back in Mexico City, to match how the value was stored. getHours() runs
 // in UTC while this renders on the server and in the visitor's zone after it
@@ -17,7 +18,7 @@ import { useT } from '@/components/ui/LangProvider'
 function toDatetimeLocal(iso: string | null) {
   if (!iso) return ''
   const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Mexico_City',
+    timeZone: MX_TZ,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -29,10 +30,10 @@ function toDatetimeLocal(iso: string | null) {
   return `${g('year')}-${g('month')}-${g('day')}T${g('hour')}:${g('minute')}`
 }
 
-// A panel is a flat 16px. `pad="sm"` was a third value between a row's
-// 12px 14px and a panel's 16px, and that difference is the whole signal that
-// tells you whether you are looking at a line in a list or an object in its
-// own right.
+// A fieldset is a panel, so it takes Card's default and names nothing. A
+// group of fields is an object in its own right and the padding is what says
+// so: `pad="row"` is 6px tighter and reads as a line in a list, which is what
+// every group on this form would collapse into.
 function Fieldset({ legend, hint, children }: { legend: string; hint?: string; children: React.ReactNode }) {
   return (
     <Card>

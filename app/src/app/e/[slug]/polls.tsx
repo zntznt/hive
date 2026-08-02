@@ -52,7 +52,7 @@ export default function Polls({
 
           return (
             <li key={p.id}>
-              <Card pad="sm">
+              <Card pad="row">
                 <div className="mb-2 flex items-baseline justify-between gap-2">
                   <span className="font-bold text-ink-900">{p.question}</span>
                   <span className="flex flex-shrink-0 items-center gap-2 text-xs text-ink-300">

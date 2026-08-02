@@ -187,8 +187,8 @@ export function AttendanceSheet({
             {everyone ? tr('roll.allCame') : tf(cameCount === 1 ? 'attendance.came1' : 'attendance.cameN', { n: cameCount, total })}
           </span>
           <span className="mt-0.5 block truncate text-[12px] text-ink-300">
-            La pasó {takenBy ?? tr('event.organization')} · {timeAgo(takenAt, lang)}
-            {!everyone && ` · faltaron ${absent.map((p) => p.name).join(', ')}`}
+            {tf('roll.takenBy', { name: takenBy ?? tr('event.organization'), ago: timeAgo(takenAt, lang) })}
+            {!everyone && ` · ${tf('roll.absent', { names: absent.map((p) => p.name).join(', ') })}`}
           </span>
         </span>
         <FaceStack people={whoCame.map((p) => p.user)} size={20} max={4} />

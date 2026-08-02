@@ -11,9 +11,7 @@ import { t as translate, tf as format, type Lang } from './lang'
 // card again from a club that has gone quiet, and the footer is where that
 // difference shows: an address, a name, or an honest sentence about nothing.
 
-import { fmtSpan, sameDayInMexico } from './time'
-
-const TZ = 'America/Mexico_City'
+import { MX_TZ, fmtSpan, sameDayInMexico } from './time'
 
 export type CardEvent = {
   id: string
@@ -76,6 +74,6 @@ export function clubFooter(
 // enough to sit on one line next to its action.
 export function quietSince(iso: string | null, lang: Lang = 'es'): string {
   if (!iso) return translate(lang, 'club.noEventsYet')
-  const month = new Intl.DateTimeFormat('es-MX', { month: 'long', timeZone: TZ }).format(new Date(iso))
+  const month = new Intl.DateTimeFormat('es-MX', { month: 'long', timeZone: MX_TZ }).format(new Date(iso))
   return format(lang, 'clubs.quietSince', { month })
 }

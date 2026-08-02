@@ -42,9 +42,12 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-// honey-500 tints the Android status bar and the task-switcher card; paper is
+// honey-500 tints the Android status bar and the task-switcher card; cream is
 // the splash field, matching the app's own background so launching does not
-// flash white and then settle into cream.
+// flash white and then settle into cream. That is the manifest's
+// background_color, #FBF7EF, which is --cream and not --paper (#ffffff): paper
+// is the card surface, and naming it here described the exact flash the value
+// was chosen to avoid.
 export const viewport: Viewport = {
   themeColor: "#EBA937",
   // the app is a column of at most 460px and the tab bar is fixed, so a

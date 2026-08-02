@@ -1,5 +1,6 @@
 import { HexAvatar } from './HexAvatar'
 import { BugAvatar } from './BugAvatar'
+import { AVATAR_FALLBACK } from '@/lib/avatar-colors'
 
 // Renders a member's *own* set avatar: their photo (hex-clipped) if they
 // uploaded one, otherwise their chosen bug + color. Used anywhere a real
@@ -26,5 +27,5 @@ export function UserAvatar({ user, size = 40, shape = 'hex' }: { user: AvatarUse
       />
     )
   }
-  return <BugAvatar bug={user.avatar_bug ?? 'bug'} color={user.avatar_color ?? '#EBA937'} size={size} shape={shape} />
+  return <BugAvatar bug={user.avatar_bug ?? 'bug'} color={user.avatar_color ?? AVATAR_FALLBACK} size={size} shape={shape} />
 }

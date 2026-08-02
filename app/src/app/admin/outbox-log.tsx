@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Icon } from '@/components/ui/Icon'
 import { useT, useTf } from '@/components/ui/LangProvider'
 import type { StringKey } from '@/lib/lang'
+import { MX_TZ } from '@/lib/time'
 
 export type OutboxRow = {
   id: string
@@ -46,7 +47,7 @@ function stamp(iso: string) {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
-    timeZone: 'America/Mexico_City',
+    timeZone: MX_TZ,
   }).format(new Date(iso))
 }
 
@@ -82,7 +83,7 @@ export default function OutboxLog({ rows }: { rows: OutboxRow[] }) {
               </div>
               <div className="mt-0.5 text-ink-500">
                 {r.template} · {stamp(r.created_at)}
-                {r.sent_at ? ` · salió ${stamp(r.sent_at)}` : ''}
+                {r.sent_at ? ` · ${tf('admin.outbox.sentAt', { stamp: stamp(r.sent_at) })}` : ''}
               </div>
               {/* the provider's id, so one message can be traced to one
                   broadcast without going through the database */}

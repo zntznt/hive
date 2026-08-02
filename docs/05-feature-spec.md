@@ -1,10 +1,10 @@
-# 05 — Feature Spec (v0 PRD)
+# 05 · Feature Spec (v0 PRD)
 
 *Companion docs: [problem & users](02-product-brief.md) · [identity flows](03-identity-and-invitations.md) · [schema](04-data-model.md) · [phasing](06-roadmap.md) · [channels](07-notifications.md)*
 
 ## Problem statement
 
-Recurring social events are coordinated across five disconnected tools plus a noisy WhatsApp thread; the overhead lands on one organizer every time, and nothing (attendance, who-brings-what habits, debts) is remembered between events. Existing products each own one slice — none integrates the loop, and none notifies via WhatsApp where these groups actually live.
+Recurring social events are coordinated across five disconnected tools plus a noisy WhatsApp thread; the overhead lands on one organizer every time, and nothing (attendance, who-brings-what habits, debts) is remembered between events. Existing products each own one slice. None integrates the loop, and none notifies via WhatsApp where these groups actually live.
 
 ## Goals
 
@@ -15,24 +15,24 @@ Recurring social events are coordinated across five disconnected tools plus a no
 
 ## Non-goals (v0)
 
-- **Public self-serve signup** — instance is admin-gated; revisit at public phase.
-- **Payment processing** — we compute who-owes-whom; money moves outside (Bizum/cash).
-- **Cross-event running ledger** — schema-ready, product-off ([06](06-roadmap.md)).
-- **Native apps / push** — responsive web; WhatsApp *is* the push channel.
-- **Calendar sync & RRULE recurrence** — "duplicate event" covers recurring clubs for now.
+- **Public self-serve signup**: instance is admin-gated; revisit at public phase.
+- **Payment processing**: we compute who-owes-whom; money moves outside (Bizum/cash).
+- **Cross-event running ledger**: schema-ready, product-off ([06](06-roadmap.md)).
+- **Native apps / push**: responsive web; WhatsApp *is* the push channel.
+- **Calendar sync & RRULE recurrence**: "duplicate event" covers recurring clubs for now.
 
 ## Personas
 
-- **Marta — event organizer** (rotates per event): creates the event, picks the slot, assigns, nudges.
-- **Jorge — club member**: taps links from WhatsApp, RSVPs, volunteers to bring things, fronts money sometimes.
-- **Ana — guest**: Jorge's +1; no account; may become a member later.
+- **Marta · event organizer** (rotates per event): creates the event, picks the slot, assigns, nudges.
+- **Jorge · club member**: taps links from WhatsApp, RSVPs, volunteers to bring things, fronts money sometimes.
+- **Ana · guest**: Jorge's +1; no account; may become a member later.
 - **The app admin** (the founder): verifies accounts, keeps the instance tidy.
 
 ---
 
 ## Feature areas
 
-### F1. Clubs, roster & categories — **Must**
+### F1. Clubs, roster & categories · **Must**
 
 Stories:
 - As a club admin, I want a club home with roster and event history so the club has a memory.
@@ -45,7 +45,7 @@ Acceptance:
 - [ ] Attendance = RSVP `in` on `done` events, computed by view; shows count + last-attended per member, filterable by category.
 - [ ] Members with zero attendance still appear in roster (joined_at shown).
 
-### F2. Accounts, invitations & verification gate — **Must**
+### F2. Accounts, invitations & verification gate · **Must**
 
 Stories:
 - As an organizer, I want to invite people by email and/or WhatsApp number so nobody fills a signup form.
@@ -61,7 +61,7 @@ Acceptance:
 - [ ] Profile shows both channels; adding one requires OTP verification to that channel; either signs you in afterward.
 - [ ] Re-sending an invite never duplicates accounts or memberships.
 
-### F3. Event lifecycle & share link — **Must**
+### F3. Event lifecycle & share link · **Must**
 
 Stories:
 - As an organizer, I want to create an event under a category and share one link in the WhatsApp group so the whole flow starts from chat.
@@ -72,7 +72,7 @@ Acceptance:
 - [ ] Share link `/e/{slug}`: signed-in club members enter directly (auto-join per `club_members_only`); signed-out users go through magic link first; unknown visitors handled per join policy; title-only preview pre-auth.
 - [ ] Organizer can edit details, change category, cancel with optional note (notifies).
 
-### F4. Timeslot finding (crab.fit-style) — **Must**
+### F4. Timeslot finding (crab.fit-style) · **Must**
 
 Stories:
 - As an organizer, I want to propose a date range + daily time window so members paint availability instead of debating in chat.
@@ -85,7 +85,7 @@ Acceptance:
 - [ ] "Best slots" ranks contiguous runs by attendee count (ties → earlier); organizer can override freely.
 - [ ] Finalizing sets `chosen_start/end`, moves state to `scheduled`, triggers notifications; availability stays viewable (read-only).
 
-### F5. RSVP, confirmations, capacity & waitlist — **Must** (optional toggles per event)
+### F5. RSVP, confirmations, capacity & waitlist · **Must** (optional toggles per event)
 
 Stories:
 - As a member, I want one-tap in/out/maybe so signing up is trivial.
@@ -94,11 +94,11 @@ Stories:
 
 Acceptance:
 - [ ] RSVP states in/out/maybe, changeable until event start; roster shows counts + guest counts.
-- [ ] If `confirm_deadline` set: members with `in` get a confirm prompt + reminder; unconfirmed by deadline are flagged to organizer (not auto-dropped — social call).
+- [ ] If `confirm_deadline` set: members with `in` get a confirm prompt + reminder; unconfirmed by deadline are flagged to organizer (not auto-dropped, social call).
 - [ ] If `capacity` set: `in` beyond capacity → waitlist position (atomic RPC, no double-grant); a freed spot promotes the head of the waitlist + notifies.
 - [ ] All three settings default **off**; events without them never show the related UI.
 
-### F6. Contributions (bring-list & tasks) — **Must**
+### F6. Contributions (bring-list & tasks) · **Must**
 
 Stories:
 - As a member, I want to declare "I'll bring chairs" so my offer is visible to all.
@@ -110,7 +110,7 @@ Acceptance:
 - [ ] Given an organizer, when creating/assigning, then any member (or nobody = open need) is allowed; assignment notifies the assignee.
 - [ ] Kinds `bring` (with free-text qty) and `task` (with optional due); single list, filterable; done-state visible to all; everything logged to activity.
 
-### F7. Expenses & per-event balances — **Must**
+### F7. Expenses & per-event balances · **Must**
 
 Stories:
 - As a member, I want to log "I paid 42 € for pizzas, split among attendees" before, during, or after the event so fronting money isn't a memory exercise.
@@ -122,7 +122,7 @@ Acceptance:
 - [ ] Settle-up suggestions (min-cashflow) shown; recording a settlement adjusts balances; recipient confirms receipt.
 - [ ] Any member logs expenses; only payer/creator or organizer edits/deletes; every money mutation activity-logged.
 
-### F8. Polls — **Must** (apply-to-event: **Should**)
+### F8. Polls · **Must** (apply-to-event: **Should**)
 
 Stories:
 - As any member, I want to create a poll (which game? which bar?) so decisions don't require the organizer.
@@ -132,9 +132,9 @@ Stories:
 Acceptance:
 - [ ] Any event member creates polls (single or multi choice); votes changeable until close.
 - [ ] `show_results` = always | after_close; anonymous polls never expose voter→option (enforced in API shape, not just UI).
-- [ ] Applying an option records `applied_option_id` and updates the event field; the poll remains visible with full results — applied ≠ erased.
+- [ ] Applying an option records `applied_option_id` and updates the event field; the poll remains visible with full results: applied ≠ erased.
 
-### F9. Guests (+1s) — **Should**
+### F9. Guests (+1s) · **Should**
 
 Stories:
 - As a member (when `allow_guests` is on), I want to add "Ana, guest of mine" so headcount and costs include her.
@@ -145,14 +145,14 @@ Acceptance:
 - [ ] Guests can be included in expense splits; their unpaid shares roll up to the host's balance.
 - [ ] Promotion creates a pre-filled invitation; on claim, shares re-point to the new user; guest row keeps history (`promoted_to_user_id`).
 
-### F10. Notifications — **Must** (matrix in [07](07-notifications.md))
+### F10. Notifications · **Must** (matrix in [07](07-notifications.md))
 
 Acceptance:
 - [ ] Outbox decouples triggers from delivery; per-user channel preference (default: WhatsApp if number known, else email; email as backup always allowed).
 - [ ] v0 triggers: invited, event scheduled, confirm reminder, contribution assigned, waitlist promoted, new poll, settle-up posted, pending-account (admin).
 - [ ] Failures fall back to the other channel and are visible in the admin panel.
 
-### F11. App admin panel — **Must**
+### F11. App admin panel · **Must**
 
 Acceptance:
 - [ ] Pending queue with one-toggle verify; deactivate/reactivate any account; see a user's channels, clubs, events.
@@ -185,9 +185,9 @@ Lagging (quarter): **3 consecutive events** run fully in-app per active club; ex
 
 ## Open questions
 
-- **WhatsApp sender number** — dedicated SIM/eSIM vs. virtual number for the Meta Business account? Owner: founder. *Blocks WhatsApp go-live, not development (sandbox covers dev).*
-- **Confirm-deadline semantics** — flag-only (current spec) vs. auto-demote to `maybe`? Decide after first real event. Owner: founder + club. Non-blocking.
-- **Category subscriptions (P2)** — per-member default-invite lists per category; design when clubs >1 category in practice. Non-blocking.
+- **WhatsApp sender number**: dedicated SIM/eSIM vs. virtual number for the Meta Business account? Owner: founder. *Blocks WhatsApp go-live, not development (sandbox covers dev).*
+- **Confirm-deadline semantics**: flag-only (current spec) vs. auto-demote to `maybe`? Decide after first real event. Owner: founder + club. Non-blocking.
+- **Category subscriptions (P2)**: per-member default-invite lists per category; design when clubs >1 category in practice. Non-blocking.
 
 ## Phasing
 

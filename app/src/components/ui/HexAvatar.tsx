@@ -1,10 +1,6 @@
-const PALETTE = ['#EBA937', '#F2B84A', '#9BAF7E', '#E08A5B', '#C9944A', '#7FA3A0']
-const HEX_CLIP = 'polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)'
+import { avatarColorFor } from '@/lib/avatar-colors'
 
-function paletteFor(name: string) {
-  const sum = [...name].reduce((a, c) => a + c.charCodeAt(0), 0)
-  return PALETTE[sum % PALETTE.length]
-}
+const HEX_CLIP = 'polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)'
 
 // Initials-in-a-hexagon (or clipped photo). Used for clubs and as the
 // photo-avatar fallback for members.
@@ -22,7 +18,7 @@ export function HexAvatar({
   className?: string
 }) {
   const initial = (name || '?').trim().charAt(0).toUpperCase()
-  const bg = color || paletteFor(name)
+  const bg = color || avatarColorFor(name)
   const style = { width: size * 0.92, height: size, clipPath: HEX_CLIP }
   if (src) {
     return (

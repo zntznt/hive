@@ -1,4 +1,6 @@
 import { Icon, type IconName } from './Icon'
+import { AVATAR_COLORS, AVATAR_FALLBACK } from '@/lib/avatar-colors'
+import { tf, type Lang } from '@/lib/lang'
 
 const HEX_CLIP = 'polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)'
 
@@ -9,11 +11,10 @@ const HEX_CLIP = 'polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)'
 // on Android than on iPhone.
 export const BUG_OPTIONS = ['bug', 'spider', 'mosquito', 'locust', 'worm'] as const
 export type BugId = (typeof BUG_OPTIONS)[number]
-export const BUG_COLORS = ['#EBA937', '#F2B84A', '#FFD27A', '#9BAF7E', '#7FA3A0', '#E08A5B', '#C98BB0', '#8AA0D9']
 
 export function BugAvatar({
   bug = 'bug',
-  color = '#EBA937',
+  color = AVATAR_FALLBACK,
   size = 44,
   shape = 'hex',
   className = '',
@@ -47,8 +48,8 @@ export function BugAvatar({
 // the avatars stop telling people apart, which is the entire job.
 export function randomBugAvatar() {
   const bug = BUG_OPTIONS[Math.floor(Math.random() * BUG_OPTIONS.length)]
-  const color = BUG_COLORS[Math.floor(Math.random() * BUG_COLORS.length)]
-  return { bug: bug as string, color }
+  const color = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)]
+  return { bug: bug as string, color: color as string }
 }
 
 // Pick a bug and a colour. The preview updates live.
@@ -59,13 +60,19 @@ export function randomBugAvatar() {
 // five bugs and eight colours each get a row that reflows on its own terms
 // (auto-fit + minmax), the preview can be bigger, and neither row depends on a
 // column count that matches the other.
+//
+// `lang` is a prop rather than `useT()` because BugAvatar sits in this file
+// too and server components render it. Pulling a client hook in here would
+// drag the whole context into their import graph for two aria-labels.
 export function BugAvatarPicker({
   bug,
   color,
+  lang = 'es',
   onChange,
 }: {
   bug: string
   color: string
+  lang?: Lang
   onChange: (v: { bug: string; color: string }) => void
 }) {
   return (
@@ -82,7 +89,7 @@ export function BugAvatarPicker({
               key={b}
               type="button"
               onClick={() => onChange({ bug: b, color })}
-              aria-label={`bug ${b}`}
+              aria-label={tf(lang, 'avatar.bug', { name: b })}
               aria-pressed={on}
               className={`grid aspect-square min-w-0 place-items-center rounded-md p-1.5 ${
                 on ? 'border-[1.5px] border-honey-500 bg-honey-100' : 'border-[1.5px] border-transparent bg-cream-sunk'
@@ -98,14 +105,14 @@ export function BugAvatarPicker({
           which is 18px under the floor, and colours sit in a tight row so they
           are the easiest thing on the page to mis-tap. */}
       <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(36px, 1fr))' }}>
-        {BUG_COLORS.map((c) => {
+        {AVATAR_COLORS.map((c) => {
           const on = c === color
           return (
             <button
               key={c}
               type="button"
               onClick={() => onChange({ bug, color: c })}
-              aria-label={`colour ${c}`}
+              aria-label={tf(lang, 'avatar.color', { name: c })}
               aria-pressed={on}
               className="grid h-11 w-full min-w-0 place-items-center rounded-full p-0"
             >

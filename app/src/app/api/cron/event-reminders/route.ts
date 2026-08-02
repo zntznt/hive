@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
 import { queueNotification, dispatchQueuedNotifications, reconcileHandoffs } from '@/lib/notify'
 import { siteUrl } from '@/lib/site-url'
+import { MX_TZ } from '@/lib/time'
 import { nudgeNonResponders, nudgeMissingAvailability } from '@/lib/nudge'
 
 // Day-of reminder. Every other notification is queued by something a member
@@ -30,7 +31,7 @@ function timeInMexico(iso: string) {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
-    timeZone: 'America/Mexico_City',
+    timeZone: MX_TZ,
   }).format(new Date(iso))
 }
 

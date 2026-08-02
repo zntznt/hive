@@ -5,7 +5,8 @@
 // client component (it reads the language from context) and server components
 // call this directly. A client module cannot be called from the server, and
 // the search page did exactly that.
-import { t as translate, type Lang } from '@/lib/lang'
+import { t as translate, type Lang } from './lang'
+import { MX_TZ, daysBetween } from './time'
 
 // The one way this app says WHEN.
 //
@@ -21,27 +22,20 @@ import { t as translate, type Lang } from '@/lib/lang'
 // is not a fact about the past. Returning nothing at all was wrong: /events is
 // the history browser, so every past row lost its date entirely.
 
-const TZ = 'America/Mexico_City'
-
 // Whole days between today and the event, both read in Mexico City. Comparing
 // instants would call an event at 1am tomorrow "today" for anyone awake now.
-const DAY = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' })
-
-function daysUntil(iso: string, now: Date) {
-  // Intl.format throws RangeError on an invalid Date rather than returning
-  // something NaN-ish, so the parse is checked here instead of downstream.
-  const at = new Date(iso)
-  if (Number.isNaN(at.getTime())) return NaN
-  const day = (d: Date) => Date.parse(DAY.format(d))
-  return Math.round((day(at) - day(now)) / 86_400_000)
-}
+//
+// The counting is `daysBetween` in time.ts, which measures the past, so this
+// is that with the sign flipped. There is one calendar-day subtraction in this
+// app and this is not a second copy of it.
+const daysUntil = (iso: string, now: Date) => -daysBetween(iso, now)
 
 // The date formats follow the language too. A pill reading "Nov 3" beside an
 // English row is right; "3 nov" beside it is a leak.
 const locale = (lang: Lang) => (lang === 'en' ? 'en-US' : 'es-MX')
 
 function shortDate(d: Date, lang: Lang) {
-  return new Intl.DateTimeFormat(locale(lang), { day: 'numeric', month: 'short', timeZone: TZ }).format(d)
+  return new Intl.DateTimeFormat(locale(lang), { day: 'numeric', month: 'short', timeZone: MX_TZ }).format(d)
 }
 
 export type When = { label: string; tone: 'now' | 'mine' | 'info' | 'neutral'; soon: boolean; past?: boolean } | null
@@ -60,11 +54,11 @@ export function whenPill(iso: string | null, status?: string | null, now: Date =
   if (n === 1) return { label: t('when.tomorrow'), tone: 'mine', soon: true }
   const d = new Date(iso)
   if (n < 7) {
-    const long = new Intl.DateTimeFormat(locale(lang), { weekday: 'long', timeZone: TZ }).format(d)
+    const long = new Intl.DateTimeFormat(locale(lang), { weekday: 'long', timeZone: MX_TZ }).format(d)
     return { label: long.replace(/^./, (c) => c.toUpperCase()), tone: 'info', soon: false }
   }
   return {
-    label: new Intl.DateTimeFormat(locale(lang), { day: 'numeric', month: 'short', timeZone: TZ }).format(d),
+    label: new Intl.DateTimeFormat(locale(lang), { day: 'numeric', month: 'short', timeZone: MX_TZ }).format(d),
     tone: 'neutral',
     soon: false,
   }

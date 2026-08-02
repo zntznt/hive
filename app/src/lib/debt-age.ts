@@ -1,4 +1,5 @@
 import { t, tf, type Lang } from './lang'
+import { daysBetween } from './time'
 
 // How old a debt is, and what that buys it.
 //
@@ -14,19 +15,30 @@ import { t, tf, type Lang } from './lang'
 
 export const STALE_DAYS = 30
 
+// Calendar days in Mexico City, from `daysBetween`, and not a division here.
+// A debt held since 23:00 last night is a day old on this page the moment the
+// date rolls over, which is when the person holding it starts feeling it.
 export function ageInDays(heldAt: string | null, now: Date = new Date()): number | null {
   if (!heldAt) return null
-  const days = Math.floor((now.getTime() - Date.parse(heldAt)) / 86_400_000)
+  const days = daysBetween(heldAt, now)
+  if (Number.isNaN(days)) return null
   return days < 0 ? 0 : days
 }
 
 // "hace 55 días", "hoy", "ayer". The phrase carries the weight, so it is
 // written out rather than left as a date the reader has to subtract from.
+//
+// The words are `time.*`, the same table `timeAgo` reads. They used to be a
+// second `age.*` set, byte-identical in both languages, so a translator could
+// change "hoy" on the roster and not on /plate. This function still exists
+// because it says "hace 55 días" where `timeAgo` would round that to "hace 1
+// mes", and on this page the count is the whole point. The vocabulary is
+// shared; only the rounding differs.
 export function ageLabel(days: number | null, lang: Lang = 'es'): string | null {
   if (days == null) return null
-  if (days === 0) return t(lang, 'age.today')
-  if (days === 1) return t(lang, 'age.yesterday')
-  return tf(lang, 'age.daysAgo', { n: days })
+  if (days === 0) return t(lang, 'time.today')
+  if (days === 1) return t(lang, 'time.yesterday')
+  return tf(lang, 'time.daysAgo', { n: days })
 }
 
 // Oldest first, and a debt with no date sorts last: it cannot be chased on an

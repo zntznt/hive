@@ -1,14 +1,19 @@
 import { t as translate, tf as format, type Lang, type StringKey } from './lang'
-import { fmtMonthYear } from './time'
+import { daysBetween, fmtMonthYear } from './time'
 
 // "hace 4 días", the way the wireframes label a roster and a pending invite.
 // A calendar date is precise and useless for "is this stale", which is the
 // only question these two screens ask.
-export function timeAgo(iso: string | null, lang: Lang = 'es'): string {
+//
+// The counting is `daysBetween`, in time.ts, and not a division here: this
+// used to floor elapsed milliseconds in whatever zone the runtime happened to
+// be in, which disagreed with every other date on the page. See the note there.
+export function timeAgo(iso: string | null, lang: Lang = 'es', now: Date = new Date()): string {
   const t = (k: StringKey) => translate(lang, k)
   const f = (k: StringKey, v: Record<string, string | number>) => format(lang, k, v)
   if (!iso) return t('time.never')
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
+  const days = daysBetween(iso, now)
+  if (Number.isNaN(days)) return t('time.never')
 
   if (days < 0) return t('time.soon')
   if (days === 0) return t('time.today')
