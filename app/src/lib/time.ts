@@ -64,6 +64,29 @@ export function sameDayInMexico(iso: string | Date, now: Date = new Date()): boo
   return DAY_KEY.format(at(iso)) === DAY_KEY.format(now)
 }
 
+// How many whole calendar days ago something was, both ends read in Mexico
+// City. Positive is the past, negative is the future, and `daysUntil` in
+// when.ts is this with the sign flipped.
+//
+// Elapsed milliseconds divided by 86,400,000 is the wrong answer and shipped
+// three times. It counts 24 hour periods, not days, and it counts them in the
+// runtime's zone, which is UTC on Vercel: a comment posted at 23:00 last night
+// read "hoy" until 23:00 today, on the roster, the thread, the photo sheet and
+// the invite list, while whenPill and sameDayInMexico called the same instant
+// yesterday.
+//
+// `now` is a parameter for the same reason it is one on every other function
+// here: a helper that reads the clock itself cannot be tested and cannot be
+// rendered twice with the same answer.
+export function daysBetween(iso: string | Date, now: Date = new Date()): number {
+  const then = at(iso)
+  // Intl.format throws RangeError on an invalid Date rather than returning
+  // something NaN-ish, so the parse is checked here instead of downstream.
+  if (Number.isNaN(then.getTime()) || Number.isNaN(now.getTime())) return NaN
+  const key = (d: Date) => Date.parse(DAY_KEY.format(d))
+  return Math.round((key(now) - key(then)) / 86_400_000)
+}
+
 // The event-shaped version, so callers do not each decide what a missing date
 // or a cancelled event means.
 export function isEventDay(

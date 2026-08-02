@@ -1,16 +1,16 @@
-# 03 — Identity, Invitations & the Verification Gate
+# 03 · Identity, Invitations & the Verification Gate
 
 ## Account model
 
-A **user** is a real (but lightweight) account: display name + at least one **channel** — email and/or WhatsApp number. Both channels are linkable later from the profile. There are no passwords anywhere.
+A **user** is a real (but lightweight) account: display name + at least one **channel**: email and/or WhatsApp number. Both channels are linkable later from the profile. There are no passwords anywhere.
 
 - Auth provider: **Supabase Auth**. One auth user may carry both `email` and `phone`.
 - Sign-in methods:
-  - **Email magic link** (`signInWithOtp`) — ships in v0.
-  - **WhatsApp OTP** (Supabase phone auth, `channel: 'whatsapp'` via Twilio Verify) — for phone-only users; activates with the Twilio setup (see [07-notifications.md](07-notifications.md)).
+  - **Email magic link** (`signInWithOtp`), ships in v0.
+  - **WhatsApp OTP** (Supabase phone auth, `channel: 'whatsapp'` via Twilio Verify), for phone-only users; activates with the Twilio setup (see [07-notifications.md](07-notifications.md)).
 - A `public.users` profile row mirrors each auth user (created by trigger on signup).
 
-**Why no device secrets / PINs:** recovery must be *web-based* — from any device, a user requests a fresh magic link / OTP to a channel they own. Losing a phone never means losing an identity.
+**Why no device secrets / PINs:** recovery must be *web-based*: from any device, a user requests a fresh magic link / OTP to a channel they own. Losing a phone never means losing an identity.
 
 ## Account lifecycle & the verification gate
 
@@ -21,7 +21,7 @@ A **user** is a real (but lightweight) account: display name + at least one **ch
 ```
 
 - **The app admin has final say on who holds an account.** Every account carries a verification toggle; only `active` users get past the waiting screen.
-- New accounts start **`pending`** — *except* accounts arriving through an invitation created by the app admin, which auto-activate (`invitations.auto_activate = true`, set only when the inviter is app admin).
+- New accounts start **`pending`**, *except* accounts arriving through an invitation created by the app admin, which auto-activate (`invitations.auto_activate = true`, set only when the inviter is app admin).
 - Enforcement is at the **database layer**: every RLS policy includes `is_active_user()`. A pending user is invisible to all club/event data regardless of which URL or API call they try.
 - The app admin receives a notification (WhatsApp/email) when a new account lands in the pending queue. Verifying is one toggle in the admin panel.
 - `disabled` users keep their historical rows (attendance, expenses) but cannot sign in or be selected for new activity.
@@ -34,7 +34,7 @@ A **user** is a real (but lightweight) account: display name + at least one **ch
 | **Club admin** | club | edit club, categories, roster roles; organizer powers on all club events |
 | **Event organizer** | event | edit event, pick slot, invite, assign contributions to others, apply poll winners, manage guests/waitlist |
 | **Member** | club/event | RSVP, paint availability, self-volunteer contributions, claim unassigned ones, create polls, vote, add expenses, bring guests (if allowed) |
-| **Guest** | event | none — guests are data, not actors; they act through their host |
+| **Guest** | event | none. Guests are data, not actors; they act through their host |
 
 ## Flows
 
@@ -56,7 +56,7 @@ The share link never leaks data before authorization: title-only preview, no ros
 Enter email **or** WhatsApp number → receive link/OTP → session. No passwords, nothing device-bound.
 
 ### 4. Channel linking (profile)
-Signed-in user adds the other channel (verify via OTP to that channel — Supabase `updateUser`). After linking, either channel signs them in and both receive notifications per their preferences.
+Signed-in user adds the other channel (verify via OTP to that channel, Supabase `updateUser`). After linking, either channel signs them in and both receive notifications per their preferences.
 
 ### 5. Guest promotion
 Host or organizer taps "promote to account" on a guest → pre-filled invitation (name from guest row) → on claim, `guests.promoted_to_user_id` is set and an RPC re-points the guest's `expense_shares` to the new user. History stays intact; future events invite them directly. The new account follows the normal lifecycle (`pending` unless app admin invited).
@@ -68,7 +68,7 @@ Host or organizer taps "promote to account" on a guest → pre-filled invitation
 | Share link leaks outside the group | Title-only preview; join gated by policy + verification gate; worst case a stranger lands in the pending queue and is never verified |
 | Magic link forwarded/intercepted | Links are single-use and short-lived (Supabase default); sessions are per-device; sensitive actions (verification, money edits) are role-gated and logged |
 | Impersonation at invite time (wrong number/email) | Inviter sees what they typed; activity log records claims; admin can disable and re-invite |
-| Pending-user data exposure | RLS `is_active_user()` on every policy — enforced in Postgres, not in page guards |
+| Pending-user data exposure | RLS `is_active_user()` on every policy, enforced in Postgres, not in page guards |
 | Member mischief (fake expenses, reassigning items) | Permission rules in RPCs + append-only `activity_log` ("audit over locks"); organizers can correct |
 | PII (names, emails, phones of friends) | Minimal collection, EU-hosted Supabase region, no analytics on personal data in v0; export/delete tooling before any public phase |
 

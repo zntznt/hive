@@ -31,7 +31,7 @@ cd app && npm run dev   # .env.local already points at hive-us
 2. Your account auto-activates (app admin via `app_config`) and auto-joins the demo club through a seeded invitation. That's the invite flow working.
 3. Browse: `/club/los-jueves` (categories, history, attendance), then «Twilight Imperium» (paint the grid, best slots, Fijar as organizer), «Noche de Catan» (RSVP states), and `/admin` (Ana waits in the pending queue to verify).
 
-Demo people (Marta organizer/demo-admin, Jorge, Lucía, Pablo, Ana-pending) are seed rows without passwords — they can't sign in; act as yourself.
+Demo people (Marta organizer/demo-admin, Jorge, Lucía, Pablo, Ana-pending) are seed rows without passwords, so they can't sign in; act as yourself.
 
 ## Built so far (beyond the original slice)
 
@@ -39,10 +39,10 @@ Club/event/category **creation flows** · **invite manager** with copyable perso
 
 ## Deliberately not built yet (designed, see docs/06)
 
-Polls **UI** · notification **delivery** (events queue into the outbox; email adapter then WhatsApp adapter are next — invite links are copy-paste-into-WhatsApp by design until then) · add-guest / promote-guest UI · timezone-exact grid rendering (renders viewer-local) · Realtime heatmap updates.
+Polls **UI** · notification **delivery** (events queue into the outbox; email adapter then WhatsApp adapter are next; invite links are copy-paste-into-WhatsApp by design until then) · add-guest / promote-guest UI · timezone-exact grid rendering (renders viewer-local) · Realtime heatmap updates.
 
 ## Production notes
 
-- Rotate nothing: the committed `.env.local` holds only the publishable (anon) key — safe client-side by design; RLS is the boundary.
+- Rotate nothing: the committed `.env.local` holds only the publishable (anon) key, safe client-side by design; RLS is the boundary.
 - Auth email templates, SMTP (Resend), and redirect URLs need real values before inviting the club.
-- The repo inside `app/` is a fresh git repo from create-next-app; `docs/` and `wireframes/` live outside it — move them in (or `git init` at this root) when you want everything versioned together.
+- The repo inside `app/` is a fresh git repo from create-next-app; `docs/` and `wireframes/` live outside it. Move them in (or `git init` at this root) when you want everything versioned together.

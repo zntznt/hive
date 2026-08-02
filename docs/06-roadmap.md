@@ -1,9 +1,9 @@
-# 06 — Roadmap & Requirements Cross-Check
+# 06 · Roadmap & Requirements Cross-Check
 
 ## Phases
 
-### v0 — "Our club runs one real event on it" (build now)
-F1 clubs/roster/categories · F2 invitations + verification gate + admin panel (F11) · F3 lifecycle + share link · F4 availability grid · F5 RSVP with optional confirm/capacity/waitlist · F6 contributions · F7 expenses + balances · F8 polls (without apply-to-event) · F10 notifications (email live day one; WhatsApp as soon as Meta approval lands — Twilio sandbox during dev).
+### v0 · "Our club runs one real event on it" (build now)
+F1 clubs/roster/categories · F2 invitations + verification gate + admin panel (F11) · F3 lifecycle + share link · F4 availability grid · F5 RSVP with optional confirm/capacity/waitlist · F6 contributions · F7 expenses + balances · F8 polls (without apply-to-event) · F10 notifications (email live day one; WhatsApp as soon as Meta approval lands, Twilio sandbox during dev).
 
 Suggested build order (each step demoable):
 1. Auth + users + verification gate + admin panel (the spine everything hangs on)
@@ -13,10 +13,10 @@ Suggested build order (each step demoable):
 5. Contributions → polls → expenses/balances
 6. Notification outbox + email adapter → WhatsApp adapter
 
-### v0.5 — fast follows (after the pilot event)
-Guests + promotion flow (F9) · apply-poll-winner-to-event · settlement confirmations + min-cashflow suggestions polish · confirm-deadline semantics decision · duplicate-event ("same as last time") button — the recurring-club workhorse.
+### v0.5 · fast follows (after the pilot event)
+Guests + promotion flow (F9) · apply-poll-winner-to-event · settlement confirmations + min-cashflow suggestions polish · confirm-deadline semantics decision · duplicate-event ("same as last time") button, the recurring-club workhorse.
 
-### v1 — club muscle
+### v1 · club muscle
 Cross-event **running club ledger** (toggle; schema already supports) · series templates · **category subscriptions** (default invites/notifications per category) · i18n ES/EN · PWA install.
 
 ### Later / public phase

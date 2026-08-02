@@ -10,6 +10,8 @@
 // promising one week while the action picks another is the kind of drift that
 // only shows up after the whole club has already been told.
 
+import { MX_TZ, mexicoDay } from './time'
+
 export type Window = { start: string; end: string } | null
 
 // `extraWeeks` is what the modal's week picker adds: the organizer looking at
@@ -34,10 +36,15 @@ export function duplicateWindow(
 // "12 de agosto". The modal says the week in words rather than showing a date
 // field, because a field invites editing a thing the members are about to
 // decide for themselves: this only says which week to look in.
+//
+// `mexicoDay` rather than a `T12:00:00Z` of its own. This was the second place
+// that turned a bare YYYY-MM-DD into an instant, and it picked UTC noon where
+// time.ts picks Mexico noon. Both land on the same calendar day today, which
+// is exactly why the copy would have gone unnoticed if the offset ever moved.
 export function weekLabel(isoDate: string): string {
   return new Intl.DateTimeFormat('es-MX', {
     day: 'numeric',
     month: 'long',
-    timeZone: 'America/Mexico_City',
-  }).format(new Date(`${isoDate}T12:00:00Z`))
+    timeZone: MX_TZ,
+  }).format(mexicoDay(isoDate))
 }

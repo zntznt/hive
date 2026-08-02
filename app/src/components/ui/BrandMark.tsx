@@ -12,8 +12,13 @@
 // mark has to survive a home screen it does not control, and those are the
 // PNGs in public/assets/pwa/, not this component.
 
-// Copied verbatim from public/assets/brand/hive-mark.svg and
-// hive-mark-small.svg. These four values are one fact and move together: the
+// Copied verbatim from assets/brand/hive-mark.svg and hive-mark-small.svg.
+// Those live outside public/ because nothing loads them over HTTP: this
+// component inlines the path, since it needs currentColor and it needs to pick
+// between the two cuts. They are vector source for whoever redraws the mark,
+// the same call Design gaps.md made for head.html and the PWA readme.
+//
+// These four values are one fact and move together: the
 // path is cropped to the viewBox and the ratio is the viewBox's own, so a new
 // path under a stale viewBox clips about a third of the hexagon and does not
 // throw. Regenerate the install tiles from the kit's pwa-icons.html, where

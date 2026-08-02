@@ -111,7 +111,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
           <ul className="space-y-2">
             {(invitations ?? []).map((inv) => (
               <li key={inv.id}>
-                <Card pad="sm" className="flex items-center justify-between gap-2">
+                <Card pad="row" className="flex items-center justify-between gap-2">
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5 text-sm text-ink-700">
                     <span className="flex min-w-0 items-center gap-2">
                       <span className="truncate">{inv.email ?? inv.phone}</span>

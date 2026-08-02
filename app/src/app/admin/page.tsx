@@ -192,7 +192,7 @@ export default async function AdminPage() {
           >
             <div className="flex flex-col gap-2">
               {restPending.map((u) => (
-                <Card key={u.id} pad="sm" className="flex items-center justify-between border-honey-200 bg-honey-50">
+                <Card key={u.id} pad="row" className="flex items-center justify-between border-honey-200 bg-honey-50">
                   <span className="min-w-0 text-sm text-ink-900">
                     {u.display_name}
                     <span className="ml-2 text-ink-500">{u.email ?? u.phone_whatsapp}</span>
@@ -203,7 +203,7 @@ export default async function AdminPage() {
                 </Card>
               ))}
               {restUsers.map((u) => (
-                <Card key={u.id} pad="sm" className="flex items-center justify-between text-sm">
+                <Card key={u.id} pad="row" className="flex items-center justify-between text-sm">
                   <span className="flex flex-wrap items-center gap-1.5 text-ink-900">
                     {u.display_name}
                     <span className="text-ink-300">{u.email ?? u.phone_whatsapp}</span>

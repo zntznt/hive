@@ -1,11 +1,11 @@
-# 04 — Data Model
+# 04 · Data Model
 
 *Source of truth for the Supabase migrations in `app/supabase/migrations/`. Postgres 15+, Supabase conventions (`auth.users` is the identity root).*
 
 ## Design rules
 
-1. **Everything derived is a view** — attendance and balances are never hand-maintained tables.
-2. **The verification gate lives in RLS** — `is_active_user()` appears in every policy.
+1. **Everything derived is a view.** Attendance and balances are never hand-maintained tables.
+2. **The verification gate lives in RLS.** `is_active_user()` appears in every policy.
 3. **Permission-sensitive writes go through RPCs** (`security definer` functions), so rules like "members self-assign only" are enforced server-side once.
 4. **Ledger-ready, not ledger-on:** expenses hang off events (required) which hang off clubs; the future running ledger is an aggregation change, not a migration.
 5. Money is `integer` cents + ISO currency; times are `timestamptz`; availability is UTC slot indexes.
@@ -147,7 +147,7 @@ contributions (
   event_id uuid not null references events on delete cascade,
   kind contribution_kind not null default 'bring',
   title text not null,
-  qty text,                            -- "2 bags", "6 packs" — text beats numeric here
+  qty text,                            -- "2 bags", "6 packs", text beats numeric here
   created_by uuid not null references users(id),
   assigned_to uuid references users(id),   -- null = open need, claimable
   due timestamptz,
@@ -246,7 +246,7 @@ event_balances(event_id, user_id, paid_cents, owed_cents, net_cents)
   net  = paid - owed + settlements_in - settlements_out (confirmed only)
 ```
 
-Settle-up suggestions (min-cashflow) are computed in the app from `event_balances` — pure function, no storage.
+Settle-up suggestions (min-cashflow) are computed in the app from `event_balances`: pure function, no storage.
 
 ## Access control
 
@@ -258,7 +258,7 @@ is_club_member(club_id) / is_club_admin(club_id)
 is_event_member(event_id) / is_event_organizer(event_id)  -- club admins count as organizers
 ```
 
-- **Every** RLS policy starts with `is_active_user()` — the verification gate is in Postgres, not page guards.
+- **Every** RLS policy starts with `is_active_user()`. The verification gate is in Postgres, not page guards.
 - Reads: club data visible to club members; event data to event members (and club members for club events).
 - Simple writes via RLS (own availability, own RSVP, own votes).
 - Rule-bearing writes via RPCs: `claim_invitation(token)`, `join_via_share_link(slug)`, `create_contribution`, `claim_contribution`, `assign_contribution`, `add_expense_with_shares`, `promote_guest`, `apply_poll_option`, `pick_slot`, `admin_set_user_status` (app admin only), `rsvp_with_capacity` (handles capacity/waitlist atomically).

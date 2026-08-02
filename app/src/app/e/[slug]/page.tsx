@@ -384,9 +384,10 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     : event.status === 'scheduling'
       ? {
           icon: 'pen',
-          text: `${organizerName} abrió la votación${
-            event.created_at ? ` ${timeAgo(event.created_at, lang)}` : ''
-          } · cierra cuando elija horario`,
+          text: tf('event.pollOpenedBy', {
+            name: organizerName,
+            ago: event.created_at ? ` ${timeAgo(event.created_at, lang)}` : '',
+          }),
         }
       : null
 
@@ -807,7 +808,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       <ul className="flex flex-col gap-2">
         {contributions.map((c) => (
           <li key={c.id}>
-            <Card pad="sm" className="flex items-center justify-between text-sm">
+            <Card pad="row" className="flex items-center justify-between text-sm">
               <span className={c.done ? 'text-ink-300 line-through' : 'text-ink-900'}>
                 {c.title}
                 {c.qty ? ` · ${c.qty}` : ''}
