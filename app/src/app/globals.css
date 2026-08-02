@@ -84,7 +84,15 @@
      that matters: a popover always outranks the chrome it is anchored in, and
      the nav sits above page content but below anything modal. z-index cannot
      escape a clip, so a popover inside an overflow:hidden card has to be
-     positioned in viewport space rather than given a bigger number. */
+     positioned in viewport space rather than given a bigger number.
+
+     This scale only governs what opts into it. A third-party stylesheet picks
+     its own numbers on the assumption that it owns the page: Leaflet's panes
+     sit at 400 and its controls at 1000, both above everything here, and a map
+     scrolled to the bottom of a form drew over the tab bar. The answer is to
+     give that widget its own stacking context (`isolation: isolate`, see
+     PinMap) rather than to raise the scale, which only works until the next
+     library with an opinion. */
   --z-chrome: 30;
   --z-nav: 50;
   --z-scrim: 79;

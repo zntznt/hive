@@ -163,5 +163,19 @@ export function PinMap({
 
   // The height is fixed here rather than by a class so the container has a box
   // before Leaflet ever looks at it. A map that measures zero fetches no tiles.
-  return <div ref={hostRef} style={{ height }} className="w-full bg-cream-sunk" />
+  // `isolation: isolate` is load-bearing, not tidiness.
+  //
+  // Leaflet positions its own furniture with z-index and picks numbers on the
+  // assumption that a map owns the page: the panes sit at 400, the zoom
+  // buttons and the attribution at 1000. This app's whole scale tops out at
+  // 140, and the tab bar is 50. With no stacking context here those numbers
+  // compete in the root one, 400 beats 50, and scrolling a map to the bottom
+  // of a form drew tiles, the pin and "Leaflet | © OpenStreetMap" straight
+  // over the fixed tab bar.
+  //
+  // Isolating scopes every one of Leaflet's numbers to the inside of this box,
+  // where they still order its own layers correctly and can no longer reach
+  // anything else. Raising the tab bar instead would have worked until the
+  // next library with an opinion about z-index.
+  return <div ref={hostRef} style={{ height, isolation: 'isolate' }} className="w-full bg-cream-sunk" />
 }
