@@ -12,7 +12,7 @@ import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { Icon, MapPinIcon } from '@/components/ui/Icon'
 import { BannerUpload } from './banner-upload'
 import { AvatarUpload } from './avatar-upload'
-import { AboutEditor } from './about-editor'
+import { ClubProfileEditor } from './club-profile-editor'
 import { AddCategoryButton, EditCategoryButton } from './category-editor'
 import { CalendarSubscribe } from './calendar-subscribe'
 import { ClubHeader } from './club-header'
@@ -235,7 +235,14 @@ export default async function ClubPage({
         }
         edit={
           isManager ? (
-            <AboutEditor clubId={club.id} slug={slug} isAdmin={isAdmin} description={club.description ?? ''} links={links} />
+            <ClubProfileEditor
+              clubId={club.id}
+              slug={slug}
+              isAdmin={isAdmin}
+              name={club.name}
+              description={club.description ?? ''}
+              links={links}
+            />
           ) : undefined
         }
       />

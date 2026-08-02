@@ -405,6 +405,9 @@ export const ES = {
   'account.wa.removeHint': 'Dejas de recibir avisos por WhatsApp y ya no podrás entrar con tu número. Seguirás entrando con tu correo.',
   'account.wa.updated': 'WhatsApp actualizado',
   'account.wa.removed': 'WhatsApp quitado',
+  'err.club.nameMissing': 'El club necesita un nombre.',
+  'club.profile.edit': 'Editar el club',
+  'club.profile.saved': 'Club actualizado.',
   'plate.payAction': 'Pagar',
   'plate.markDone': 'Hecho',
   'inv.headerN': 'Invitaciones · {n}',
@@ -716,7 +719,7 @@ export const ES = {
   // What an admin approved or turned down, spliced into the notification the
   // member gets. Resolved in the MEMBER's language, not the admin's: they are
   // different people and this sentence is being read by one of them.
-  'cr.about': 'la descripción del club',
+  'cr.about': 'los datos del club',
   'cr.category_add': 'una nueva categoría',
   'cr.category_edit': 'editar una categoría',
   'cr.category_delete': 'eliminar una categoría',
@@ -1614,6 +1617,9 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'account.wa.removeHint': 'You stop getting notices on WhatsApp and can no longer sign in with your number. You will still get in with your email.',
   'account.wa.updated': 'WhatsApp updated',
   'account.wa.removed': 'WhatsApp removed',
+  'err.club.nameMissing': 'The club needs a name.',
+  'club.profile.edit': 'Edit the club',
+  'club.profile.saved': 'Club updated.',
   'plate.payAction': 'Pay',
   'plate.markDone': 'Done',
   'inv.headerN': 'Invitations · {n}',
@@ -1910,7 +1916,7 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'err.push.blocked': 'This browser no longer accepts alerts. Turn them back on.',
   'push.test.body': 'Done, this is how alerts will look on this device.',
 
-  'cr.about': "the club's description",
+  'cr.about': "the club's details",
   'cr.category_add': 'a new category',
   'cr.category_edit': 'editing a category',
   'cr.category_delete': 'deleting a category',
