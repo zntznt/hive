@@ -13,6 +13,7 @@ import { type AvatarUser } from '@/components/ui/Avatar'
 import { TemplateRow, TemplateSyncBar } from './template-row'
 import OutboxLog, { type OutboxRow } from './outbox-log'
 import { AppBar } from '@/components/ui/AppBar'
+import { getT } from '@/lib/current-lang'
 
 // The account states, in Spanish. The badge printed the database enum, so an
 // admin read "active" and "disabled" on a screen where everything else is
@@ -39,6 +40,7 @@ const STATUS_LABEL: Record<string, string> = {
 // go hot when something is actually wrong, so closed cannot hide a problem.
 
 export default async function AdminPage() {
+  const { t: tr, tf , lang } = await getT()
   const { supabase, profile } = await requireProfile()
 
   // Club managers used to land here for their approvals. Those moved to the
@@ -126,7 +128,7 @@ export default async function AdminPage() {
 
   return (
     <>
-      <AppBar title="Admin" backHref="/" />
+      <AppBar title={tr('admin.title')} backHref="/" />
       <main className="mx-auto w-full max-w-col px-4 pb-6">
         {loudUser ? (
           <div className="mb-[26px]">
@@ -134,8 +136,8 @@ export default async function AdminPage() {
               title={`${loudUser.display_name} espera verificación`}
               body={
                 <>
-                  Se registró {timeAgo(loudUser.created_at ?? '')} como {loudUser.email ?? loudUser.phone_whatsapp}.{' '}
-                  {(loudClubs ?? []).length === 0 ? 'Todavía no está en ningún club.' : 'Ya está en un club.'}
+                  Se registró {timeAgo(loudUser.created_at ?? '', lang)} como {loudUser.email ?? loudUser.phone_whatsapp}.{' '}
+                  {(loudClubs ?? []).length === 0 ? tr('admin.noClubYet') : tr('admin.alreadyClub')}
                 </>
               }
               faces={[loudUser as unknown as AvatarUser]}
@@ -160,19 +162,19 @@ export default async function AdminPage() {
           </div>
         ) : (
           <div className="mb-[26px]">
-            <FoldedEmpties>Nadie espera a que le verifiquen la cuenta.</FoldedEmpties>
+            <FoldedEmpties>{tr('admin.none')}</FoldedEmpties>
           </div>
         )}
 
         {restPending.length > 0 && (
           <p className="mb-[18px] px-0.5 text-[12.5px] text-ink-300">
-            · {restPending.length} {restPending.length === 1 ? 'más espera' : 'más esperan'}, más viejo primero
+            {restPending.length === 1 ? tr('admin.morePendingOne') : tf('admin.morePending', { n: restPending.length })}
           </p>
         )}
 
         <div className="flex flex-col gap-2">
           <CollapsibleSection
-            label="Usuarios"
+            label={tr('admin.users')}
             icon="users"
             summary={
               <span className="flex items-center gap-2">
@@ -192,7 +194,7 @@ export default async function AdminPage() {
                     <span className="ml-2 text-ink-500">{u.email ?? u.phone_whatsapp}</span>
                   </span>
                   <form action={setUserStatus.bind(null, u.id, 'active')}>
-                    <Button size="sm">Verificar</Button>
+                    <Button size="sm">{tr('admin.verify')}</Button>
                   </form>
                 </Card>
               ))}
@@ -210,11 +212,11 @@ export default async function AdminPage() {
                     <span className="flex flex-shrink-0 items-center gap-2.5">
                       {u.status === 'active' ? (
                         <form action={setUserStatus.bind(null, u.id, 'disabled')}>
-                          <button className="tap text-xs font-bold text-danger">desactivar</button>
+                          <button className="tap text-xs font-bold text-danger">{tr('admin.disable')}</button>
                         </form>
                       ) : (
                         <form action={setUserStatus.bind(null, u.id, 'active')}>
-                          <button className="tap text-xs font-bold text-honey-700">reactivar</button>
+                          <button className="tap text-xs font-bold text-honey-700">{tr('admin.reactivate')}</button>
                         </form>
                       )}
                       <form action={toggleAppAdmin.bind(null, u.id, !u.is_app_admin)}>
@@ -232,7 +234,7 @@ export default async function AdminPage() {
           {/* Hot on failures, because a closed row that says "0 fallos" and a
               closed row hiding twelve of them look identical. */}
           <CollapsibleSection
-            label="Envíos"
+            label={tr('admin.delivery')}
             icon="paper-plane"
             tone={counts.failed > 0 ? 'hot' : undefined}
             summary={
@@ -253,7 +255,7 @@ export default async function AdminPage() {
           </CollapsibleSection>
 
           <CollapsibleSection
-            label="Plantillas"
+            label={tr('admin.templates')}
             icon="envelope"
             tone={rejected > 0 ? 'hot' : undefined}
             summary={

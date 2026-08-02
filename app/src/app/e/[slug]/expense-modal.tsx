@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
+import { useT } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
@@ -27,6 +28,7 @@ export function AddExpenseButton({
   guests: Guest[]
   nameOf: Map<string, string>
 }) {
+  const tr = useT()
   const [open, setOpen] = useState(false)
   const [note, setNote] = useState('')
   const [amount, setAmount] = useState('')
@@ -56,12 +58,12 @@ export function AddExpenseButton({
       try {
         await addExpense(eventId, slug, fd)
         setOpen(false)
-        toast('Gasto guardado. Se actualizó el reparto.')
+        toast(tr('money.expense.saved'))
         setNote('')
         setAmount('')
         router.refresh()
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'No se pudo guardar el gasto.')
+        setError(e instanceof Error ? e.message : tr('money.expense.failed'))
       }
     })
   }
@@ -71,21 +73,21 @@ export function AddExpenseButton({
   return (
     <>
       <button onClick={() => setOpen(true)} className="tap text-[12.5px] font-bold text-honey-700">
-        <Icon name="plus" size={10} /> Añadir
+        <Icon name="plus" size={10} /> {tr('common.add')}
       </button>
       {open && (
         <Modal
           open
           onClose={() => setOpen(false)}
-          title="Añadir un gasto"
-          subtitle="Lo pagaste tú"
+          title={tr('money.expense.add')}
+          subtitle={tr('money.expense.youPaid')}
           footer={
             <>
               <Button variant="ghost" onClick={() => setOpen(false)}>
-                Cancelar
+                {tr('common.cancel')}
               </Button>
               <Button disabled={pending || !note.trim() || !amount.trim()} onClick={submit}>
-                Guardar gasto
+                {tr('money.saveExpense')}
               </Button>
             </>
           }
@@ -93,7 +95,7 @@ export function AddExpenseButton({
           <div className="flex flex-col gap-3.5">
             <div className="flex gap-2.5">
               <div className="flex-1">
-                <Input label="Qué fue" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Pizzas" autoFocus />
+                <Input label={tr('money.expense.what')} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Pizzas" autoFocus />
               </div>
               <div className="w-[110px]">
                 <span className="mb-1.5 block text-[12.5px] font-semibold text-ink-700">Cantidad</span>
@@ -110,7 +112,7 @@ export function AddExpenseButton({
               </div>
             </div>
             <div>
-              <p className="mb-1.5 text-[12.5px] font-semibold text-ink-700">Entre quiénes se reparte</p>
+              <p className="mb-1.5 text-[12.5px] font-semibold text-ink-700">{tr('money.expense.split')}</p>
               <div className="grid grid-cols-2 gap-1.5 text-sm text-ink-700">
                 {members.map((m) => (
                   <label key={m.user_id} className="flex items-center gap-2">
@@ -131,7 +133,7 @@ export function AddExpenseButton({
                 ))}
               </div>
               <p className="mt-2.5 text-xs text-ink-300">
-                Lo pagaste tú, así que te deben el total; se reparte en partes iguales entre quienes marques.
+                {tr('money.youPaidNote')}
               </p>
             </div>
             {error && <p className="text-xs text-danger">{error}</p>}
@@ -143,6 +145,7 @@ export function AddExpenseButton({
 }
 
 export function EditExpenseButton({ id, slug, note, amount }: { id: string; slug: string; note: string; amount: string }) {
+  const tr = useT()
   const [open, setOpen] = useState(false)
   const [n, setN] = useState(note)
   const [a, setA] = useState(amount)
@@ -175,33 +178,33 @@ export function EditExpenseButton({ id, slug, note, amount }: { id: string; slug
         toast('Gasto actualizado.')
         router.refresh()
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'No se pudo guardar.')
+        setError(e instanceof Error ? e.message : tr('common.notSaved'))
       }
     })
   }
 
   return (
     <>
-      <button onClick={() => setOpen(true)} aria-label="Editar gasto" className="tap border-none bg-transparent p-0 text-xs text-ink-300">
+      <button onClick={() => setOpen(true)} aria-label={tr('money.expense.edit')} className="tap border-none bg-transparent p-0 text-xs text-ink-300">
         <Icon name="pen" size={12} />
       </button>
       {open && (
         <Modal
           open
           onClose={() => setOpen(false)}
-          title="Editar gasto"
-          subtitle="Los pagos ya confirmados se quedan como están"
+          title={tr('money.expense.edit')}
+          subtitle={tr('money.expense.settled')}
           footer={
             <>
               <Button variant="danger" disabled={pending} onClick={remove}>
-                Borrar
+                {tr('thread.delete')}
               </Button>
               <span className="flex-1" />
               <Button variant="ghost" onClick={() => setOpen(false)}>
-                Cancelar
+                {tr('common.cancel')}
               </Button>
               <Button disabled={pending || !n.trim() || !a.trim()} onClick={submit}>
-                Guardar
+                {tr('common.save')}
               </Button>
             </>
           }
@@ -209,14 +212,14 @@ export function EditExpenseButton({ id, slug, note, amount }: { id: string; slug
           <div className="flex flex-col gap-3.5">
             <div className="flex gap-2.5">
               <div className="flex-1">
-                <Input label="Qué fue" value={n} onChange={(e) => setN(e.target.value)} autoFocus />
+                <Input label={tr('money.expense.what')} value={n} onChange={(e) => setN(e.target.value)} autoFocus />
               </div>
               <div className="w-28">
-                <Input label="Cantidad" value={a} onChange={(e) => setA(e.target.value)} inputMode="decimal" />
+                <Input label={tr('money.amount')} value={a} onChange={(e) => setA(e.target.value)} inputMode="decimal" />
               </div>
             </div>
             <p className="rounded-md bg-cream-sunk px-3.5 py-3 text-[13px] leading-relaxed text-ink-700">
-              Si la cantidad sube, se abre una deuda nueva por la diferencia. Si baja, se debe la diferencia de vuelta a quien ya pagó.
+              {tr('money.upDownNote')}
             </p>
             {error && <p className="text-xs text-danger">{error}</p>}
           </div>

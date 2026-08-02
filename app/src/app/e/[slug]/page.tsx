@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { Icon, type IconName } from '@/components/ui/Icon'
-import { rsvpLabel } from '@/components/ui/RsvpToggle'
+import { rsvpKey } from '@/components/ui/RsvpToggle'
 import { AddContributionButton, EditContributionButton } from './contribution-modal'
 import { CoOrganizerButton } from './co-organizer-modal'
 import { RequestJoinClubButton } from './request-join-button'
@@ -21,6 +21,7 @@ import Thread from './thread'
 import Photos, { type EventPhoto } from './photos'
 import { timeAgo } from '@/lib/relative-time'
 import { Button } from '@/components/ui/Button'
+import { useT } from '@/components/ui/LangProvider'
 import { Loud, OpenSection, SummaryRow, FoldedEmpties, DoorGroup } from '@/components/ui/Density'
 import { WhereCard } from './where-card'
 import { DetailsSheet } from '@/components/ui/DetailsSheet'
@@ -33,6 +34,7 @@ import { WhoIsComing, type Attendee } from './who-is-coming'
 import { PendingAnswers } from './pending-answers'
 import { duplicateWindow } from '@/lib/duplicate-window'
 import { fmtDayMonth, fmtSpan, fmtWindow, isEventDay } from '@/lib/time'
+import { getT } from '@/lib/current-lang'
 
 function dayRange(start: string, end: string) {
   // walk in UTC so toISOString() reads the same date we stepped - parsing as
@@ -50,6 +52,7 @@ function dayRange(start: string, end: string) {
 
 export default async function EventPage({ params }: { params: Promise<{ slug: string }> }) {
   const { supabase, profile } = await requireProfile()
+  const { t, tf , lang } = await getT()
   const { slug } = await params
 
   // join_event is idempotent and enforces join_policy server-side. Always try it
@@ -71,7 +74,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     return (
       <main className="mx-auto max-w-col px-4 pb-6 pt-5">
         <p className="text-ink-700">
-          Este evento es solo con invitación (o el enlace no es correcto). Pide a quien organiza que te invite.
+          {t('event.inviteOnlyNote')}
         </p>
       </main>
     )
@@ -337,7 +340,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     event.capacity != null
       ? {
           icon: 'users' as const,
-          text: `cupo para ${event.capacity}${event.waitlist_enabled ? ', con lista de espera' : ', sin lista de espera'}`,
+          text: `${tf('event.capacityFor', { n: event.capacity })}${event.waitlist_enabled ? t('event.withWaitlist') : t('event.noWaitlist')}`,
         }
       : null,
     {
@@ -350,7 +353,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           text: `${contributions.length} ${contributions.length === 1 ? 'cosa' : 'cosas'} que traer, ${contributions
             .slice(0, 3)
             .map((c) => c.title)
-            .join(', ')}${contributions.length > 3 ? ` y ${contributions.length - 3} más` : ''}`,
+            .join(', ')}${contributions.length > 3 ? tf('event.andMore', { n: contributions.length - 3 }) : ''}`,
         }
       : null,
   ].filter((x): x is { icon: IconName; text: string } => !!x)
@@ -377,12 +380,12 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   // and before that it is "who opened the poll and when does it close".
   const organizerName = nameOf.get(event.organizer_user_id) ?? 'Quien organiza'
   const receipt: { icon: IconName; text: string } | null = event.scheduled_at
-    ? { icon: 'lock', text: `${organizerName} fijó la hora ${timeAgo(event.scheduled_at)} · se avisó a todos` }
+    ? { icon: 'lock', text: `${organizerName} fijó la hora ${timeAgo(event.scheduled_at, lang)} · se avisó a todos` }
     : event.status === 'scheduling'
       ? {
           icon: 'pen',
           text: `${organizerName} abrió la votación${
-            event.created_at ? ` ${timeAgo(event.created_at)}` : ''
+            event.created_at ? ` ${timeAgo(event.created_at, lang)}` : ''
           } · cierra cuando elija horario`,
         }
       : null
@@ -392,7 +395,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const photosBlock =
     (event.status === 'done' || photos.length > 0) ? (
       <section className="mb-[26px]">
-        <OpenSection label="Fotos" meta={photos.length ? String(photos.length) : undefined}>
+        <OpenSection label={t('event.photos')} meta={photos.length ? String(photos.length) : undefined}>
           <Photos
             eventId={event.id}
             slug={event.slug}
@@ -400,8 +403,8 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             canAdd={!!myMembership && !event.deleted_at}
             reason={
               event.deleted_at
-                ? 'Este evento está en la papelera, no se pueden agregar fotos.'
-                : 'Solo quien fue al evento puede agregar fotos.'
+                ? t('event.binNoPhotos2')
+                : t('event.onlyWent2')
             }
           />
         </OpenSection>
@@ -414,9 +417,9 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       : event.status === 'scheduled' && event.chosen_start
         ? // day plus the whole span, not just the start: the end is what tells
           // you if you are free after and when to get a ride home
-          `${fmtDayMonth(event.chosen_start)} · ${fmtSpan(event.chosen_start, event.chosen_end)}`
+          `${fmtDayMonth(event.chosen_start, lang)} · ${fmtSpan(event.chosen_start, event.chosen_end)}`
         : event.status === 'done'
-          ? `celebrado${event.chosen_start ? ' · ' + fmtDayMonth(event.chosen_start) : ''}`
+          ? `celebrado${event.chosen_start ? ' · ' + fmtDayMonth(event.chosen_start, lang) : ''}`
           : event.status === 'cancelled'
             ? 'cancelado'
             : 'borrador'
@@ -445,7 +448,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         <div className="mb-3.5 flex items-start gap-2.5 rounded-md border border-danger-bg bg-danger-bg px-3.5 py-2.5 text-[13.5px] leading-relaxed text-ink-700">
           <Icon name="trash" size={15} />
           <span>
-            Está en la papelera desde {timeAgo(event.deleted_at)}. Se borra solo a los 30 días. Ya no aparece en
+            Está en la papelera desde {timeAgo(event.deleted_at, lang)}. Se borra solo a los 30 días. Ya no aparece en
             listas, pero se puede recuperar hasta entonces.
           </span>
         </div>
@@ -463,7 +466,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         <div className="mb-3.5 flex items-start gap-2.5 rounded-md border border-danger-bg bg-danger-bg px-3.5 py-2.5 text-[13.5px] leading-relaxed text-ink-700">
           <span aria-hidden="true"><Icon name="ban" size={15} /></span>
           <span>
-            Este evento se canceló. RSVPs y aportaciones están cerrados, todo lo demás se queda como historial. Se avisó a todos por
+            {t('event.cancelledLong')}
             correo y WhatsApp. Los balances abiertos siguen pendientes de liquidar.
           </span>
         </div>
@@ -479,8 +482,13 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             body={
               <>
                 {event.title}
-                {event.chosen_start ? `, ${dateChip}` : ''}. {confirmed.length}{' '}
-                {confirmed.length === 1 ? 'persona ya dijo que va' : 'personas ya dijeron que van'}.
+                {event.chosen_start ? `, ${dateChip}` : ''}.{' '}
+                {/* One whole sentence per case: Spanish and English put the
+                    number and the verb in different places, so a count glued
+                    to a fragment is wrong in one of them. */}
+                {confirmed.length === 1
+                  ? t('event.saidYesJustOne')
+                  : tf('event.saidYes', { n: confirmed.length })}
               </>
             }
             faces={confirmed.map((r) => userOf.get(r.user_id) ?? { display_name: nameOf.get(r.user_id) ?? '·' })}
@@ -491,18 +499,18 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               <div className="grid grid-cols-2 gap-2">
                 <form action={setRsvp.bind(null, event.id, event.slug, 'in')}>
                   <Button block display>
-                    {rsvpLabel('in')}
+                    {t(rsvpKey('in'))}
                   </Button>
                 </form>
                 <form action={setRsvp.bind(null, event.id, event.slug, 'out')}>
                   <Button block variant="secondary">
-                    {rsvpLabel('out')}
+                    {t(rsvpKey('out'))}
                   </Button>
                 </form>
               </div>
               <form action={setRsvp.bind(null, event.id, event.slug, 'maybe')}>
                 <Button block variant="ghost" size="sm">
-                  {rsvpLabel('maybe')}
+                  {t(rsvpKey('maybe'))}
                 </Button>
               </form>
             </div>
@@ -513,7 +521,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       {loud === 'availability' && (
         <div className="mb-3.5">
           <Loud
-            title="Falta que marques cuándo puedes"
+            title={t('event.markAvailability')}
             body={
               <>
                 Nadie puede fijar la fecha hasta que respondan todos. Faltan {waitingOn.length} de{' '}
@@ -539,7 +547,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         </div>
       )}
 
-      <WhereCard
+      <WhereCard tr={t} tf={tf}
         location={event.location}
         lat={event.lat}
         lng={event.lng}
@@ -582,7 +590,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           <span className="min-w-0 flex-1 text-[13.5px] font-bold text-ink-900">
             Dijiste que llevas {myUnfinished.title}
           </span>
-          <span className="flex-shrink-0 text-[12.5px] text-ink-500">no se te olvide</span>
+          <span className="flex-shrink-0 text-[12.5px] text-ink-500">{t('event.dontForget')}</span>
         </div>
       )}
 
@@ -601,10 +609,10 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               </div>
               <p className="mt-0.5 text-[12.5px] leading-relaxed text-ink-700">
                 {pendingJoinReq
-                  ? 'Ya pediste unirte. Un organizador o admin te va a dejar entrar pronto.'
+                  ? t('event.askedJoin')
                   : club!.join_mode === 'anyone_with_link'
-                    ? 'Puedes confirmar y aportar aquí. ¿Quieres también el resto de eventos del club?'
-                    : 'Puedes confirmar y aportar en este evento aunque no seas del club.'}
+                    ? t('event.guestJoinAsk')
+                    : t('event.guestOk')}
               </p>
             </div>
             {club!.join_mode === 'anyone_with_link' &&
@@ -623,13 +631,13 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           receipt moved inside the where-card, next to the time it describes. */}
       {event.cancelled_at && (
         <p className="mb-3.5 text-[12px] text-ink-300">
-          Se canceló {timeAgo(event.cancelled_at)}. Se avisó a quienes iban.
+          Se canceló {timeAgo(event.cancelled_at, lang)}. Se avisó a quienes iban.
         </p>
       )}
 
       {event.status === 'scheduling' && event.sched_start_date && event.sched_end_date && (
         <section className="mb-[26px]">
-          <p className="mb-2.5 text-sm text-ink-500">Seguimos buscando fecha. Marca cuándo puedes abajo.</p>
+          <p className="mb-2.5 text-sm text-ink-500">{t('event.stillFinding')}</p>
           <Card>
             <Grid
               eventId={event.id}
@@ -651,7 +659,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
       {/* Rule 1 again, for the one phase that has its own single job: once the
           event is over, the only thing left that only the organizer can do is
-          say who actually turned up. It sits above "Quién va" because it is
+          say who actually turned up. It sits above t('event.going') because it is
           the same question, answered after the fact. */}
       {isDone && rollCallTaken && photosBlock}
 
@@ -686,7 +694,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       {event.status !== 'scheduling' && event.status !== 'cancelled' && (
         <section className="mb-[26px]">
           <OpenSection
-            label="Quién va"
+            label={t('event.going')}
             meta={`${seatsTaken}${event.capacity != null ? ` de ${event.capacity}` : ''}`}
           >
           {/* The count first, in one line, then the people. "van 6 de 8" is
@@ -694,14 +702,14 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               this ("van 6/8 · no van 2 · quizás 1" and a comma list of names
               120px above it) were one fact each, printed twice. */}
           <p className="text-[12.5px] text-ink-500">
-            van {seatsTaken}
-            {event.capacity != null && ` de ${event.capacity}`}
-            {waitlisted.length > 0 && ` · ${waitlisted.length} en espera`}
-            {byStatus('out').length > 0 && ` · no van ${byStatus('out').length}`}
-            {byStatus('maybe').length > 0 && ` · quizás ${byStatus('maybe').length}`}
+            {tf('event.goingN', { n: seatsTaken })}
+            {event.capacity != null && tf('event.ofCapacity', { n: event.capacity })}
+            {waitlisted.length > 0 && tf('event.waitingN', { n: waitlisted.length })}
+            {byStatus('out').length > 0 && tf('event.notGoingN', { n: byStatus('out').length })}
+            {byStatus('maybe').length > 0 && tf('event.maybeN', { n: byStatus('maybe').length })}
           </p>
 
-          <WhoIsComing people={attendees} />
+          <WhoIsComing people={attendees} youLabel={t('event.you')} />
 
 
           {event.allow_guests && myRsvp?.status === 'in' && (
@@ -717,11 +725,11 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                   throws is worse than a button that is not there */}
               {event.capacity == null || seatsTaken < event.capacity ? (
                 <form action={addGuest.bind(null, event.id, event.slug)} className="flex gap-2">
-                  <input name="name" placeholder="Nombre de quien traes" className="flex-1 rounded-md border border-line-input bg-paper p-2 text-sm text-ink-900" />
-                  <button className="tap rounded-md bg-honey-500 px-3 py-2 text-xs font-bold text-charcoal">Traer a alguien (+1)</button>
+                  <input name="name" placeholder={t('event.guestName')} className="flex-1 rounded-md border border-line-input bg-paper p-2 text-sm text-ink-900" />
+                  <button className="tap rounded-md bg-honey-500 px-3 py-2 text-xs font-bold text-charcoal">{t('event.bringSomeone')}</button>
                 </form>
               ) : (
-                <p className="text-[12.5px] text-ink-500">Ya no hay lugar para traer a alguien más.</p>
+                <p className="text-[12.5px] text-ink-500">{t('event.noRoomGuests')}</p>
               )}
             </div>
           )}
@@ -751,14 +759,14 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                   <PromoteNextButton eventId={event.id} slug={event.slug} nextName={nameOf.get(waitlisted[0].user_id) ?? '·'} />
                 </div>
               )}
-              <p className="mt-2 text-[11.5px] text-ink-300">Cuando se libera una plaza, el primero en la fila entra solo y le avisamos por correo y WhatsApp.</p>
+              <p className="mt-2 text-[11.5px] text-ink-300">{t('event.waitlist.note')}</p>
             </div>
           )}
           </OpenSection>
         </section>
       )}
 
-      {/* Silence, by name, with the chase attached. It sits under "Quién va"
+      {/* Silence, by name, with the chase attached. It sits under t('event.going')
           rather than inside it because it is a different question: that block
           is who is coming, this one is who still owes an answer. */}
       {event.status === 'scheduled' && !isDone && !event.deleted_at && (
@@ -767,7 +775,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
       <div className="mb-[26px] flex flex-col gap-2">
       <div className="flex items-baseline gap-2.5 px-0.5">
-        <span className="eyebrow">Aportaciones</span>
+        <span className="eyebrow">{t('event.contributions')}</span>
         {/* the count that matters is what is still unclaimed, and it belongs
             in the header rather than in an empty state under the list */}
         {unclaimed.length > 0 && (
@@ -795,11 +803,11 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           lie. */}
       {carriedOver && (
         <p className="rounded-md border border-line-card bg-cream-sunk px-3.5 py-3 text-[12.5px] leading-relaxed text-ink-700">
-          Esta lista viene de la vez pasada. Nadie ha apartado nada todavía, y así debe ser: apártalo otra vez si lo
+          {t('event.reused')}
           vuelves a traer.
         </p>
       )}
-      {contributions.length === 0 && <p className="text-sm text-ink-500">Nadie trae nada todavía. Estrena la lista.</p>}
+      {contributions.length === 0 && <p className="text-sm text-ink-500">{t('event.contrib.empty')}</p>}
       <ul className="flex flex-col gap-2">
         {contributions.map((c) => (
           <li key={c.id}>
@@ -816,7 +824,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                     <>
                       <EditContributionButton id={c.id} slug={event.slug} title={c.title} qty={c.qty} />
                       <form action={removeContribution.bind(null, c.id, event.slug)}>
-                        <button aria-label="Quitar" className="tap text-xs text-ink-300">
+                        <button aria-label={t('common.remove')} className="tap text-xs text-ink-300">
                           <Icon name="xmark" size={12} />
                         </button>
                       </form>
@@ -885,7 +893,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         settlements={settlements ?? []}
       />
 
-      <Polls eventId={event.id} slug={event.slug} myId={profile.id} isOrganizer={!!isOrganizer} nameOf={nameOf} polls={(polls ?? []) as never} />
+      <Polls tr={t} eventId={event.id} slug={event.slug} myId={profile.id} isOrganizer={!!isOrganizer} nameOf={nameOf} polls={(polls ?? []) as never} />
         </>
       )}
 
@@ -912,7 +920,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       {isDone && (
         <p className="mb-[26px] flex items-start gap-2 px-0.5 text-[12.5px] leading-relaxed text-ink-300">
           <Icon name="circle" size={4} className="mt-[7px] flex-shrink-0" />
-          <span>Los RSVPs y la lista de aportaciones ya están cerrados. Lo demás se queda como historial.</span>
+          <span>{t('event.closed')}</span>
         </p>
       )}
 
@@ -931,12 +939,12 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       {/* Rule 7. These used to be sections of this page, each with its own
           header, sitting between things people actually came for. They are
           doors, so they say so, once, under a line. */}
-      <DoorGroup label="En otra parte">
-        {club && <SummaryRow icon="hashtag" label={club.name} meta="el club" href={`/club/${club.slug}`} />}
-        {club && <SummaryRow icon="clock-rotate-left" label="Otros eventos de este club" href={`/events?club=${club.id}`} />}
-        <DetailsSheet>
+      <DoorGroup label={t('event.elsewhere')}>
+        {club && <SummaryRow icon="hashtag" label={club.name} meta={t('club.theClub')} href={`/club/${club.slug}`} />}
+        {club && <SummaryRow icon="clock-rotate-left" label={t('event.otherEvents')} href={`/events?club=${club.id}`} />}
+        <DetailsSheet label={t('details.label')}>
           <div className="flex flex-col gap-2">
-            <span className="eyebrow">Organizadores</span>
+            <span className="eyebrow">{t('event.organizers')}</span>
             <div className="flex flex-wrap gap-2">
               {organizers.map((o) => (
                 <span
@@ -955,28 +963,28 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           </div>
 
           <div className="flex flex-col gap-1.5 text-[12.5px] text-ink-500">
-            <span className="eyebrow text-ink-500">Ficha</span>
+            <span className="eyebrow text-ink-500">{t('event.sheet')}</span>
             <span>
               <Icon name="globe" size={11} /> Las horas se muestran en Ciudad de México (GMT-6).
             </span>
             <span>
               <Icon name="lock" size={11} />{' '}
               {event.join_policy === 'anyone_with_link'
-                ? 'Cualquiera con el enlace puede entrar.'
+                ? t('event.join.anyone')
                 : event.join_policy === 'invite_only'
-                  ? 'Solo con invitación.'
-                  : 'Solo miembros del club.'}
+                  ? t('event.join.invite')
+                  : t('event.join.members')}
             </span>
             {event.capacity != null && (
               <span>
                 <Icon name="users" size={11} /> cupo para {event.capacity}
-                {event.waitlist_enabled ? ', con lista de espera' : ''}.
+                {event.waitlist_enabled ? t('event.withWaitlist') : ''}.
               </span>
             )}
             {event.scheduled_at && (
               <span>
                 <Icon name="calendar-check" size={11} />{' '}
-                {nameOf.get(event.organizer_user_id) ?? 'Quien organiza'} fijó la hora {timeAgo(event.scheduled_at)}.
+                {nameOf.get(event.organizer_user_id) ?? 'Quien organiza'} fijó la hora {timeAgo(event.scheduled_at, lang)}.
               </span>
             )}
           </div>

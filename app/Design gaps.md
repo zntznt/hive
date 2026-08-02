@@ -76,31 +76,34 @@ el evento nunca se llena, y nadie espera."*
 
 ---
 
-## 5 · English is written but not offered (§7)
+## 5 · English shipped, and what it cost to get there
 
-The design says the app follows the phone, with an override in Tú. All of that
-is built: `lang` on `users`, resolution from the override or `Accept-Language`,
-one resolve in the root layout handed to every client component, `<html lang>`,
-the table, `t`/`tf`, and the control.
+Resolved. The entry that used to sit here recorded English as built but held
+back, because the table covered the shell and not the screens and an English
+phone would have got a translated tab bar over Spanish rows. The table is
+finished now: 727 keys in both languages, balanced, and `COMPLETE_LANGS` lists
+both, so the picker offers both and the resolution can reach either.
 
-What is not built is the copy. The table covers the shell and the account
-screen; every other screen is still Spanish literals in JSX. An English phone
-would get a translated tab bar over Spanish rows, which is exactly what
-whole-language fallback exists to prevent. The design's own words: an Italian
-phone gets English, not an Italian shell with Spanish rows in it. A half-English
-app is that bug wearing a different flag, and worse than either language alone,
-because it reads as a rendering fault rather than a missing translation.
+Two things worth keeping from the work.
 
-The first screenshot taken after the harness was repaired showed it plainly,
-which is the argument for the harness.
+**The derived-data functions had to take the language.** `whenPill`,
+`attendanceLine`, `quietSince`, `timeAgo` and the five date formatters all
+produced Spanish and were called from both sides of the app, so each grew a
+`lang` parameter defaulting to Spanish. Defaulting matters: a caller that has
+not been given a language gets the app's own language rather than a key or an
+empty string. `whenPill` also moved out of `WhenPill.tsx` into `lib/when.ts`,
+because making the component a client component made the function unreachable
+from the server components that call it.
 
-So `COMPLETE_LANGS` in `lib/lang.ts` lists Spanish only, resolution goes through
-it, and the picker offers what it lists. English returns the moment the table is
-finished: add the strings, add `'en'` to that array, and both the control and the
-resolution pick it up with no other change.
+**The timezone is not the language.** The date formatters take a locale now
+and keep `America/Mexico_City` regardless. An event at 8pm is at 8pm in Mexico
+City for a reader in London too, and shifting it to their clock would tell them
+the wrong hour to turn up. Only the words follow the language.
 
-A deliberate hold, not an abandoned feature. The expensive half, the plumbing and
-the three traps it has to avoid, is done and has a screen proving it.
+Four module-level `const` maps held copy: the RSVP answers, the outbox status
+labels, the WhatsApp template states, and the club change-request kinds. Every
+one of them is trap three from §7 in its purest form, and all four now hold
+keys resolved at render.
 
 ---
 

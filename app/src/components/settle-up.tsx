@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation'
 import { Modal } from './ui/Modal'
 import { Button } from './ui/Button'
 import { Select } from './ui/Input'
-import { PAYMENT_METHOD_LABELS, PAYMENT_METHOD_OPTIONS } from '@/lib/payment-method-labels'
+import { PAYMENT_METHOD_KEYS, PAYMENT_METHOD_VALUES } from '@/lib/payment-method-labels'
 import { fmtMoney } from '@/lib/money'
 import { dataUrlToBlob, uploadPaymentProof } from '@/lib/upload'
 import { downscaleToDataUrl } from '@/lib/downscale'
 import { recordSettlement, confirmSettlement, deleteSettlement } from '@/app/actions'
 import { Icon } from '@/components/ui/Icon'
+import { useT } from '@/components/ui/LangProvider'
 
 type PaymentMethodRow = { kind: string; value: string }
 
@@ -39,6 +40,7 @@ export function SettleUpFlow({
   // the loud slot wants a full-size button; a list row wants the small one
   display?: boolean
 }) {
+  const tr = useT()
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState<1 | 2 | 3 | 'done'>(1)
   const [method, setMethod] = useState('bank_account')
@@ -93,7 +95,7 @@ export function SettleUpFlow({
         setStep('done')
         router.refresh()
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'No se pudo registrar el pago.')
+        setError(e instanceof Error ? e.message : tr('money.notRecorded'))
       }
     })
   }
@@ -107,19 +109,19 @@ export function SettleUpFlow({
         <Modal
           open
           onClose={close}
-          title={step === 'done' ? '¡Listo!' : 'Marcar como pagado'}
+          title={step === 'done' ? tr('plate.done!') : tr('money.markPaid')}
           subtitle={step === 'done' ? undefined : `Tú → ${toName} · ${fmtMoney(amountCents)}`}
           footer={
             step === 'done' ? (
-              <Button onClick={close}>Cerrar</Button>
+              <Button onClick={close}>{tr('common.close')}</Button>
             ) : (
               <>
                 <Button variant="ghost" onClick={step === 1 ? close : () => setStep((s) => ((s as number) - 1) as 1 | 2)}>
-                  {step === 1 ? 'Cancelar' : 'Atrás'}
+                  {step === 1 ? tr('common.cancel') : tr('common.back2')}
                 </Button>
                 {step === 3 ? (
                   <Button disabled={pending} onClick={submit}>
-                    {pending ? 'Guardando…' : 'Confirmar pago'}
+                    {pending ? tr('common.saving') : tr('money.confirmPayment')}
                   </Button>
                 ) : (
                   <Button onClick={() => setStep((s) => ((s as number) + 1) as 2 | 3)} disabled={step === 2 && !isCash && !proofDataUrl}>
@@ -143,7 +145,7 @@ export function SettleUpFlow({
 
           {step === 1 && (
             <div className="flex flex-col gap-3.5">
-              <Select label="¿Cómo pagaste?" value={method} onChange={(e) => setMethod(e.target.value)} options={PAYMENT_METHOD_OPTIONS} />
+              <Select label={tr('money.how')} value={method} onChange={(e) => setMethod(e.target.value)} options={PAYMENT_METHOD_VALUES.map((v) => ({ value: v, label: tr(PAYMENT_METHOD_KEYS[v]) }))} />
               <div className="rounded-md bg-cream-sunk px-3.5 py-3 text-[13px] text-ink-700">
                 {toPaymentMethods.length === 0 ? (
                   <>{toName} no registró cómo le gusta que le paguen. Pregúntale directo.</>
@@ -153,7 +155,7 @@ export function SettleUpFlow({
                     <ul className="space-y-0.5">
                       {toPaymentMethods.map((m, i) => (
                         <li key={i}>
-                          {PAYMENT_METHOD_LABELS[m.kind] ?? m.kind}: {m.value}
+                          {(PAYMENT_METHOD_KEYS[m.kind] ? tr(PAYMENT_METHOD_KEYS[m.kind]) : m.kind)}: {m.value}
                         </li>
                       ))}
                     </ul>
@@ -170,13 +172,13 @@ export function SettleUpFlow({
               </div>
             ) : (
               <div>
-                <label className="mb-1.5 block text-[12.5px] font-semibold text-ink-700">Comprobante de pago</label>
+                <label className="mb-1.5 block text-[12.5px] font-semibold text-ink-700">{tr('money.receipt')}</label>
                 <label className="block cursor-pointer overflow-hidden rounded-md border-[1.5px] border-dashed border-line-input bg-cream-sunk text-center">
                   {proofDataUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={proofDataUrl} alt="comprobante" className="block max-h-[220px] w-full object-cover" />
                   ) : (
-                    <span className="block px-3.5 py-6 text-[13px] text-ink-500"><Icon name="camera" size={13} /> Toca para subir una captura de la transferencia</span>
+                    <span className="block px-3.5 py-6 text-[13px] text-ink-500"><Icon name="camera" size={13} /> {tr('money.receipt.upload')}</span>
                   )}
                   <input type="file" accept="image/*" className="hidden" onChange={onFile} />
                 </label>
@@ -187,7 +189,7 @@ export function SettleUpFlow({
           {step === 3 && (
             <div className="flex flex-col gap-2 text-sm text-ink-700">
               <div className="flex justify-between">
-                <span className="text-ink-500">Para</span>
+                <span className="text-ink-500">{tr('money.to')}</span>
                 <span className="font-semibold">{toName}</span>
               </div>
               <div className="flex justify-between">
@@ -195,8 +197,8 @@ export function SettleUpFlow({
                 <span className="font-semibold">{fmtMoney(amountCents)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-ink-500">Método</span>
-                <span className="font-semibold">{PAYMENT_METHOD_LABELS[method]}</span>
+                <span className="text-ink-500">{tr('money.method')}</span>
+                <span className="font-semibold">{tr(PAYMENT_METHOD_KEYS[method])}</span>
               </div>
             </div>
           )}
@@ -230,6 +232,7 @@ export function ConfirmPaymentModal({
   proofSignedUrl: string | null
   children: ReactNode
 }) {
+  const tr = useT()
   const [open, setOpen] = useState(false)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
@@ -251,8 +254,8 @@ export function ConfirmPaymentModal({
         <Modal
           open
           onClose={() => setOpen(false)}
-          title="Comprobante de pago"
-          subtitle={`${fromName} → Tú · ${fmtMoney(amountCents)}${method ? ` · ${PAYMENT_METHOD_LABELS[method] ?? method}` : ''}`}
+          title={tr('money.receipt')}
+          subtitle={`${fromName} → Tú · ${fmtMoney(amountCents)}${method ? ` · ${(PAYMENT_METHOD_KEYS[method] ? tr(PAYMENT_METHOD_KEYS[method]) : method)}` : ''}`}
           footer={
             <>
               <Button variant="danger" disabled={pending} onClick={() => act(deleteSettlement)}>
@@ -272,7 +275,7 @@ export function ConfirmPaymentModal({
               Pago en efectivo, sin comprobante.
             </div>
           )}
-          <div className="mt-2.5 text-xs text-ink-300"><Icon name="lock" size={11} /> Solo tú puedes ver esto, porque eres quien lo recibió.</div>
+          <div className="mt-2.5 text-xs text-ink-300"><Icon name="lock" size={11} /> {tr('money.receipt.private')}</div>
         </Modal>
       )}
     </>

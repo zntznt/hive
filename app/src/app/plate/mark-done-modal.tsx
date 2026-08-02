@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
+import { useT } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
 import { toggleContribution } from '@/app/actions'
 import { Icon } from '@/components/ui/Icon'
@@ -23,6 +24,7 @@ export function MarkDoneButton({
   title: string
   eventTitle: string
 }) {
+  const tr = useT()
   const [open, setOpen] = useState(false)
   const [done, setDone] = useState(false)
   const [pending, startTransition] = useTransition()
@@ -52,13 +54,13 @@ export function MarkDoneButton({
 
   if (done) {
     return (
-      <Modal open onClose={close} title="¡Listo!" subtitle={eventTitle} footer={<Button onClick={close}>Cerrar</Button>}>
+      <Modal open onClose={close} title={tr('plate.done!')} subtitle={eventTitle} footer={<Button onClick={close}>{tr('common.close')}</Button>}>
         <div className="py-2 text-center">
           <div className="mb-2 text-3xl" aria-hidden="true">
             <Icon name="jar" size={15} />
           </div>
           <p className="text-sm text-ink-700">
-            {isTask ? 'Tarea hecha. Una cosa menos en tu plato.' : 'Apuntado como llevado. No se te olvide en la puerta.'}
+            {isTask ? tr('plate.taskDone') : tr('plate.bringNoted')}
           </p>
         </div>
       </Modal>
@@ -69,7 +71,7 @@ export function MarkDoneButton({
     <Modal
       open
       onClose={() => setOpen(false)}
-      title={isTask ? '¿Marcar la tarea como hecha?' : '¿Marcar como llevado?'}
+      title={isTask ? tr('plate.markTaskDone') : tr('plate.markBrought')}
       subtitle={`${title} · ${eventTitle}`}
       footer={
         <>
@@ -77,7 +79,7 @@ export function MarkDoneButton({
             Todavía no
           </Button>
           <Button disabled={pending} onClick={confirm}>
-            {isTask ? 'Sí, ya está' : 'Sí, yo lo llevo'}
+            {isTask ? tr('plate.yesDone') : tr('plate.yesBring')}
           </Button>
         </>
       }
@@ -88,8 +90,8 @@ export function MarkDoneButton({
         </span>
         <p className="text-[13.5px] leading-relaxed text-ink-700">
           {isTask
-            ? 'Al marcarla hecha, desaparece de la lista de todos. Si te equivocas, se puede deshacer desde el evento.'
-            : 'Al confirmarlo, el club lo da por cubierto. Si te equivocas, se puede deshacer desde el evento.'}
+            ? tr('plate.taskWarn')
+            : tr('plate.bringWarn')}
         </p>
       </div>
     </Modal>

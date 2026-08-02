@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { supabaseBrowser } from '@/lib/supabase/client'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { useT } from '@/components/ui/LangProvider'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { authOrigin } from '@/lib/site-url'
 
@@ -13,6 +14,7 @@ type Props = {
 }
 
 export default function ClubJoinSignIn({ token, clubName }: Props) {
+  const tr = useT()
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
@@ -48,7 +50,7 @@ export default function ClubJoinSignIn({ token, clubName }: Props) {
 
         {sent ? (
           <p className="rounded-md bg-honey-50 p-4 text-center text-ink-700">
-            Revisa tu correo. Te mandamos un enlace, ábrelo en este mismo navegador para volver
+            {tr('signin.checkEmailLink')}
             aquí y pedir tu ingreso.
           </p>
         ) : (
@@ -65,7 +67,7 @@ export default function ClubJoinSignIn({ token, clubName }: Props) {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@correo.com"
+              placeholder={tr('inv.email.example')}
               className="w-full rounded-md border-[1.5px] border-line-input bg-paper p-3 outline-none focus:border-honey-500"
             />
             <Button type="submit" block size="lg" disabled={sending}>

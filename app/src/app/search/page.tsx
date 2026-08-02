@@ -1,12 +1,14 @@
 import { requireProfile } from '@/lib/gate'
 import SearchClient, { type SearchClub, type SearchEvent, type SearchPerson } from './search-client'
 import type { AvatarUser } from '@/components/ui/Avatar'
-import { whenPill } from '@/components/ui/WhenPill'
+import { whenPill } from '@/lib/when'
+import { currentLang } from '@/lib/current-lang'
 
 // Everything this member is allowed to see, handed to the client once so
 // typing filters instantly. RLS is what scopes it, not a where clause here.
 
 export default async function SearchPage() {
+  const lang = await currentLang()
   const { supabase, profile } = await requireProfile()
 
   const { data: memberships } = await supabase
@@ -53,7 +55,7 @@ export default async function SearchPage() {
     slug: e.slug,
     title: e.title,
     club: (e.club_id && clubName.get(e.club_id)) || '',
-    when: whenPill(e.chosen_start, e.status)?.label ?? '',
+    when: whenPill(e.chosen_start, e.status, undefined, lang)?.label ?? '',
     place: e.location,
   }))
 

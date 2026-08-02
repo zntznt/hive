@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { supabaseBrowser } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
+import { useT, useTf } from '@/components/ui/LangProvider'
 import { Input } from '@/components/ui/Input'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { BrandMark } from '@/components/ui/BrandMark'
@@ -73,6 +74,8 @@ export default function InviteSignIn({
   claimedByMe,
   goHref,
 }: Props) {
+  const tr = useT()
+  const tf = useTf()
   const [email, setEmail] = useState(presetEmail ?? '')
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
@@ -128,7 +131,7 @@ export default function InviteSignIn({
           <div className="mb-4">
             <BrandMark size="sm" variant="hex" showWordmark={false} />
           </div>
-          <p className="eyebrow text-honey-700">Te invitaron</p>
+          <p className="eyebrow text-honey-700">{tr('inv.youWere')}</p>
           <h1 className="mt-1 font-display text-[26px] font-bold leading-tight text-ink-900">{headerTitle}</h1>
           <p className="mt-0.5 text-sm text-ink-500">
             {eventTitle && clubName ? (
@@ -145,11 +148,11 @@ export default function InviteSignIn({
           {eventTitle && !expired && (
             <ul className="mt-4 flex flex-col gap-2 border-t border-line-divider pt-3.5">
               <Fact icon="calendar-day">
-                {when ? whenLabel(when) : 'Todavía están buscando fecha entre todos.'}
+                {when ? whenLabel(when) : tr('invite.findingDate')}
               </Fact>
-              <Fact icon="location-dot">{where || 'Falta definir el lugar.'}</Fact>
+              <Fact icon="location-dot">{where || tr('invite.noPlace')}</Fact>
               <Fact icon="users">
-                {going ? `${going} ${going === 1 ? 'persona va' : 'personas van'}` : 'Nadie ha confirmado todavía'}
+                {going ? (going === 1 ? tf('invite.goingOne', { n: going }) : tf('invite.goingMany', { n: going })) : tr('invite.nobodyYet')}
                 {capacity != null && (
                   <span className="text-ink-500">
                     {' · '}
@@ -166,9 +169,9 @@ export default function InviteSignIn({
         <div className="bg-paper px-[26px] py-[26px]">
           {expired ? (
             <div className="flex flex-col gap-3.5">
-              <h2 className="font-display text-xl font-bold text-ink-900">Esta invitación ya venció</h2>
+              <h2 className="font-display text-xl font-bold text-ink-900">{tr('inv.tooLate')}</h2>
               <p className="text-sm text-ink-500">
-                Los enlaces duran 30 días. {inviter ? `Pídele otro a ${inviter}` : 'Pide otro a quien te invitó'} y
+                {tr('invite.linkLasts')} {inviter ? tf('invite.askPerson', { name: inviter }) : tr('invite.askAnother')} y
                 entras sin problema.
               </p>
             </div>
@@ -176,7 +179,7 @@ export default function InviteSignIn({
             /* your own invitation, reopened. Asking "¿te unes?" to someone who
                joined a month ago is the app not knowing who it is talking to. */
             <div className="flex flex-col gap-3.5">
-              <h2 className="font-display text-xl font-bold text-ink-900">Ya estás dentro</h2>
+              <h2 className="font-display text-xl font-bold text-ink-900">{tr('inv.alreadyIn')}</h2>
               <p className="text-sm text-ink-500">
                 Usaste esta invitación{clubName ? ` y ya eres parte de «${clubName}»` : ''}.
               </p>
@@ -188,9 +191,9 @@ export default function InviteSignIn({
             </div>
           ) : claimed ? (
             <div className="flex flex-col gap-3.5">
-              <h2 className="font-display text-xl font-bold text-ink-900">Esta invitación ya se usó</h2>
+              <h2 className="font-display text-xl font-bold text-ink-900">{tr('inv.used')}</h2>
               <p className="text-sm text-ink-500">
-                Alguien más la abrió antes. {inviter ? `Pídele otra a ${inviter}` : 'Pide otra a quien te invitó'} si
+                Alguien más la abrió antes. {inviter ? `Pídele otra a ${inviter}` : tr('invite.askAnotherF')} si
                 era para ti.
               </p>
             </div>
@@ -200,14 +203,14 @@ export default function InviteSignIn({
                club by getting them to follow a URL. */
             <div className="flex flex-col gap-3.5">
               <h2 className="font-display text-xl font-bold text-ink-900">
-                {clubName ? `¿Te unes a ${clubName}?` : '¿Aceptas la invitación?'}
+                {clubName ? `¿Te unes a ${clubName}?` : tr('invite.accept?')}
               </h2>
               <p className="text-sm text-ink-500">
-                Ya tienes sesión iniciada. Al aceptar{clubName ? ` te unes a «${clubName}»` : ' quedas dentro'} y quien
+                {tr('inv.signedIn')}{clubName ? tf('inv.joinClub', { club: clubName }) : tr('inv.youreIn')} y quien
                 organiza va a ver tu nombre.
               </p>
               <Button display block size="lg" disabled={joining} onClick={join}>
-                {joining ? 'Un momento…' : 'Aceptar invitación'}
+                {joining ? tr('invite.oneMoment') : tr('invite.accept')}
               </Button>
               {joinError && <p className="rounded-md bg-danger-bg p-3 text-xs text-danger">{joinError}</p>}
               {/* signed in and already said no: accepting is itself the undo,
@@ -218,23 +221,23 @@ export default function InviteSignIn({
                 onClick={() => say(!isDeclined)}
                 className="tap mx-auto text-[13px] font-bold text-ink-500 underline decoration-line-input underline-offset-4 disabled:opacity-50"
               >
-                {saying ? 'Un momento…' : isDeclined ? 'Ya dijiste que no puedes. Deshacer' : 'No voy a poder'}
+                {saying ? 'Un momento…' : isDeclined ? tr('invite.saidNo') : 'No voy a poder'}
               </button>
             </div>
           ) : isDeclined ? (
             <div className="flex flex-col gap-3.5">
-              <h2 className="font-display text-xl font-bold text-ink-900">Quedamos avisados</h2>
+              <h2 className="font-display text-xl font-bold text-ink-900">{tr('inv.noted')}</h2>
               <p className="text-sm text-ink-500">
-                {inviter ? `${inviter} va a ver que no puedes.` : 'Quien te invitó va a ver que no puedes.'} Si cambias
+                {inviter ? `${inviter} va a ver que no puedes.` : tr('invite.willSee')} Si cambias
                 de opinión, este enlace sigue sirviendo.
               </p>
               <Button variant="secondary" block disabled={saying} onClick={() => say(false)}>
-                {saying ? 'Un momento…' : 'Cambié de opinión, sí voy'}
+                {saying ? 'Un momento…' : tr('invite.changedMind')}
               </Button>
             </div>
           ) : sent ? (
             <div className="flex flex-col gap-4">
-              <h2 className="font-display text-xl font-bold text-ink-900">Revisa tu correo</h2>
+              <h2 className="font-display text-xl font-bold text-ink-900">{tr('signin.checkEmail')}</h2>
               <p className="text-sm text-ink-500">
                 Te mandamos un enlace a <b className="text-honey-700">{email}</b>. Ábrelo en este mismo navegador.
               </p>
@@ -255,17 +258,17 @@ export default function InviteSignIn({
                   id="email"
                   type="email"
                   required
-                  label="Tu correo"
+                  label={tr('inv.yourEmail')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="tu@correo.com"
+                  placeholder={tr('inv.email.example')}
                 />
                 <Button display block size="lg" disabled={sending}>
-                  {sending ? 'Enviando…' : 'Aceptar invitación'}
+                  {sending ? tr('common.sending') : tr('invite.accept')}
                 </Button>
                 {error && <p className="rounded-md bg-danger-bg p-3 text-xs text-danger">{error}</p>}
                 <p className="pt-0.5 text-center text-[11.5px] text-ink-300">
-                  {clubName ? `Al aceptar te unes a «${clubName}».` : 'Sin contraseñas, sin formularios.'}
+                  {clubName ? tf('inv.acceptJoins', { club: clubName }) : tr('invite.noForms')}
                 </p>
               </form>
 

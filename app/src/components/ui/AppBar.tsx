@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Icon, type IconName } from './Icon'
+import { useT } from '@/components/ui/LangProvider'
 
 // Top bar for every screen pushed from a tab. It answers three questions at a
 // glance: where am I, how do I get back, and what is the one thing to do here.
@@ -36,6 +37,7 @@ export function AppBar({
   action?: { label: string; icon?: IconName; href?: string; onClick?: () => void }
   menu?: (MenuItem | false | null | undefined)[]
 }) {
+  const tr = useT()
   const [open, setOpen] = useState(false)
   const router = useRouter()
   const items = menu.filter(Boolean) as MenuItem[]
@@ -97,7 +99,7 @@ export function AppBar({
             <button
               type="button"
               onClick={() => setOpen((o) => !o)}
-              aria-label="Más"
+              aria-label={tr('common.more')}
               aria-expanded={open}
               className={hit}
             >

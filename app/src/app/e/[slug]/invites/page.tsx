@@ -11,8 +11,10 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
+import { getT } from '@/lib/current-lang'
 
 export default async function InvitesPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { t: tr , lang } = await getT()
   const { supabase, profile } = await requireProfile()
   const { slug } = await params
 
@@ -46,7 +48,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
       </header>
 
       <section className="mb-[26px]">
-        <SectionHeader>Enlace del evento</SectionHeader>
+        <SectionHeader>{tr('inv.link')}</SectionHeader>
         <Card>
           <div className="flex items-center justify-between gap-2 rounded-md bg-cream-sunk px-3 py-2.5 text-sm">
             <span className="min-w-0 flex-1 truncate text-ink-700">/e/{slug}</span>
@@ -63,12 +65,12 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
               <Select
                 id="join_policy"
                 name="join_policy"
-                label="Quién puede entrar con él"
+                label={tr('inv.who')}
                 defaultValue={event.join_policy}
               >
-                <option value="club_members_only">Solo miembros del club</option>
-                <option value="anyone_with_link">Cualquiera con el enlace</option>
-                <option value="invite_only">Solo con invitación</option>
+                <option value="club_members_only">{tr('inv.membersOnly')}</option>
+                <option value="anyone_with_link">{tr('inv.anyone')}</option>
+                <option value="invite_only">{tr('inv.inviteOnly')}</option>
               </Select>
             </div>
             <Button variant="secondary" size="sm">
@@ -79,14 +81,14 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
       </section>
 
       <section className="mb-[26px]">
-        <SectionHeader>Invitación personal</SectionHeader>
+        <SectionHeader>{tr('inv.personal')}</SectionHeader>
         <Card className="border-dashed">
           <form
             action={createInvitation.bind(null, event.id, event.club_id, slug)}
             className="space-y-3"
           >
-            <Input name="email" type="email" placeholder="correo" />
-            <Input name="phone" placeholder="o WhatsApp (+52 …)" />
+            <Input name="email" type="email" placeholder={tr('inv.email.ph')} />
+            <Input name="phone" placeholder={tr('inv.wa.ph')} />
             <Button block type="submit">
               Crear invitación
             </Button>
@@ -105,8 +107,8 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
         {(invitations ?? []).length === 0 ? (
           <EmptyState
             icon="envelope"
-            title="Todavía no invitas a nadie"
-            hint="Comparte el enlace del evento o manda una invitación personal."
+            title={tr('inv.none')}
+            hint={tr('inv.none.hint')}
           />
         ) : (
           <ul className="space-y-2">
@@ -120,21 +122,21 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
                           Without this the organizer keeps resending to
                           someone who already said no. */}
                       {inv.claimed_by_user_id ? (
-                        <Badge tone="active">aceptada</Badge>
+                        <Badge tone="active">{tr('inv.accepted')}</Badge>
                       ) : inv.declined_at ? (
                         <Badge tone="disabled">no puede</Badge>
                       ) : inv.expires_at && new Date(inv.expires_at) < new Date() ? (
-                        <Badge tone="neutral">venció</Badge>
+                        <Badge tone="neutral">{tr('inv.expired')}</Badge>
                       ) : (
-                        <Badge tone="pending">pendiente</Badge>
+                        <Badge tone="pending">{tr('inv.pending')}</Badge>
                       )}
                     </span>
                     <span className="text-[11.5px] text-ink-300">
                       {inv.declined_at
-                        ? `respondió ${timeAgo(inv.declined_at)}`
+                        ? `respondió ${timeAgo(inv.declined_at, lang)}`
                         : inv.expires_at && new Date(inv.expires_at) < new Date()
-                          ? `venció ${timeAgo(inv.expires_at)}, reenvíala para revivirla`
-                          : timeAgo(inv.created_at)}
+                          ? `venció ${timeAgo(inv.expires_at, lang)}, reenvíala para revivirla`
+                          : timeAgo(inv.created_at, lang)}
                     </span>
                   </span>
                   {/* a dead link can still be resent: that is what revives it */}

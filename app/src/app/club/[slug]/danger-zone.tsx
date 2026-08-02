@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { Modal } from '@/components/ui/Modal'
+import { useT, useTf } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
 import { leaveClub, deleteClub } from '@/app/actions'
 import { Icon } from '@/components/ui/Icon'
@@ -27,6 +28,8 @@ export function DangerZone({
   openWhich?: 'leave' | 'delete' | null
   onClose?: () => void
 }) {
+  const tr = useT()
+  const tf = useTf()
   const [selfModal, setSelfModal] = useState<'leave' | 'delete' | null>(null)
   const [pending, startTransition] = useTransition()
   const controlled = openWhich !== undefined
@@ -63,10 +66,10 @@ export function DangerZone({
           open
           onClose={() => setModal(null)}
           title={`¿Salir de ${clubName}?`}
-          subtitle={isLastAdmin ? 'Eres el último admin' : 'Te pueden volver a invitar después'}
+          subtitle={isLastAdmin ? tr('club.lastAdmin') : tr('club.reinvited')}
           footer={
             isLastAdmin ? (
-              <Button onClick={() => setModal(null)}>Entendido</Button>
+              <Button onClick={() => setModal(null)}>{tr('club.gotIt')}</Button>
             ) : (
               <>
                 <Button variant="ghost" onClick={() => setModal(null)}>
@@ -96,7 +99,7 @@ export function DangerZone({
               </p>
             </div>
           ) : (
-            <p className="text-sm leading-relaxed text-ink-700">Sales del roster y dejas de ver los eventos de este club. Tu historial se queda intacto.</p>
+            <p className="text-sm leading-relaxed text-ink-700">{tr('club.leave.warn')}</p>
           )}
         </Modal>
       )}
@@ -106,7 +109,7 @@ export function DangerZone({
           open
           onClose={() => setModal(null)}
           title={`¿Eliminar ${clubName}?`}
-          subtitle="Esto no se puede deshacer"
+          subtitle={tr('club.irreversible')}
           footer={
             <>
               <Button variant="ghost" onClick={() => setModal(null)}>
@@ -130,7 +133,7 @@ export function DangerZone({
             <span aria-hidden="true"><Icon name="triangle-exclamation" size={13} /></span>
             <p className="text-[13.5px] leading-relaxed text-ink-700">
               Se elimina cada evento, categoría, aportación y balance de este club
-              {memberCount === 1 ? ' para su único miembro' : ` para sus ${memberCount} miembros`}. No hay
+              {memberCount === 1 ? tr('club.forOneMember') : tf('club.forNMembers', { n: memberCount })}. No hay
               manera de deshacerlo.
             </p>
           </div>

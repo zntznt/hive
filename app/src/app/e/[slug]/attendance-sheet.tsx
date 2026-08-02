@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation'
 import { markAttendance } from '@/app/actions'
 import { useToast } from '@/components/ui/Toast'
 import { Button } from '@/components/ui/Button'
+import { useT, useTf } from '@/components/ui/LangProvider'
 import { Badge } from '@/components/ui/Badge'
 import { Icon } from '@/components/ui/Icon'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { FaceStack } from '@/components/ui/FaceStack'
 import { timeAgo } from '@/lib/relative-time'
+import { useLang } from '@/components/ui/LangProvider'
 
 // Post-event roll call, organizers only, and only once the event is done.
 // An RSVP is a promise; this is the record, and it is what the club roster's
@@ -46,6 +48,9 @@ export function AttendanceSheet({
   takenAt: string | null
   takenBy: string | null
 }) {
+  const lang = useLang()
+  const tf = useTf()
+  const tr = useT()
   const [taking, setTaking] = useState(false)
   const [present, setPresent] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(people.map((p) => [p.key, p.present]))
@@ -73,10 +78,10 @@ export function AttendanceSheet({
         const guests = people.filter((p) => p.guestOf && present[p.key]).map((p) => p.key)
         await markAttendance(eventId, slug, users, guests)
         setTaking(false)
-        toast('Lista guardada.')
+        toast(tr('roll.saved'))
         router.refresh()
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'No se pudo guardar la lista.')
+        setError(e instanceof Error ? e.message : tr('event.rollcall.failed'))
       }
     })
   }
@@ -94,15 +99,15 @@ export function AttendanceSheet({
             <p className="font-display text-lg font-bold leading-tight text-ink-900">
               {came} de {total} {came === 1 ? 'vino' : 'vinieron'}
             </p>
-            <p className="mt-0.5 text-[12.5px] text-ink-500">Toca a quien no llegó.</p>
+            <p className="mt-0.5 text-[12.5px] text-ink-500">{tr('event.rollcall.tap')}</p>
           </div>
           <span className="flex flex-shrink-0 items-center gap-1">
             <button type="button" onClick={() => setAll(true)} className="tap px-1 text-[12.5px] font-bold text-honey-700">
-              Vinieron todos
+              {tr('roll.allCame')}
             </button>
             <span aria-hidden="true" className="text-[11px] text-ink-300">·</span>
             <button type="button" onClick={() => setAll(false)} className="tap px-1 text-[12.5px] font-bold text-ink-500">
-              Nadie
+              {tr('roll.nobody')}
             </button>
           </span>
         </div>
@@ -136,7 +141,7 @@ export function AttendanceSheet({
                     <span className={`text-sm font-bold ${on ? 'text-ink-900' : 'text-ink-500'}`}>{p.name}</span>
                     {p.guestOf && <Badge tone="neutral">invitado de {p.guestOf}</Badge>}
                   </span>
-                  {!on && <span className="mt-0.5 block text-xs text-ink-500">no vino</span>}
+                  {!on && <span className="mt-0.5 block text-xs text-ink-500">{tr('event.rollcall.absent')}</span>}
                 </span>
               </button>
             )
@@ -149,13 +154,13 @@ export function AttendanceSheet({
           </Button>
           {error && <p className="mt-2.5 rounded-md bg-danger-bg p-3 text-xs text-danger">{error}</p>}
           <div className="mt-2.5 flex items-center justify-between gap-2.5">
-            <span className="text-xs leading-relaxed text-ink-300">No le llega a nadie. Puedes corregirla después.</span>
+            <span className="text-xs leading-relaxed text-ink-300">{tr('event.rollcall.private')}</span>
             <button
               type="button"
               onClick={() => setTaking(false)}
               className="tap flex-shrink-0 px-1 text-[12.5px] font-bold text-ink-500"
             >
-              Cancelar
+              {tr('common.cancel')}
             </button>
           </div>
         </div>
@@ -179,10 +184,10 @@ export function AttendanceSheet({
         <Icon name="clipboard-check" size={16} className="flex-shrink-0 text-ink-300" />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-bold text-ink-900">
-            {everyone ? 'Vinieron todos' : `${cameCount} de ${total} ${cameCount === 1 ? 'vino' : 'vinieron'}`}
+            {everyone ? tr('roll.allCame') : `${cameCount} de ${total} ${cameCount === 1 ? 'vino' : 'vinieron'}`}
           </span>
           <span className="mt-0.5 block truncate text-[12px] text-ink-300">
-            La pasó {takenBy ?? 'la organización'} · {timeAgo(takenAt)}
+            La pasó {takenBy ?? tr('event.organization')} · {timeAgo(takenAt, lang)}
             {!everyone && ` · faltaron ${absent.map((p) => p.name).join(', ')}`}
           </span>
         </span>
@@ -194,7 +199,7 @@ export function AttendanceSheet({
           onClick={open}
           className="tap flex-shrink-0 rounded-pill border-[1.5px] border-line-card bg-paper px-3 py-1.5 text-[12.5px] font-bold text-ink-900"
         >
-          Corregir
+          {tr('roll.fix')}
         </button>
       </div>
     )
@@ -212,20 +217,20 @@ export function AttendanceSheet({
           <Icon name="clipboard-check" size={15} />
         </span>
         <div className="min-w-0">
-          <p className="font-display text-lg font-bold leading-tight text-ink-900">¿Quién vino?</p>
+          <p className="font-display text-lg font-bold leading-tight text-ink-900">{tr('event.rollcall.who')}</p>
           <p className="mt-1 text-[13px] leading-relaxed text-ink-700">
-            {total === 1 ? '1 dijo que venía' : `${total} dijeron que venían`}. Toca a quien no llegó, casi siempre no
-            es nadie.
+            {total === 1 ? tr('event.rollcall.cameOne') : tf('event.rollcall.cameMany', { n: total })}.{' '}
+            {tr('event.rollcall.tapAbsent')}
           </p>
         </div>
       </div>
       <div className="mt-3">
         <Button block onClick={open}>
-          Pasar lista
+          {tr('roll.take')}
         </Button>
       </div>
       <p className="mt-2.5 text-xs leading-relaxed text-ink-300">
-        Como quince segundos. Solo la ve quien organiza, y se puede corregir después.
+        {tr('roll.quick')}
       </p>
     </div>
   )

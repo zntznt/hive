@@ -8,6 +8,7 @@ import { type Point } from '@/components/ui/PinMap'
 import { addSavedPlace, updateSavedPlace, removeSavedPlace } from '@/app/actions'
 import { Icon } from '@/components/ui/Icon'
 import { Button } from '@/components/ui/Button'
+import { useT, useTf } from '@/components/ui/LangProvider'
 
 export type Place = { id: string; name: string; addr: string | null; query: string; lat: number | null; lng: number | null; area: string | null }
 
@@ -24,6 +25,8 @@ export type Place = { id: string; name: string; addr: string | null; query: stri
 // One form, used for both adding and editing, because they are the same four
 // fields and a second copy would be a second place for them to drift.
 export function SavedPlaces({ places }: { places: Place[] }) {
+  const tr = useT()
+  const tf = useTf()
   // null = the add form, an id = editing that row
   const [editing, setEditing] = useState<string | null>(null)
   const [key, setKey] = useState(0)
@@ -92,7 +95,7 @@ export function SavedPlaces({ places }: { places: Place[] }) {
                       the words, and that is worth knowing before somebody
                       drives to it. */}
                   {p.lat == null && (
-                    <span className="mt-0.5 block text-[11.5px] text-ink-300">Sin pin. El mapa lo busca por la dirección.</span>
+                    <span className="mt-0.5 block text-[11.5px] text-ink-300">{tr('account.place.noPin')}</span>
                   )}
                 </span>
               </span>
@@ -105,7 +108,7 @@ export function SavedPlaces({ places }: { places: Place[] }) {
                   Editar
                 </button>
                 <form action={removeSavedPlace.bind(null, p.id)}>
-                  <button className="tap text-[12.5px] font-bold text-ink-500">Quitar</button>
+                  <button className="tap text-[12.5px] font-bold text-ink-500">{tr('common.remove')}</button>
                 </form>
               </span>
             </div>
@@ -118,16 +121,16 @@ export function SavedPlaces({ places }: { places: Place[] }) {
           <p className="text-[12.5px] font-bold text-ink-700">Editando {target.name}</p>
         )}
         <Input
-          label="Nombre"
+          label={tr('account.place.name')}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Casa de Marta"
+          placeholder={tr('account.place.ph')}
           maxLength={60}
         />
         <LocationPicker
           key={key}
           name="addr"
-          label="Dirección"
+          label={tr('account.place.addr')}
           defaultValue={target?.addr ?? target?.query ?? ''}
           defaultPoint={target?.lat != null && target?.lng != null ? { lat: target.lat, lng: target.lng } : null}
           defaultArea={target?.area ?? null}
@@ -136,7 +139,7 @@ export function SavedPlaces({ places }: { places: Place[] }) {
         {error && <p className="rounded-md bg-danger-bg px-3 py-2 text-[12.5px] text-danger">{error}</p>}
         <div className="flex items-center gap-3">
           <Button size="sm" disabled={pending || !complete}>
-            {pending ? 'Guardando…' : target ? 'Guardar cambios' : 'Guardar lugar'}
+            {pending ? tr('common.saving') : target ? tr('form.saveChanges') : tr('account.place.save')}
           </Button>
           {target && (
             <button type="button" onClick={reset} className="tap text-[12.5px] font-bold text-ink-500">
@@ -144,14 +147,16 @@ export function SavedPlaces({ places }: { places: Place[] }) {
             </button>
           )}
           {!complete && !pending && (
-            <span className="text-[11.5px] text-ink-300">Faltan el nombre y la dirección.</span>
+            <span className="text-[11.5px] text-ink-300">{tr('account.place.missing')}</span>
           )}
         </div>
       </form>
 
       <p className="mt-2.5 text-xs text-ink-300">
-        Aparecen como <b className="text-ink-500">tus lugares</b> cuando pones el lugar de un evento que organizas, con
-        su pin.
+        {/* The bolded phrase is inside the sentence, and Spanish and English
+            put it in different places, so the whole sentence is one string with
+            a slot rather than three fragments glued together. */}
+        {tf('account.places.note', { yours: tr('account.place.yours') })}
       </p>
     </section>
   )

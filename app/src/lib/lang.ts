@@ -11,22 +11,23 @@
 // follows the toggle, which is a bug that only shows up for the second person
 // to use the app on that server.
 
+import { ES, EN } from './strings'
+
 export type Lang = 'es' | 'en'
 
 // Which languages the string table actually covers, end to end.
 //
-// The plumbing below is complete and English is written for the shell, but
-// most screens are still Spanish literals in JSX. Resolving an English phone
-// to English today gives translated chrome over Spanish content, which is the
-// precise thing whole-language fallback exists to prevent: an Italian phone
-// gets English, not an Italian shell with Spanish rows in it. A half-English
-// app is that bug wearing a different flag.
+// This is the gate the whole-language rule needs. A language listed here has
+// every screen written in it; a language not listed is never resolved to and
+// never offered, so nobody can land in a half-translated app. English sat
+// outside this list for one commit while the copy was written, and the first
+// screenshot after the harness was repaired is what showed why: a translated
+// tab bar over Spanish rows reads as a rendering fault, not a missing
+// translation.
 //
-// So Spanish is the only complete language and everything resolves to it.
-// Adding 'en' here is the last step of finishing the table, not the first: put
-// the strings in, then flip this, and the control and the resolution below
-// start offering it without another change.
-export const COMPLETE_LANGS: Lang[] = ['es']
+// Both are in now. Adding a third means writing every key in strings.ts for
+// it, and nothing else.
+export const COMPLETE_LANGS: Lang[] = ['es', 'en']
 
 // The language we will actually render in. A language we have not finished is
 // not a language we may pick.
@@ -39,83 +40,11 @@ function complete(lang: Lang): Lang {
 // missing from `en` returns the Spanish, which is visible and fixable, rather
 // than the key name, which looks like a crash.
 export const HIVE_STRINGS = {
-  es: {
-    'tab.clubs': 'Clubes',
-    'tab.events': 'Eventos',
-    'tab.home': 'Inicio',
-    'tab.plate': 'Pendientes',
-    'tab.you': 'Tú',
-
-    'account.title': 'Mi cuenta',
-    'account.lede': 'Tu bicho, cómo entras, cómo te avisamos y cómo te pagan.',
-    'account.group.you': 'Tú',
-    'account.group.signin': 'Cómo entras',
-    'account.group.notify': 'Cómo te avisa Hive',
-    'account.group.money': 'Cómo te pagan',
-    'account.group.places': 'Lugares donde puedes recibir',
-    'account.group.platform': 'Plataforma',
-    'account.signin.note': 'Entras con un enlace a tu correo o con un código por WhatsApp. No hay contraseñas.',
-    'account.email': 'Correo',
-    'account.email.none': 'sin correo',
-    'account.verified': 'verificado',
-    'account.name': 'Nombre visible',
-    'account.photo': 'O usa tu propia foto',
-    'account.photo.change': 'Cambiar foto',
-    'account.photo.back': 'Volver a tu bicho',
-    'account.bug.hint': 'Elige un bicho y un color para que el club te distinga a simple vista.',
-    'account.photo.hint': 'Tu foto se muestra en vez de tu bicho, con el mismo recorte hexagonal.',
-
-    'lang.label': 'Idioma',
-    'lang.auto': 'Sigue tu teléfono',
-    'lang.es': 'Español',
-    'lang.en': 'English',
-
-    'platform.door': 'Panel de administración',
-    'platform.meta': 'cuentas y entregas',
-
-    'saving': 'Guardando…',
-    'saved': 'Listo',
-  },
-  en: {
-    'tab.clubs': 'Clubs',
-    'tab.events': 'Events',
-    'tab.home': 'Home',
-    'tab.plate': 'Plate',
-    'tab.you': 'You',
-
-    'account.title': 'My account',
-    'account.lede': 'Your bug, how you get in, how we reach you and how you get paid.',
-    'account.group.you': 'You',
-    'account.group.signin': 'How you get in',
-    'account.group.notify': 'How Hive reaches you',
-    'account.group.money': 'How you get paid',
-    'account.group.places': 'Places you can host',
-    'account.group.platform': 'Platform',
-    'account.signin.note': 'You get in with a link to your email or a code on WhatsApp. No passwords.',
-    'account.email': 'Email',
-    'account.email.none': 'no email',
-    'account.verified': 'verified',
-    'account.name': 'Display name',
-    'account.photo': 'Or use your own photo',
-    'account.photo.change': 'Change photo',
-    'account.photo.back': 'Back to my bug',
-    'account.bug.hint': 'Pick a bug and a colour so the club can tell everyone apart at a glance.',
-    'account.photo.hint': 'Your photo shows instead of your bug, with the same hexagon crop.',
-
-    'lang.label': 'Language',
-    'lang.auto': 'Follow your phone',
-    'lang.es': 'Español',
-    'lang.en': 'English',
-
-    'platform.door': 'Admin panel',
-    'platform.meta': 'accounts and delivery',
-
-    'saving': 'Saving…',
-    'saved': 'Done',
-  },
+  es: ES,
+  en: EN,
 } as const
 
-export type StringKey = keyof (typeof HIVE_STRINGS)['es']
+export type StringKey = keyof typeof ES
 
 // Anything starting `es` is Spanish. Everything else is English, including
 // languages we do not have: whole-language fallback is the point.

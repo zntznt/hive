@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Icon } from '@/components/ui/Icon'
+import { useT } from '@/components/ui/LangProvider'
 
 // "Add it to your phone", which is the whole of the PWA story here: the app is
 // a column of screens people open between other things, and a home-screen icon
@@ -22,6 +23,7 @@ const DISMISSED = 'hive.install.dismissed'
 type Shown = { platform: 'none' | 'android' | 'ios'; dismissed: boolean }
 
 export function InstallPwa() {
+  const tr = useT()
   const [deferred, setDeferred] = useState<InstallEvent | null>(null)
   // starts hidden and only ever opens: whether to show this depends on
   // localStorage, the user agent and a Chrome event, none of which exist
@@ -84,7 +86,7 @@ export function InstallPwa() {
           <Icon name="mobile-screen-button" size={14} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="font-display text-base font-bold leading-tight text-ink-900">Ten Hive a la mano</p>
+          <p className="font-display text-base font-bold leading-tight text-ink-900">{tr('pwa.title')}</p>
           <p className="mt-1 text-[13px] leading-relaxed text-ink-700">
             Agrégalo a tu pantalla de inicio y se abre como cualquier otra app, sin buscar el enlace.
           </p>
@@ -92,7 +94,7 @@ export function InstallPwa() {
         <button
           type="button"
           onClick={hide}
-          aria-label="Ocultar"
+          aria-label={tr('pwa.hide')}
           className="tap -mr-1 -mt-1 grid h-8 w-8 flex-shrink-0 place-items-center rounded-sm text-ink-300"
         >
           <Icon name="xmark" size={12} />

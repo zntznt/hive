@@ -3,6 +3,7 @@
 import { useTransition } from 'react'
 import { setRsvp } from '@/app/actions'
 import { RSVP_OPTIONS } from '@/components/ui/RsvpToggle'
+import { useT } from '@/components/ui/LangProvider'
 
 // Answer an RSVP without leaving the plate.
 //
@@ -26,6 +27,7 @@ export function PlateRsvp({
   slug: string
   mine: 'in' | 'maybe' | 'out' | null
 }) {
+  const tr = useT()
   const [pending, startTransition] = useTransition()
 
   return (
@@ -40,7 +42,7 @@ export function PlateRsvp({
             mine === o.v ? 'bg-honey-500 text-charcoal' : 'border border-line-card bg-paper text-ink-700'
           }`}
         >
-          {o.l}
+          {tr(o.k)}
         </button>
       ))}
     </span>

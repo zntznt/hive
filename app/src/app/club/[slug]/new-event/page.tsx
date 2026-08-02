@@ -2,15 +2,17 @@ import { requireProfile } from '@/lib/gate'
 import EventForm from './event-form'
 import type { Place } from '@/components/ui/LocationPicker'
 import { AppBar } from '@/components/ui/AppBar'
+import { getT } from '@/lib/current-lang'
 
 export default async function NewEventPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { t: tr } = await getT()
   const { supabase, profile } = await requireProfile()
   const { slug } = await params
   const { data: club } = await supabase.from('clubs').select('*').eq('slug', slug).maybeSingle()
   if (!club) {
     return (
       <main className="mx-auto max-w-col px-4 pb-6 pt-5">
-        <p className="text-ink-700">Este club no existe o no eres miembro.</p>
+        <p className="text-ink-700">{tr('club.notMemberShort')}</p>
       </main>
     )
   }
@@ -37,7 +39,7 @@ export default async function NewEventPage({ params }: { params: Promise<{ slug:
 
   return (
     <>
-      <AppBar title="Nuevo evento" subtitle={club.name} subtitleHref={`/club/${slug}`} backHref={`/club/${slug}`} />
+      <AppBar title={tr('club.newEvent.title')} subtitle={club.name} subtitleHref={`/club/${slug}`} backHref={`/club/${slug}`} />
       <main className="mx-auto w-full max-w-col px-4 pb-6">
       <EventForm clubId={club.id} slug={slug} categories={categories ?? []} savedPlaces={yourPlaces} recentPlaces={recentPlaces} />
     </main>

@@ -4,16 +4,21 @@ import { ToastProvider } from "@/components/ui/Toast";
 import Chrome from "./chrome";
 import { LangProvider } from "@/components/ui/LangProvider";
 import { currentLang } from "@/lib/current-lang";
+import { t } from "@/lib/lang";
 
 // Nunito Sans + Baloo 2, self-hosted from public/fonts/ (see globals.css
 // @font-face). next/font/google needs a build-time fetch that isn't reliable
 // in this project's offline/CI build, so the woff2 files are vendored once
 // instead and referenced by CSS variable here.
 
-export const metadata: Metadata = {
+// The page description is copy, so it follows the language like everything
+// else. generateMetadata runs per request, which is what lets it.
+export async function generateMetadata(): Promise<Metadata> {
+  const lang = await currentLang()
+  return {
   title: "Hive · tu club, organizado",
   description:
-    "Eventos de club sin caos: fecha, confirmaciones, quién trae qué, gastos y encuestas en un solo enlace.",
+    t(lang, 'app.description'),
   manifest: "/assets/pwa/manifest.webmanifest",
   // iOS ignores the manifest for this, so the home-screen icon and the
   // standalone chrome have to be declared here as well. Without the
@@ -34,7 +39,8 @@ export const metadata: Metadata = {
   // which iOS only started reading in 16.4. Older iPhones need the prefixed
   // spelling, and standalone is what gates web push there, so both ship.
   other: { "apple-mobile-web-app-capable": "yes" },
-};
+  }
+}
 
 // honey-500 tints the Android status bar and the task-switcher card; paper is
 // the splash field, matching the app's own background so launching does not

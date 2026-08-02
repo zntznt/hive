@@ -5,6 +5,7 @@ import { signOut, requestAccountDeletion } from '@/app/actions'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Modal } from '@/components/ui/Modal'
+import { useT } from '@/components/ui/LangProvider'
 
 // Sign out is a simple no-arg action, always safe to bind straight to a form.
 // Account deletion redirects on success (requestAccountDeletion), so it must
@@ -12,27 +13,27 @@ import { Modal } from '@/components/ui/Modal'
 // redirect signal. The "type DELETE" guard keeps the throwing path
 // (mismatched confirm text) effectively unreachable instead.
 export default function DangerZone() {
+  const tr = useT()
   const [open, setOpen] = useState(false)
   const [confirmText, setConfirmText] = useState('')
 
   return (
     <div className="mt-[26px] rounded-lg border border-danger-bg bg-paper p-4">
       <div className="mb-2.5 text-xs font-bold uppercase tracking-wide text-danger">
-        Zona de riesgo
+        {tr('danger.zone')}
       </div>
       <div className="flex flex-wrap gap-2.5">
         <form action={signOut}>
           <Button type="submit" variant="secondary" size="sm">
-            Cerrar sesión
+            {tr('danger.signout')}
           </Button>
         </form>
         <Button type="button" variant="danger" size="sm" onClick={() => setOpen(true)}>
-          Eliminar cuenta
+          {tr('danger.delete')}
         </Button>
       </div>
       <p className="mt-2.5 text-xs text-ink-300">
-        Tu asistencia y gastos pasados se quedan en el historial de los clubes; tu perfil y tu
-        forma de entrar se eliminan.
+        {tr('danger.note')}
       </p>
 
       <Modal
@@ -41,8 +42,8 @@ export default function DangerZone() {
           setOpen(false)
           setConfirmText('')
         }}
-        title="¿Eliminar tu cuenta?"
-        subtitle="Esto no se puede deshacer"
+        title={tr('account.delete.confirm')}
+        subtitle={tr('account.irreversible')}
         footer={
           <>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
@@ -54,7 +55,7 @@ export default function DangerZone() {
               variant="danger"
               disabled={confirmText !== 'DELETE'}
             >
-              Eliminar cuenta
+              {tr('danger.delete')}
             </Button>
           </>
         }
@@ -66,7 +67,7 @@ export default function DangerZone() {
         </p>
         <form id="delete-account-form" action={requestAccountDeletion} className="mt-3.5">
           <Input
-            label="Escribe DELETE para confirmar"
+            label={tr('account.delete.type')}
             name="confirm"
             placeholder="DELETE"
             value={confirmText}

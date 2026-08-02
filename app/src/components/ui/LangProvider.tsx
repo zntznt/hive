@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, type ReactNode } from 'react'
-import { t as translate, type Lang, type StringKey } from '@/lib/lang'
+import { t as translate, tf as format, type Lang, type StringKey } from '@/lib/lang'
 
 // The resolved language, handed down from the server layout so client
 // components read the same answer the server rendered with. Asking
@@ -23,4 +23,12 @@ export function useLang(): Lang {
 export function useT(): (key: StringKey) => string {
   const lang = useContext(LangContext)
   return (key) => translate(lang, key)
+}
+
+// The same, for sentences with a value in them. Separate from useT because a
+// sentence with a slot and a bare label are different jobs and mixing their
+// signatures makes both read worse at the call site.
+export function useTf(): (key: StringKey, vals: Record<string, string | number>) => string {
+  const lang = useContext(LangContext)
+  return (key, vals) => format(lang, key, vals)
 }

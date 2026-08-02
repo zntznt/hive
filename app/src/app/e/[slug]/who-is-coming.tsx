@@ -21,7 +21,7 @@ export type Attendee = {
   mine: boolean
 }
 
-export function WhoIsComing({ people }: { people: Attendee[] }) {
+export function WhoIsComing({ people, youLabel }: { people: Attendee[]; youLabel: string }) {
   if (people.length === 0) return null
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -33,7 +33,7 @@ export function WhoIsComing({ people }: { people: Attendee[] }) {
           }`}
         >
           <UserAvatar user={p.user} size={22} />
-          {p.mine ? 'Tú' : p.name}
+          {p.mine ? youLabel : p.name}
           {p.plus > 0 && (
             <span className="rounded-pill bg-honey-500 px-1.5 text-[10.5px] font-extrabold text-charcoal">
               +{p.plus}

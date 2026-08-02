@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { savePaymentMethods } from '@/app/actions'
 import { useToast } from '@/components/ui/Toast'
 import { Button } from '@/components/ui/Button'
+import { useT } from '@/components/ui/LangProvider'
 import { Input, Select } from '@/components/ui/Input'
-import { PAYMENT_METHOD_OPTIONS } from '@/lib/payment-method-labels'
+import { PAYMENT_METHOD_KEYS, PAYMENT_METHOD_VALUES } from '@/lib/payment-method-labels'
 import { Icon } from '@/components/ui/Icon'
 
 export type PaymentMethod = {
@@ -20,6 +21,7 @@ type Row = { key: number; kind: string; value: string }
 // Repeatable {kind, value} rows, submitted as parallel arrays (method_kind[],
 // method_value[]) to savePaymentMethods, which replaces the user's full set.
 export default function PaymentMethodsForm({ methods }: { methods: PaymentMethod[] }) {
+  const tr = useT()
   const toast = useToast()
   const [rows, setRows] = useState<Row[]>(() =>
     methods.length ? methods.map((m, i) => ({ key: i, kind: m.kind, value: m.value })) : [{ key: 0, kind: 'bank_account', value: '' }]
@@ -63,7 +65,7 @@ export default function PaymentMethodsForm({ methods }: { methods: PaymentMethod
       if (res && !res.ok) setError(res.error)
       else toast('Listo')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo guardar.')
+      setError(e instanceof Error ? e.message : tr('common.notSaved'))
     } finally {
       setSaving(false)
     }
@@ -83,7 +85,7 @@ export default function PaymentMethodsForm({ methods }: { methods: PaymentMethod
                   setRows(next)
                   commit(next)
                 }}
-                options={PAYMENT_METHOD_OPTIONS}
+                options={PAYMENT_METHOD_VALUES.map((v) => ({ value: v, label: tr(PAYMENT_METHOD_KEYS[v]) }))}
               />
             </div>
             <div className="min-w-0 flex-1">
@@ -92,28 +94,27 @@ export default function PaymentMethodsForm({ methods }: { methods: PaymentMethod
                 value={row.value}
                 onChange={(e) => updateRow(row.key, { value: e.target.value })}
                 onBlur={() => commit()}
-                placeholder="Número, alias, nota…"
+                placeholder={tr('account.pay.ph')}
               />
             </div>
             <button
               type="button"
               onClick={() => removeRow(row.key)}
-              aria-label="Quitar forma de pago"
+              aria-label={tr('account.pay.remove')}
               className="tap mt-2.5 shrink-0 text-[12.5px] font-bold text-ink-500"
             >
-              Quitar
+              {tr('common.remove')}
             </button>
           </div>
         ))}
         <Button type="button" variant="ghost" size="sm" className="self-start" onClick={addRow}>
-          <Icon name="plus" size={10} /> Agregar forma de pago
+          <Icon name="plus" size={10} /> {tr('pay.add')}
         </Button>
         {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
         {saving && <p className="text-xs text-ink-300">Guardando…</p>}
       </form>
       <p className="mt-2.5 text-xs text-ink-300">
-        Esto es lo que ve quien te queda a deber, para saber cómo pagarte. Solo lo ven las
-        personas que comparten un club contigo.
+        {tr('pay.note')}
       </p>
     </section>
   )

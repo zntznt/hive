@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { ChevronDownIcon } from '@/components/ui/Icon'
 import { Badge } from '@/components/ui/Badge'
 import { updateNotificationTemplate, submitWhatsappTemplate, refreshWhatsappTemplates } from '@/app/actions'
+import { useT } from '@/components/ui/LangProvider'
+import type { StringKey } from '@/lib/lang'
 
 type Tpl = {
   channel: string
@@ -15,16 +17,19 @@ type Tpl = {
   wa_error?: string | null
 }
 
-const WA_LABEL: Record<string, { text: string; tone: 'active' | 'pending' | 'disabled' }> = {
-  pending: { text: 'en revisión', tone: 'pending' },
-  approved: { text: 'aprobada', tone: 'active' },
-  rejected: { text: 'rechazada', tone: 'disabled' },
-  paused: { text: 'pausada', tone: 'disabled' },
-  disabled: { text: 'desactivada', tone: 'disabled' },
+// Keys, not sentences: this is module-level, and copy in a module-level const
+// freezes whichever language loaded first.
+const WA_LABEL: Record<string, { key: StringKey; tone: 'active' | 'pending' | 'disabled' }> = {
+  pending: { key: 'admin.tpl.review', tone: 'pending' },
+  approved: { key: 'admin.tpl.approved', tone: 'active' },
+  rejected: { key: 'admin.tpl.rejected', tone: 'disabled' },
+  paused: { key: 'admin.tpl.paused', tone: 'disabled' },
+  disabled: { key: 'admin.tpl.disabled', tone: 'disabled' },
 }
 
 // Meta reviews asynchronously, so nothing here changes status on its own.
 export function TemplateSyncBar() {
+  const tr = useT()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   return (
@@ -38,7 +43,7 @@ export function TemplateSyncBar() {
           try {
             await refreshWhatsappTemplates()
           } catch (e) {
-            setError(e instanceof Error ? e.message : 'No se pudo actualizar.')
+            setError(e instanceof Error ? e.message : tr('common.notUpdated'))
           } finally {
             setBusy(false)
           }
@@ -53,6 +58,7 @@ export function TemplateSyncBar() {
 }
 
 export function TemplateRow({ tplKey, email, whatsapp }: { tplKey: string; email?: Tpl; whatsapp?: Tpl }) {
+  const tr = useT()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -72,9 +78,9 @@ export function TemplateRow({ tplKey, email, whatsapp }: { tplKey: string; email
         {whatsapp && (
           <span className="ml-auto flex-shrink-0">
             {badge ? (
-              <Badge tone={badge.tone}>{badge.text}</Badge>
+              <Badge tone={badge.tone}>{tr(badge.key)}</Badge>
             ) : (
-              <span className="text-[11px] font-bold text-ink-300">sin enviar a WhatsApp</span>
+              <span className="text-[11px] font-bold text-ink-300">{tr('admin.tpl.noWa')}</span>
             )}
           </span>
         )}
@@ -83,23 +89,23 @@ export function TemplateRow({ tplKey, email, whatsapp }: { tplKey: string; email
         <div className="grid grid-cols-1 gap-3 px-3.5 pb-3.5 pl-[31px] sm:grid-cols-2">
           {email && (
             <form action={updateNotificationTemplate.bind(null, 'email', tplKey)} className="flex flex-col gap-1.5">
-              <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-ink-300">Correo</span>
+              <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-ink-300">{tr('notif.email')}</span>
               <input
                 name="subject"
                 defaultValue={email.subject ?? ''}
-                placeholder="Asunto"
+                placeholder={tr('admin.tpl.subject')}
                 className="rounded-sm border border-line-input bg-paper p-1.5 text-xs text-ink-900"
               />
               <textarea name="body" defaultValue={email.body} rows={4} className="rounded-sm border border-line-input bg-paper p-1.5 text-xs text-ink-900" />
-              <button className="tap self-start text-xs font-bold text-honey-700">Guardar</button>
+              <button className="tap self-start text-xs font-bold text-honey-700">{tr('common.save')}</button>
             </form>
           )}
           {whatsapp && (
             <div className="flex flex-col gap-1.5">
               <form action={updateNotificationTemplate.bind(null, 'whatsapp', tplKey)} className="flex flex-col gap-1.5">
-                <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-ink-300">WhatsApp</span>
+                <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-ink-300">{tr('notif.whatsapp')}</span>
                 <textarea name="body" defaultValue={whatsapp.body} rows={4} className="rounded-sm border border-line-input bg-paper p-1.5 text-xs text-ink-900" />
-                <button className="tap self-start text-xs font-bold text-honey-700">Guardar</button>
+                <button className="tap self-start text-xs font-bold text-honey-700">{tr('common.save')}</button>
               </form>
 
               <p className="text-[11px] leading-snug text-ink-300">
@@ -120,14 +126,14 @@ export function TemplateRow({ tplKey, email, whatsapp }: { tplKey: string; email
                   try {
                     await submitWhatsappTemplate(tplKey)
                   } catch (e) {
-                    setError(e instanceof Error ? e.message : 'No se pudo enviar.')
+                    setError(e instanceof Error ? e.message : tr('common.notSent'))
                   } finally {
                     setBusy(false)
                   }
                 }}
                 className="tap self-start text-xs font-bold text-honey-700 disabled:opacity-50"
               >
-                {busy ? 'Enviando…' : status ? 'Volver a enviar a revisión' : 'Enviar a revisión'}
+                {busy ? 'Enviando…' : status ? tr('admin.tpl.resend') : tr('admin.tpl.send')}
               </button>
 
               {(error || whatsapp.wa_error) && (

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Icon, MapPinIcon } from './Icon'
 import { PinMap, type Point } from './PinMap'
+import { useT } from '@/components/ui/LangProvider'
 
 export type Place = { name: string; addr?: string; q?: string; lat?: number | null; lng?: number | null }
 
@@ -43,6 +44,7 @@ export function LocationPicker({
   // deciding whether "Guardar" is allowed yet
   onChange?: (v: { text: string; point: Point | null }) => void
 }) {
+  const tr = useT()
   const all = [...saved, ...recent]
   const initialPlace = all.find((p) => p.name === defaultValue) ?? (defaultValue ? { name: defaultValue } : null)
   const [value, setValue] = useState(defaultValue)
@@ -179,11 +181,11 @@ export function LocationPicker({
           {area}
         </span>
       )}
-      <span>Arrastra el pin o toca el mapa para moverlo. Aquí es a donde llega quien venga.</span>
+      <span>{tr('place.drag')}</span>
     </span>
   ) : (
     <span className="text-[11.5px] text-ink-300">
-      {locating ? 'Buscando la dirección…' : 'Toca el mapa para poner el pin exacto.'}
+      {locating ? tr('place.searching') : tr('place.tapMap')}
     </span>
   )
 
@@ -240,7 +242,7 @@ export function LocationPicker({
             movedByHand.current = false
           }}
           onFocus={() => setOpen(true)}
-          placeholder="Casa de… o una dirección"
+          placeholder={tr('place.ph')}
           className="flex-1 border-none bg-transparent py-[11px] text-sm text-ink-900 outline-none"
         />
       </div>
@@ -248,7 +250,7 @@ export function LocationPicker({
 
       {open && (savedMatches.length > 0 || recentMatches.length > 0) && (
         <div className="absolute inset-x-0 z-10 mt-1.5 overflow-hidden rounded-md border border-line-card bg-paper shadow-raised">
-          {savedMatches.length > 0 && <span className={groupLabel}>Tus lugares</span>}
+          {savedMatches.length > 0 && <span className={groupLabel}>{tr('place.yours')}</span>}
           {savedMatches.map((p, i) => (
             <button
               key={`s-${p.name}`}
@@ -265,7 +267,7 @@ export function LocationPicker({
               </span>
             </button>
           ))}
-          {recentMatches.length > 0 && <span className={groupLabel}>Recientes</span>}
+          {recentMatches.length > 0 && <span className={groupLabel}>{tr('place.recent')}</span>}
           {recentMatches.map((p, i) => (
             <button
               key={`r-${p.name}`}

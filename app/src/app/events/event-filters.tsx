@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { Icon } from '@/components/ui/Icon'
+import { useT, useTf } from '@/components/ui/LangProvider'
 
 // The href is computed on the server and carried here. A client component
 // cannot be handed a function to build one, and the URL is the filter state,
@@ -51,6 +52,8 @@ export function EventFilters({
   owedHref: string
 }) {
   const [open, setOpen] = useState(false)
+  const t = useT()
+  const tf = useTf()
 
   const on = groups.filter((g) => g.current !== g.none)
   const chipBase =
@@ -65,7 +68,7 @@ export function EventFilters({
           className={`${chipBase} border-line-card bg-paper text-ink-700`}
         >
           <Icon name="sliders" size={11} />
-          Filtros
+          {t('events.filters')}
         </button>
 
         {on.map((g) => {
@@ -75,7 +78,7 @@ export function EventFilters({
               key={g.key}
               href={g.clearHref}
               className={`${chipBase} border-honey-500 bg-honey-100 text-honey-800`}
-              aria-label={`Quitar filtro ${label}`}
+              aria-label={tf('events.filter.clear', { label })}
             >
               {label}
               <Icon name="xmark" size={10} />
@@ -87,16 +90,16 @@ export function EventFilters({
           <Link
             href={owedHref}
             className={`${chipBase} border-honey-500 bg-honey-100 text-honey-800`}
-            aria-label="Quitar filtro con dinero pendiente"
+            aria-label={tf('events.filter.clear', { label: t('events.filter.owedOnly') })}
           >
-            Con dinero pendiente
+            {t('events.filter.owedOnly')}
             <Icon name="xmark" size={10} />
           </Link>
         )}
       </div>
 
       {open && (
-        <Modal open onClose={() => setOpen(false)} title="Filtros">
+        <Modal open onClose={() => setOpen(false)} title={t('events.filters')}>
           <div className="flex flex-col gap-[18px]">
             {groups.map((g) => (
               <div key={g.key}>
@@ -123,7 +126,7 @@ export function EventFilters({
             ))}
 
             <div>
-              <span className="eyebrow mb-2 block">Dinero</span>
+              <span className="eyebrow mb-2 block">{t('events.filter.money')}</span>
               <Link
                 href={owedHref}
                 onClick={() => setOpen(false)}
@@ -132,7 +135,7 @@ export function EventFilters({
                   owedOnly ? 'border-honey-500 bg-honey-100 text-honey-800' : 'border-line-card bg-paper text-ink-700'
                 }`}
               >
-                Solo con dinero pendiente
+                {t('events.filter.owedOnly')}
               </Link>
             </div>
           </div>

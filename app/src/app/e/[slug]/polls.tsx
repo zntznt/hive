@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { PollOption } from '@/components/ui/PollOption'
 import { AddPollButton } from './poll-modal'
+import type { StringKey } from '@/lib/lang'
 
 type Option = { id: string; label: string; sort: number }
 type Vote = { option_id: string; user_id: string }
@@ -21,6 +22,7 @@ type Poll = {
 }
 
 type Props = {
+  tr: (k: StringKey) => string
   eventId: string
   slug: string
   myId: string
@@ -29,12 +31,13 @@ type Props = {
   polls: Poll[]
 }
 
-export default function Polls({ eventId, slug, myId, isOrganizer, nameOf, polls }: Props) {
+export default function Polls({
+  tr, eventId, slug, myId, isOrganizer, nameOf, polls }: Props) {
   return (
     <section className="mb-[26px]">
-      <SectionHeader action={<AddPollButton eventId={eventId} slug={slug} />}>Encuestas</SectionHeader>
+      <SectionHeader action={<AddPollButton eventId={eventId} slug={slug} />}>{tr('event.polls')}</SectionHeader>
 
-      {polls.length === 0 && <p className="mb-3 text-sm text-ink-500">Nadie ha preguntado nada todavía.</p>}
+      {polls.length === 0 && <p className="mb-3 text-sm text-ink-500">{tr('poll.empty')}</p>}
 
       <ul className="mb-4 flex flex-col gap-3">
         {polls.map((p) => {
@@ -54,8 +57,8 @@ export default function Polls({ eventId, slug, myId, isOrganizer, nameOf, polls 
                   <span className="font-bold text-ink-900">{p.question}</span>
                   <span className="flex flex-shrink-0 items-center gap-2 text-xs text-ink-300">
                     {nameOf.get(p.created_by) ?? '·'}
-                    {p.anonymous ? ' · anónima' : ''}
-                    {closed && <Badge>cerrada</Badge>}
+                    {p.anonymous ? ` · ${tr('poll.anon')}` : ''}
+                    {closed && <Badge>{tr('poll.closed')}</Badge>}
                     {isOrganizer && (
                       <form action={(closed ? reopenPoll : closePoll).bind(null, p.id, slug)}>
                         <button className="tap font-bold text-ink-500">{closed ? 'reabrir' : 'cerrar'}</button>
@@ -79,7 +82,7 @@ export default function Polls({ eventId, slug, myId, isOrganizer, nameOf, polls 
                           </form>
                           {isOrganizer && !applied && (
                             <form action={applyPollOption.bind(null, p.id, o.id, slug)}>
-                              <button className="tap flex-shrink-0 text-xs font-bold text-honey-700">elegir</button>
+                              <button className="tap flex-shrink-0 text-xs font-bold text-honey-700">{tr('poll.pick')}</button>
                             </form>
                           )}
                         </div>
@@ -88,8 +91,8 @@ export default function Polls({ eventId, slug, myId, isOrganizer, nameOf, polls 
                   })}
                 </ul>
 
-                {!showResults && <p className="mt-2 text-xs text-ink-300">Los resultados se ven cuando cierre la encuesta.</p>}
-                {p.applied_option_id && <p className="mt-2 text-xs text-ink-500">El voto sigue a la vista aunque se haya elegido una opción.</p>}
+                {!showResults && <p className="mt-2 text-xs text-ink-300">{tr('poll.hidden')}</p>}
+                {p.applied_option_id && <p className="mt-2 text-xs text-ink-500">{tr('poll.visible')}</p>}
               </Card>
             </li>
           )

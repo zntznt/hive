@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { savePushSubscription, removePushSubscription, sendTestPush } from '@/app/actions'
 import { useToast } from '@/components/ui/Toast'
 import { Badge } from '@/components/ui/Badge'
+import { useT, useTf } from '@/components/ui/LangProvider'
+import type { StringKey } from '@/lib/lang'
 
 // Avisos en este dispositivo.
 //
@@ -28,7 +30,10 @@ import { Badge } from '@/components/ui/Badge'
 // before correcting itself.
 type State = 'checking' | 'unsupported' | 'install' | 'default' | 'granted' | 'denied'
 
-function deviceLabel() {
+// Takes the translator rather than calling the hook: this is a plain function,
+// not a component, and a hook in here is a rules-of-hooks violation waiting to
+// fire on the first re-render.
+function deviceLabel(tr: (k: StringKey) => string, tf: (k: StringKey, v: Record<string, string | number>) => string) {
   const ua = navigator.userAgent
   const browser = /EdgiOS|Edg/.test(ua)
     ? 'Edge'
@@ -38,7 +43,7 @@ function deviceLabel() {
         ? 'Firefox'
         : /Safari/.test(ua)
           ? 'Safari'
-          : 'este navegador'
+          : tr('push.thisBrowser')
   const os = /iPhone|iPad|iPod/.test(ua)
     ? 'iPhone'
     : /Android/.test(ua)
@@ -47,8 +52,8 @@ function deviceLabel() {
         ? 'Mac'
         : /Windows/.test(ua)
           ? 'Windows'
-          : 'este equipo'
-  return `${browser} en ${os}`
+          : tr('account.thisDevice')
+  return tf('push.onDevice', { browser, os })
 }
 
 // The push service hands back the keys as ArrayBuffers; the server stores them
@@ -79,9 +84,11 @@ export function PushRow({
   // discovered here, and the matrix must not go and ask a second time.
   onState?: (s: { live: boolean; deviceName: string; reason: string | null }) => void
 }) {
+  const tr = useT()
+  const tf = useTf()
   const [state, setState] = useState<State>('checking')
   const [endpoint, setEndpoint] = useState<string | null>(null)
-  const [label, setLabel] = useState('este dispositivo')
+  const [label, setLabel] = useState(tr('account.thisDevice'))
   const [busy, setBusy] = useState(false)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -95,7 +102,7 @@ export function PushRow({
       const ua = navigator.userAgent
       // named before any of the early returns below, because every state says
       // the device out loud and the "other devices" line is filtered by it
-      if (!cancelled) setLabel(deviceLabel())
+      if (!cancelled) setLabel(deviceLabel(tr, tf))
       const isIos = /iPhone|iPad|iPod/.test(ua)
       const standalone =
         window.matchMedia('(display-mode: standalone)').matches ||
@@ -152,14 +159,14 @@ export function PushRow({
         endpoint: sub.endpoint,
         p256dh: b64(sub.getKey('p256dh')),
         auth: b64(sub.getKey('auth')),
-        deviceLabel: deviceLabel(),
+        deviceLabel: deviceLabel(tr, tf),
       })
       setEndpoint(sub.endpoint)
       setState('granted')
-      toast('Avisos activados en este dispositivo.')
+      toast(tr('push.turnedOn'))
       router.refresh()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudieron activar los avisos.')
+      setError(e instanceof Error ? e.message : tr('push.failOn'))
     } finally {
       setBusy(false)
     }
@@ -176,10 +183,10 @@ export function PushRow({
       await removePushSubscription(endpoint)
       setEndpoint(null)
       setState('default')
-      toast('Avisos apagados en este dispositivo.')
+      toast(tr('push.turnedOff'))
       router.refresh()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudieron apagar los avisos.')
+      setError(e instanceof Error ? e.message : tr('push.failOff'))
     } finally {
       setBusy(false)
     }
@@ -194,7 +201,7 @@ export function PushRow({
     })
   }
 
-  // "También activado en" is for the person's other phones, so it has to
+  // tr('push.alsoOn') is for the person's other phones, so it has to
   // exclude this one. Matching on endpoint alone is not enough: a browser can
   // drop its subscription on its own (storage cleared, the push service
   // rotating it) and leave the row on the server behind, and then this device
@@ -208,10 +215,10 @@ export function PushRow({
   const REASON: Record<string, string | null> = {
     checking: null,
     granted: null,
-    default: 'Los avisos están apagados en este dispositivo.',
-    denied: 'Este navegador está bloqueando los avisos en este dispositivo.',
-    install: 'En iPhone hay que agregar Hive a la pantalla de inicio antes de poder activar los avisos.',
-    unsupported: 'Este navegador no puede mostrar avisos.',
+    default: tr('push.off'),
+    denied: tr('push.denied'),
+    install: tr('push.install'),
+    unsupported: tr('push.unsupported'),
   }
   const reportedRef = useRef('')
   useEffect(() => {
@@ -231,9 +238,9 @@ export function PushRow({
     <div className="border-t border-line-divider px-[13px] py-[11px]">
       <div className="flex items-center justify-between gap-2.5">
         <span className="flex min-w-0 items-center gap-2">
-          <span className="truncate text-sm text-ink-900">Avisos en {label}</span>
-          {state === 'granted' && <Badge tone="success">activado</Badge>}
-          {state === 'denied' && <Badge tone="danger">bloqueado</Badge>}
+          <span className="truncate text-sm text-ink-900">{tf('push.alertsIn', { device: label })}</span>
+          {state === 'granted' && <Badge tone="success">{tr('push.on')}</Badge>}
+          {state === 'denied' && <Badge tone="danger">{tr('push.blocked')}</Badge>}
         </span>
         {state === 'granted' ? (
           <span className="flex flex-shrink-0 gap-2">
@@ -246,25 +253,25 @@ export function PushRow({
           </span>
         ) : state === 'default' ? (
           <button type="button" onClick={enable} disabled={busy} className={pill}>
-            {busy ? 'Activando…' : 'Activar'}
+            {busy ? tr('push.turningOn') : tr('push.enable')}
           </button>
         ) : null}
       </div>
 
       <p className="mt-1.5 text-[11.5px] leading-relaxed text-ink-300">
         {state === 'granted' ? (
-          <>Los avisos llegan a este navegador. Es por dispositivo: en tu otro teléfono hay que activarlos aparte.</>
+          <>{tr('push.working')}</>
         ) : state === 'default' ? (
-          <>Un aviso en la pantalla cuando pasa algo, sin abrir la app. Solo en este navegador.</>
+          <>{tr('push.what')}</>
         ) : state === 'install' ? (
           <>
             En iPhone hay que agregar Hive a la pantalla de inicio antes de poder activar los avisos. Toca Compartir y
             luego &quot;Agregar a inicio&quot;.
           </>
         ) : state === 'denied' ? (
-          <>Este navegador los tiene bloqueados. Sigue los pasos de abajo para desbloquearlos.</>
+          <>{tr('push.blocked.help')}</>
         ) : state === 'unsupported' ? (
-          <>Este navegador no admite avisos. Te seguimos avisando por correo y WhatsApp.</>
+          <>{tr('push.unsupported.note')}</>
         ) : (
           // 'checking': the line keeps its height so the rows under it do not
           // jump when the answer arrives a frame later
@@ -277,11 +284,11 @@ export function PushRow({
           steps differ per browser. */}
       {state === 'denied' && (
         <ol className="mt-2.5 flex flex-col gap-1.5 rounded-md bg-cream-sunk px-3.5 py-3 text-xs leading-relaxed text-ink-700">
-          <li>1. Toca el candado o los tres puntos junto a la dirección.</li>
-          <li>2. Busca Notificaciones y cámbialo a Permitir.</li>
-          <li>3. Vuelve aquí y recarga la página.</li>
+          <li>{tr('push.step1')}</li>
+          <li>{tr('push.step2')}</li>
+          <li>{tr('push.step3')}</li>
           <li className="text-ink-300">
-            Mientras tanto no se pierde nada: los avisos te siguen llegando por correo y WhatsApp.
+            {tr('push.meanwhile')}
           </li>
         </ol>
       )}

@@ -3,11 +3,13 @@
 import { useState, useTransition } from 'react'
 import { resendInvitation } from '@/app/actions'
 import { useToast } from '@/components/ui/Toast'
+import { useT } from '@/components/ui/LangProvider'
 
 // Same token, same link, so an invitation sitting twice in someone's inbox
 // still leads to one account. Goes quiet after a send rather than staying
 // tappable, since the useful thing to do next is wait, not send again.
 export default function ResendButton({ invitationId, path }: { invitationId: string; path: string }) {
+  const tr = useT()
   const toast = useToast()
   const [sent, setSent] = useState(false)
   const [pending, startTransition] = useTransition()
@@ -23,7 +25,7 @@ export default function ResendButton({ invitationId, path }: { invitationId: str
           const res = await resendInvitation(invitationId, path)
           if (res.ok) {
             setSent(true)
-            toast('Invitación reenviada')
+            toast(tr('inv.resent'))
           } else {
             toast(res.error)
           }

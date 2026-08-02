@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Icon } from '@/components/ui/Icon'
+import { useT } from '@/components/ui/LangProvider'
 
 // Google takes a URL, everything else takes a file. Apple, Outlook and the
 // stock Android calendars all read .ics, so one download covers them without
@@ -46,6 +47,7 @@ export default function AddToCalendar({
   // than read off window and differing between render and hydration
   eventUrl: string
 }) {
+  const tr = useT()
   const [open, setOpen] = useState(false)
   const end = endIso ?? new Date(new Date(startIso).getTime() + 3 * 3600_000).toISOString()
   const details = [clubName, eventUrl].filter(Boolean).join(' · ')
@@ -59,7 +61,7 @@ export default function AddToCalendar({
         className="inline-flex min-h-11 items-center gap-2 rounded-md border-[1.5px] border-line-input bg-paper px-3.5 text-[13px] font-bold text-ink-700"
       >
         <Icon name="calendar-plus" size={13} className="text-honey-700" />
-        Agregar a tu calendario
+        {tr('cal.add')}
       </button>
 
       {open && (
@@ -74,7 +76,7 @@ export default function AddToCalendar({
               className="min-h-11 flex items-center gap-[11px] rounded-sm px-2.5 text-[13.5px] font-semibold text-ink-700"
             >
               <Icon name="google" size={13} className="text-ink-300" />
-              Google Calendar
+              {tr('cal.google')}
             </a>
             <a
               href={`/e/${slug}/calendar.ics`}
@@ -82,7 +84,7 @@ export default function AddToCalendar({
               className="min-h-11 flex items-center gap-[11px] rounded-sm px-2.5 text-[13.5px] font-semibold text-ink-700"
             >
               <Icon name="apple" size={13} className="text-ink-300" />
-              Apple, Outlook y otros
+              {tr('cal.other')}
             </a>
           </div>
         </>

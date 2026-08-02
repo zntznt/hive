@@ -1,4 +1,7 @@
+'use client'
+
 import { type InputHTMLAttributes, type TextareaHTMLAttributes, type SelectHTMLAttributes, type ReactNode } from 'react'
+import { useT } from '@/components/ui/LangProvider'
 
 type FieldChrome = {
   label?: string
@@ -129,11 +132,12 @@ export function EmojiField({
   placeholder?: string
   name?: string
 }) {
+  const tr = useT()
   return (
     <span
       className="relative grid place-items-center rounded-md border-[1.5px] border-line-input bg-paper"
       style={{ width: size, height: size }}
-      title="Usa el emoji de tu teclado"
+      title="{tr('ui.emoji.hint')}"
     >
       <input
         name={name}

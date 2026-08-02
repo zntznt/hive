@@ -7,6 +7,7 @@ import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Icon } from '@/components/ui/Icon'
 import { timeAgo } from '@/lib/relative-time'
+import { useT, useLang } from '@/components/ui/LangProvider'
 
 export type Comment = {
   id: string
@@ -37,6 +38,8 @@ export default function Thread({
   isOrganizer: boolean
   comments: Comment[]
 }) {
+  const lang = useLang()
+  const tr = useT()
   const [pending, startTransition] = useTransition()
   const [body, setBody] = useState('')
   const box = useRef<HTMLTextAreaElement>(null)
@@ -57,7 +60,7 @@ export default function Thread({
 
   return (
     <section className="mb-[26px]">
-      <SectionHeader>Conversación{comments.length ? ` · ${comments.length}` : ''}</SectionHeader>
+      <SectionHeader>{tr('event.thread')}{comments.length ? ` · ${comments.length}` : ''}</SectionHeader>
 
       {comments.length > 0 && (
         <ul className="mb-2.5 flex flex-col gap-2">
@@ -67,7 +70,7 @@ export default function Thread({
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-2">
                   <span className="text-[13px] font-bold text-ink-900">{c.user.display_name}</span>
-                  <span className="text-[11.5px] text-ink-300">{timeAgo(c.created_at)}</span>
+                  <span className="text-[11.5px] text-ink-300">{timeAgo(c.created_at, lang)}</span>
                 </div>
                 <p className="whitespace-pre-wrap break-words text-[13.5px] leading-relaxed text-ink-700">
                   {c.body}
@@ -76,7 +79,7 @@ export default function Thread({
               {(c.user_id === myId || isOrganizer) && (
                 <button
                   type="button"
-                  aria-label="Borrar"
+                  aria-label={tr('thread.delete')}
                   disabled={pending}
                   onClick={() =>
                     startTransition(async () => {
@@ -101,14 +104,14 @@ export default function Thread({
           value={body}
           onChange={(e) => setBody(e.target.value)}
           maxLength={2000}
-          placeholder="Escribe algo para el grupo…"
+          placeholder={tr('thread.ph')}
           className="min-h-11 flex-1 resize-none rounded-md border-[1.5px] border-line-input bg-paper px-3.5 py-2.5 text-[13.5px] text-ink-900 outline-none placeholder:text-ink-300 focus:border-honey-500"
         />
         <button
           type="button"
           onClick={send}
           disabled={pending || !body.trim()}
-          aria-label="Enviar"
+          aria-label={tr('thread.send')}
           className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-md bg-honey-500 text-charcoal shadow-lip disabled:opacity-40"
         >
           <Icon name="paper-plane" size={14} />

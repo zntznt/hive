@@ -5,11 +5,12 @@ import { suggestTransfers, netOfPending } from '@/lib/settle'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Card } from '@/components/ui/Card'
 import { BalanceRow } from '@/components/ui/BalanceRow'
-import { PAYMENT_METHOD_LABELS } from '@/lib/payment-method-labels'
+import { PAYMENT_METHOD_KEYS } from '@/lib/payment-method-labels'
 import { SettleUpFlow, ConfirmPaymentModal } from '@/components/settle-up'
 import { AddExpenseButton, EditExpenseButton } from './expense-modal'
 import { PayStrip } from './pay-strip'
 import type { PaymentMethod } from '@/app/account/payment-methods-form'
+import { getT } from '@/lib/current-lang'
 
 type Expense = { id: string; payer_user_id: string; amount_cents: number; note: string }
 type Balance = { user_id: string; paid_cents: number; owed_cents: number; net_cents: number }
@@ -50,6 +51,7 @@ export default async function Expenses({
   balances,
   settlements,
 }: Props) {
+  const { t: tr, tf } = await getT()
   const total = expenses.reduce((s, e) => s + e.amount_cents, 0)
   const pending = settlements.filter((s) => !s.confirmed)
   const nets = netOfPending(balances, settlements, (id) => nameOf.get(id) ?? '·')
@@ -92,16 +94,16 @@ export default async function Expenses({
           </span>
         }
       >
-        Gastos
+        {tr('money.expenses')}
       </SectionHeader>
 
-      {expenses.length === 0 && <p className="mb-2 text-sm text-ink-500">Sin gastos todavía.</p>}
+      {expenses.length === 0 && <p className="mb-2 text-sm text-ink-500">{tr('event.noExpenses')}</p>}
       <ul className="mb-3 flex flex-col gap-1.5">
         {expenses.map((e) => (
           <li key={e.id}>
             <Card pad="sm" className="flex items-center justify-between gap-2 text-sm">
               <span className="min-w-0 truncate text-ink-900">
-                {e.note} <span className="text-ink-300">· pagó {nameOf.get(e.payer_user_id) ?? '·'}</span>
+                {e.note} <span className="text-ink-300">{tf('money.paidBy', { name: nameOf.get(e.payer_user_id) ?? '·' })}</span>
               </span>
               <span className="flex flex-shrink-0 items-center gap-2.5">
                 <span className="font-bold text-ink-900">{fmtMoney(e.amount_cents)}</span>
@@ -124,14 +126,14 @@ export default async function Expenses({
             action={
               stillOut > 0 ? (
                 <span className="text-[12.5px] text-ink-300">
-                  {fmtMoney(stillOut)} entre {owing} {owing === 1 ? 'persona' : 'personas'}
+                  {owing === 1 ? tf('money.betweenOne', { amount: fmtMoney(stillOut) }) : tf('money.betweenMany', { amount: fmtMoney(stillOut), n: owing })}
                 </span>
               ) : (
-                <span className="text-[12.5px] text-ink-300">a mano</span>
+                <span className="text-[12.5px] text-ink-300">{tr('event.byHand')}</span>
               )
             }
           >
-            Balances
+            {tr('money.balances')}
           </SectionHeader>
           <ul className="mb-3 flex flex-col gap-1.5">
             {nets
@@ -147,7 +149,7 @@ export default async function Expenses({
 
       {suggestions.length > 0 && (
         <>
-          <SectionHeader>Liquidar</SectionHeader>
+          <SectionHeader>{tr('event.settle')}</SectionHeader>
           <ul className="mb-3 flex flex-col gap-1.5">
             {suggestions.map((t, i) => (
               <li key={i}>
@@ -165,7 +167,7 @@ export default async function Expenses({
                       amountCents={t.amount_cents}
                       toPaymentMethods={methodsFor(t.to.user_id)}
                     >
-                      Pagar
+                      {tr('event.pay')}
                     </SettleUpFlow>
                   )}
                 </Card>
@@ -189,14 +191,14 @@ export default async function Expenses({
 
       {pending.length > 0 && (
         <>
-          <SectionHeader>Pagos por confirmar</SectionHeader>
+          <SectionHeader>{tr('event.toConfirm')}</SectionHeader>
           <ul className="flex flex-col gap-1.5">
             {pending.map((s) => (
               <li key={s.id}>
                 <Card pad="sm" className="flex items-center justify-between border-honey-200 bg-honey-50 text-sm">
                   <span className="text-ink-700">
-                    {nameOf.get(s.from_user) ?? '·'} dice que pagó {fmtMoney(s.amount_cents)} a {nameOf.get(s.to_user) ?? '·'}
-                    {s.method && <span className="text-ink-500"> · {PAYMENT_METHOD_LABELS[s.method] ?? s.method}</span>}
+                    {tf('money.saysPaid', { from: nameOf.get(s.from_user) ?? '·', amount: fmtMoney(s.amount_cents), to: nameOf.get(s.to_user) ?? '·' })}
+                    {s.method && <span className="text-ink-500"> · {(PAYMENT_METHOD_KEYS[s.method] ? tr(PAYMENT_METHOD_KEYS[s.method]) : s.method)}</span>}
                   </span>
                   {s.to_user === myId ? (
                     <ConfirmPaymentModal
@@ -207,12 +209,12 @@ export default async function Expenses({
                       method={s.method}
                       proofSignedUrl={proofFor.get(s.id) ?? null}
                     >
-                      Confirmar
+                      {tr('common.confirm')}
                     </ConfirmPaymentModal>
                   ) : (
                     (s.from_user === myId || isOrganizer) && (
                       <form action={deleteSettlement.bind(null, s.id, slug)}>
-                        <button className="tap text-xs font-bold text-ink-500">retirar</button>
+                        <button className="tap text-xs font-bold text-ink-500">{tr('event.withdraw')}</button>
                       </form>
                     )
                   )}

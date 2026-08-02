@@ -26,18 +26,22 @@ import { isEventDay, fmtSpan, fmtWeekdayDay, fmtDayMonth } from '@/lib/time'
 import { mapEmbedUrl } from '@/lib/place'
 import { SummaryRow, DoorGroup } from '@/components/ui/Density'
 import { siteUrl } from '@/lib/site-url'
+import { getT } from '@/lib/current-lang'
+import type { Lang, StringKey } from '@/lib/lang'
 
 type Category = { id: string; name: string; emoji: string | null }
 type Link_ = { label: string; url: string }
 
-const CHANGE_KIND_LABEL: Record<string, string> = {
-  about: 'Acerca de',
-  category_add: 'Nueva categoría',
-  category_edit: 'Editar categoría',
-  category_delete: 'Eliminar categoría',
-  banner: 'Portada',
-  avatar: 'Foto del club',
-  member_removal: 'Quitar miembro',
+// Keys, not sentences: a module-level const holding copy freezes whichever
+// language rendered first on that server.
+const CHANGE_KIND_KEY: Record<string, StringKey> = {
+  about: 'club.change.about',
+  category_add: 'club.change.category_add',
+  category_edit: 'club.change.category_edit',
+  category_delete: 'club.change.category_delete',
+  banner: 'club.change.banner',
+  avatar: 'club.change.avatar',
+  member_removal: 'club.change.member_removal',
 }
 
 export default async function ClubPage({
@@ -48,6 +52,7 @@ export default async function ClubPage({
   searchParams: Promise<{ cat?: string }>
 }) {
   const { supabase, profile } = await requireProfile()
+  const { t , lang } = await getT()
   const { slug } = await params
   const { cat } = await searchParams
 
@@ -55,7 +60,7 @@ export default async function ClubPage({
   if (!club) {
     return (
       <main className="mx-auto max-w-col px-4 pb-6 pt-5">
-        <p className="text-ink-700">Este club no existe o todavía no eres miembro. Pide el enlace de invitación.</p>
+        <p className="text-ink-700">{t('club.notMember')}</p>
       </main>
     )
   }
@@ -237,7 +242,7 @@ export default async function ClubPage({
 
       <nav className="mb-4 flex flex-wrap items-center gap-1.5">
         <Link href={`/club/${slug}`}>
-          <Chip active={!cat}>Todos</Chip>
+          <Chip active={!cat}>{t('club.allCategories')}</Chip>
         </Link>
         {categories.map((c) => (
           <span key={c.id} className="inline-flex items-center">
@@ -268,7 +273,7 @@ export default async function ClubPage({
           Próximos
         </SectionHeader>
         {upcoming.length === 0 ? (
-          <EmptyState icon="calendar-days" title="Nada en esta categoría todavía." hint={isManager ? 'Empieza algo.' : 'Vuelve pronto.'} />
+          <EmptyState icon="calendar-days" title={t('club.emptyCategory')} hint={isManager ? 'Empieza algo.' : 'Vuelve pronto.'} />
         ) : (
           <div className="flex flex-col gap-2">
             {/* Rule 9. Today is a card; a week out is a row. Five upcoming
@@ -276,7 +281,7 @@ export default async function ClubPage({
                 which flattens tonight into next month. */}
             {upcoming.map((e) =>
               isEventDay(e) ? (
-                <EvCard
+                <EvCard t={t} lang={lang}
                   key={e.id}
                   e={e}
                   catName={catName(e.category_id)}
@@ -286,7 +291,7 @@ export default async function ClubPage({
                   today
                 />
               ) : (
-                <EvRow key={e.id} e={e} counts={rsvpCountsByEvent.get(e.id)} mine={myRsvpByEvent.get(e.id) ?? null} />
+                <EvRow t={t} lang={lang} key={e.id} e={e} counts={rsvpCountsByEvent.get(e.id)} mine={myRsvpByEvent.get(e.id) ?? null} />
               )
             )}
           </div>
@@ -304,20 +309,20 @@ export default async function ClubPage({
               const requester = r.users as unknown as { display_name: string } | null
               const payload = r.payload as Record<string, string>
               // member_removal carries only a uuid, so without the name on the
-              // payload this row read "Quitar miembro" and named nobody
+              // payload this row read t('club.removeMember') and named nobody
               const summary =
                 r.kind === 'member_removal'
                   ? `a ${payload?.display_name || memberName.get(payload?.user_id ?? '') || 'alguien sin nombre'}`
                   : payload?.name
                     ? `"${payload.name}"`
                     : payload?.description
-                      ? 'editar descripción y enlaces'
-                      : CHANGE_KIND_LABEL[r.kind] ?? r.kind
+                      ? t('club.about.editLink')
+                      : (CHANGE_KIND_KEY[r.kind] ? t(CHANGE_KIND_KEY[r.kind]) : r.kind)
               return (
                 <Card key={r.id} pad="sm" className="border-honey-200 bg-honey-50">
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <span className="min-w-0 text-sm font-bold text-ink-900">
-                      {CHANGE_KIND_LABEL[r.kind] ?? r.kind} · {requester?.display_name ?? '·'}
+                      {(CHANGE_KIND_KEY[r.kind] ? t(CHANGE_KIND_KEY[r.kind]) : r.kind)} · {requester?.display_name ?? '·'}
                     </span>
                     {isAdmin ? null : (
                       <span className="flex flex-shrink-0 items-center gap-1.5 rounded-pill bg-honey-100 px-[11px] py-[5px] text-[11px] font-bold text-honey-800">
@@ -329,10 +334,10 @@ export default async function ClubPage({
                   {isAdmin && (
                     <div className="flex gap-2">
                       <form action={decideChangeRequest.bind(null, r.id, slug, false)}>
-                        <button className="tap text-[12.5px] font-bold text-ink-500">Rechazar</button>
+                        <button className="tap text-[12.5px] font-bold text-ink-500">{t('club.decline')}</button>
                       </form>
                       <form action={decideChangeRequest.bind(null, r.id, slug, true)}>
-                        <Button size="sm">Aprobar</Button>
+                        <Button size="sm">{t('club.approve')}</Button>
                       </form>
                     </div>
                   )}
@@ -351,7 +356,7 @@ export default async function ClubPage({
           <SummaryRow
             icon="clipboard"
             label={`${(joinReqs ?? []).length} ${(joinReqs ?? []).length === 1 ? 'persona quiere entrar' : 'personas quieren entrar'}`}
-            meta="en revisión"
+            meta={t('club.underReview')}
             tone="hot"
             faces={(joinReqs ?? []).map((r) => (r.users as unknown as AvatarUser | null) ?? { display_name: '·' })}
             href="/admin"
@@ -377,10 +382,10 @@ export default async function ClubPage({
                   {isAdmin ? (
                     <span className="flex flex-shrink-0 gap-2">
                       <form action={decideJoinRequest.bind(null, r.id, slug, false)}>
-                        <button className="tap text-[12.5px] font-bold text-ink-500">Rechazar</button>
+                        <button className="tap text-[12.5px] font-bold text-ink-500">{t('club.decline')}</button>
                       </form>
                       <form action={decideJoinRequest.bind(null, r.id, slug, true)}>
-                        <Button size="sm">Aprobar</Button>
+                        <Button size="sm">{t('club.approve')}</Button>
                       </form>
                     </span>
                   ) : (
@@ -433,9 +438,9 @@ export default async function ClubPage({
       {/* Above the history on purpose: it is the one thing on this page that
           keeps working after you close the app. */}
       <CollapsibleSection
-        label="Suscribirme"
+        label={t('club.subscribe')}
         icon="calendar-days"
-        summary="cada evento, en tu calendario"
+        summary={t('club.cal.every')}
         className="mb-[26px]"
       >
         <CalendarSubscribe
@@ -483,7 +488,7 @@ export default async function ClubPage({
                     </span>
                   )}
                   <span className="ml-auto flex-shrink-0 text-[12px] text-ink-300">
-                    {e.chosen_start ? fmtDayMonth(e.chosen_start) : 'sin fecha'}
+                    {e.chosen_start ? fmtDayMonth(e.chosen_start, lang) : 'sin fecha'}
                   </span>
                 </Link>
               )
@@ -495,10 +500,10 @@ export default async function ClubPage({
       {/* Rule 7. The club's settings and its roster were sections of this
           page, indistinguishable from the things people come here for. They
           are doors, and they say so once, under a line. */}
-      <DoorGroup label="El club">
+      <DoorGroup label={t('club.the')}>
         <SummaryRow
           icon="users"
-          label="Miembros"
+          label={t('club.members')}
           meta={<FaceStack people={rosterFaces} total={(roster ?? []).length} size={20} max={5} />}
           href={`/club/${slug}/members`}
         />
@@ -527,10 +532,14 @@ export default async function ClubPage({
 // Cancelled keeps its struck title and its badge, but stops taking card space:
 // it is history, and history is a row.
 function EvRow({
+  lang,
+  t,
   e,
   counts,
   mine,
 }: {
+  lang: Lang
+  t: (k: StringKey) => string
   e: EventRow
   counts: { going: number; maybe: number; answered: boolean } | undefined
   mine: MyRsvp
@@ -548,12 +557,12 @@ function EvRow({
           {e.title}
         </span>
         <span className="mt-0.5 block truncate text-[12px] text-ink-500">
-          {e.location ?? 'sin lugar'}
-          {counts?.answered ? ` · ${attendanceLine(counts.going, mine, true)}` : ''}
+          {e.location ?? t('events.noPlace')}
+          {counts?.answered ? ` · ${attendanceLine(counts.going, mine, true, lang)}` : ''}
         </span>
       </span>
       {cancelled ? (
-        <Badge tone="disabled">cancelado</Badge>
+        <Badge tone="disabled">{t('event.cancelled')}</Badge>
       ) : (
         <WhenPill at={e.status === 'scheduling' ? null : e.chosen_start} status={e.status} />
       )}
@@ -563,6 +572,8 @@ function EvRow({
 }
 
 function EvCard({
+  lang,
+  t,
   e,
   catName,
   counts,
@@ -570,6 +581,8 @@ function EvCard({
   mine,
   today = false,
 }: {
+  lang: Lang
+  t: (k: StringKey) => string
   e: EventRow
   catName: string | undefined
   counts: { going: number; maybe: number; answered: boolean } | undefined
@@ -612,11 +625,11 @@ function EvCard({
             <MapPinIcon />
           </span>
           <span className={`min-w-0 font-extrabold text-ink-900 ${hot ? 'text-[15px]' : 'text-sm'}`}>
-            {e.location || 'sin lugar'}
+            {e.location || t('events.noPlace')}
           </span>
         </span>
         {cancelled ? (
-          <Badge tone="disabled">cancelado</Badge>
+          <Badge tone="disabled">{t('event.cancelled')}</Badge>
         ) : hot ? (
           // On the day the pill carries the hours and the badge below carries
           // the day, because "Hoy 20:00" in one pill leaves nowhere to say
@@ -637,11 +650,11 @@ function EvCard({
             <span className="flex-shrink-0 rounded-pill bg-honey-500 px-2.5 py-[3px] text-[11px] font-extrabold text-charcoal">
               Hoy
             </span>
-            <span className="flex-shrink-0">{fmtWeekdayDay(e.chosen_start)}</span>
+            <span className="flex-shrink-0">{fmtWeekdayDay(e.chosen_start, lang)}</span>
           </>
         )}
         <FaceStack people={faces} total={counts?.going} size={22} max={5} />
-        <span className="min-w-0 truncate">{attendanceLine(counts?.going ?? 0, mine, counts?.answered ?? false)}</span>
+        <span className="min-w-0 truncate">{attendanceLine(counts?.going ?? 0, mine, counts?.answered ?? false, lang)}</span>
       </div>
     </Link>
   )

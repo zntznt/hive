@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
+import { useT } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
 import { Icon } from '@/components/ui/Icon'
 import { useToast } from '@/components/ui/Toast'
@@ -33,6 +34,7 @@ export function CalendarSubscribe({
   feedUrl: string
   isAdmin: boolean
 }) {
+  const tr = useT()
   const [confirming, setConfirming] = useState(false)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -48,7 +50,7 @@ export function CalendarSubscribe({
       await navigator.clipboard.writeText(httpUrl)
       toast('Enlace copiado.')
     } catch {
-      toast('No se pudo copiar. Mantén presionado el enlace.')
+      toast(tr('club.cal.copyFailed'))
     }
   }
 
@@ -58,10 +60,10 @@ export function CalendarSubscribe({
       try {
         await rotateClubCalendarToken(clubId, slug)
         setConfirming(false)
-        toast('Enlace nuevo. El anterior dejó de funcionar.')
+        toast(tr('club.cal.newLink'))
         router.refresh()
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'No se pudo cambiar el enlace.')
+        setError(e instanceof Error ? e.message : tr('club.cal.changeFailed'))
       }
     })
   }
@@ -129,8 +131,8 @@ export function CalendarSubscribe({
         <Modal
           open
           onClose={() => setConfirming(false)}
-          title="¿Cambiar el enlace del calendario?"
-          subtitle="Quien ya se suscribió tendrá que agregarlo otra vez"
+          title={tr('club.cal.regen')}
+          subtitle={tr('club.cal.regen.warn')}
           footer={
             <>
               <Button variant="ghost" onClick={() => setConfirming(false)}>

@@ -1,6 +1,7 @@
+import { cache } from 'react'
 import { headers } from 'next/headers'
 import { supabaseServer } from './supabase/server'
-import { resolveLang, type Lang } from './lang'
+import { resolveLang, t as translate, tf as format, type Lang, type StringKey } from './lang'
 
 // The language for this request, for server components.
 //
@@ -10,7 +11,10 @@ import { resolveLang, type Lang } from './lang'
 //
 // A signed-out visitor has no override to read, and the sign-in screen is
 // exactly where following the phone matters most.
-export async function currentLang(): Promise<Lang> {
+// cache() dedupes this for the length of one request. Every server component
+// that prints a word asks for the language, and without this each one would
+// cost its own claim check and its own select.
+export const currentLang = cache(async function currentLang(): Promise<Lang> {
   const accept = (await headers()).get('accept-language')
   try {
     const supabase = await supabaseServer()
@@ -28,4 +32,12 @@ export async function currentLang(): Promise<Lang> {
     // Auth being unreachable is not a reason to render nothing.
     return resolveLang(null, accept)
   }
-}
+})
+
+// The language and a bound translator, for server components. `const { t } =
+// await getT()` reads better at the call site than threading `lang` through
+// every string, and the language is still there for anything that needs it.
+export const getT = cache(async function getT() {
+  const lang = await currentLang()
+  return { lang, t: (key: StringKey) => translate(lang, key), tf: (key: StringKey, vals: Record<string, string | number>) => format(lang, key, vals) }
+})

@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { Icon } from '@/components/ui/Icon'
+import { useT } from '@/components/ui/LangProvider'
+import type { StringKey } from '@/lib/lang'
 
 export type OutboxRow = {
   id: string
@@ -27,12 +29,14 @@ const TONE: Record<string, 'active' | 'pending' | 'neutral' | 'danger'> = {
   failed: 'danger',
 }
 
-const LABEL: Record<string, string> = {
-  sent: 'enviado',
-  pending: 'esperando confirmación',
-  queued: 'en cola',
-  logged: 'registrado',
-  failed: 'falló',
+// Keys, not sentences. A module-level const holding copy freezes whichever
+// language rendered first on that server and never follows the toggle.
+const LABEL: Record<string, StringKey> = {
+  sent: 'admin.outbox.sent',
+  pending: 'admin.outbox.waiting',
+  queued: 'admin.outbox.queued',
+  logged: 'admin.outbox.logged',
+  failed: 'admin.outbox.failed',
 }
 
 function stamp(iso: string) {
@@ -47,10 +51,11 @@ function stamp(iso: string) {
 }
 
 export default function OutboxLog({ rows }: { rows: OutboxRow[] }) {
+  const tr = useT()
   const [open, setOpen] = useState(false)
 
   if (!rows.length) {
-    return <p className="mt-2 text-xs text-ink-300">Todavía no sale ningún mensaje.</p>
+    return <p className="mt-2 text-xs text-ink-300">{tr('admin.outbox.empty')}</p>
   }
 
   return (
@@ -72,7 +77,7 @@ export default function OutboxLog({ rows }: { rows: OutboxRow[] }) {
                   <Icon name={r.channel === 'whatsapp' ? 'link' : r.channel === 'push' ? 'bell' : 'envelope'} size={11} />
                   <span className="truncate font-bold text-ink-900">{r.recipient}</span>
                 </span>
-                <Badge tone={TONE[r.status] ?? 'neutral'}>{LABEL[r.status] ?? r.status}</Badge>
+                <Badge tone={TONE[r.status] ?? 'neutral'}>{LABEL[r.status] ? tr(LABEL[r.status]) : r.status}</Badge>
               </div>
               <div className="mt-0.5 text-ink-500">
                 {r.template} · {stamp(r.created_at)}

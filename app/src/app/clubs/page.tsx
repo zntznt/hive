@@ -11,6 +11,7 @@ import { Page, PageHeader } from '@/components/ui/Page'
 import { WhenPill } from '@/components/ui/WhenPill'
 import { clubFooter, quietSince, type CardEvent } from '@/lib/club-card'
 import { BANNER_ASPECT_CLASS } from '@/lib/banner'
+import { getT } from '@/lib/current-lang'
 
 // The Clubs tab.
 //
@@ -35,6 +36,7 @@ type Row = {
 
 export default async function ClubsPage() {
   const { supabase, profile } = await requireProfile()
+  const { t , lang } = await getT()
 
   const { data: memberships } = await supabase
     .from('club_members')
@@ -128,13 +130,13 @@ export default async function ClubsPage() {
 
   return (
     <Page>
-      <PageHeader title="Clubes" />
+      <PageHeader title={t('clubs.title')} />
 
       {clubs.length === 0 ? (
         <EmptyState
           icon="hashtag"
-          title="Todavía no estás en ningún club"
-          hint="Pide a quien organiza que te invite, o empieza el tuyo."
+          title={t('clubs.empty.title')}
+          hint={t('clubs.empty.hint')}
         />
       ) : (
         <>
@@ -252,13 +254,13 @@ export default async function ClubsPage() {
                   ) : (
                     <div className="flex min-h-12 items-center gap-2.5 border-t border-line-divider px-3.5 py-2.5">
                       <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink-300">
-                        {quietSince(footer.since)}
+                        {quietSince(footer.since, lang)}
                       </span>
                       <Link
                         href={`/club/${club.slug}/new-event`}
                         className="tap -my-2 flex-shrink-0 py-2 text-[12.5px] font-bold text-honey-800"
                       >
-                        Nuevo evento
+                        {t('clubs.newEvent')}
                       </Link>
                     </div>
                   )}
@@ -277,7 +279,7 @@ export default async function ClubsPage() {
 
           {quiet.length > 0 && (
             <section className="mt-6">
-              <p className="eyebrow mb-2.5">Sin nada planeado</p>
+              <p className="eyebrow mb-2.5">{t('clubs.quiet')}</p>
               <div className="overflow-hidden rounded-md border border-line-card bg-paper">
                 {quiet.map(({ m, club }, i) => (
                   <Link

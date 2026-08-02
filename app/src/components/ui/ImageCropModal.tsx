@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { Modal } from './Modal'
 import { Button } from './Button'
+import { useT } from '@/components/ui/LangProvider'
 
 // Crop & framing step shown right after picking an image, before it's
 // uploaded. Drag to pan, slider to zoom; exports the framed region as a JPEG
@@ -38,6 +39,7 @@ export function ImageCropModal({
   onCancel: () => void
   onApply: (dataUrl: string) => void
 }) {
+  const tr = useT()
   const [img, setImg] = useState<HTMLImageElement | null>(null)
   const [zoom, setZoom] = useState(1)
   const [pos, setPos] = useState({ x: 0, y: 0 })
@@ -171,7 +173,7 @@ export function ImageCropModal({
       open
       onClose={onCancel}
       title={title}
-      subtitle={subtitle || 'Arrastra para mover, desliza para acercar'}
+      subtitle={subtitle || tr('ui.crop.hint')}
       footer={
         <>
           <Button variant="ghost" onClick={onCancel}>

@@ -4,6 +4,7 @@ import { getPlateItems, plateCount, plateItemKey, getStandings } from '@/lib/pla
 import { fmtMoney } from '@/lib/money'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Page, PageHeader } from '@/components/ui/Page'
+import { getT } from '@/lib/current-lang'
 import { PlateItemRow } from '@/components/ui/PlateItemRow'
 import { PlateRsvp } from './plate-rsvp'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -17,7 +18,9 @@ import { MarkDoneButton } from './mark-done-modal'
 import SnoozeButton from './snooze-button'
 
 export default async function PlatePage() {
+  const { t: tr } = await getT()
   const { supabase, profile } = await requireProfile()
+  const { t, tf } = await getT()
   const board = await getPlateItems(supabase, profile.id)
   const total = plateCount(board)
 
@@ -67,17 +70,12 @@ export default async function PlatePage() {
   return (
     <Page>
       <PageHeader
-        title="En tu plato"
-        lede="Todo lo pendiente antes de que cierre cada evento. Actúa aquí, o toca el nombre del evento para abrirlo."
-        action={
-          <Link href="/" className="tap inline-flex items-center text-[13px] text-ink-500">
-            inicio
-          </Link>
-        }
+        title={t('home.plate')}
+        lede={t('plate.lede')}
       />
 
       {total === 0 ? (
-        <EmptyState icon="jar" title="Todo en orden." hint="No tienes nada pendiente por ahora. A disfrutar el zumbido." />
+        <EmptyState icon="jar" title={t('plate.clear.title')} hint={t('plate.clear.hint')} />
       ) : (
         <>
           {/* A debt past thirty days, with the face of the person waiting on
@@ -90,7 +88,7 @@ export default async function PlatePage() {
                 <UserAvatar user={payeeOf.get(loudDebt.toUserId) ?? { display_name: loudDebt.toName }} size={44} />
                 <div className="min-w-0 flex-1">
                   <p className="font-display text-lg font-bold leading-tight text-ink-900">
-                    {loudDebt.toName} puso {fmtMoney(loudDebt.amountCents)}
+                    {tf('plate.put', { name: loudDebt.toName, amount: fmtMoney(loudDebt.amountCents) })}
                   </p>
                   <p className="mt-0.5 truncate text-[12.5px] text-ink-500">
                     {loudDebt.eventTitle}
@@ -110,9 +108,9 @@ export default async function PlatePage() {
                   toPaymentMethods={methodsFor(loudDebt.toUserId)}
                   display
                 >
-                  Pagar a {loudDebt.toName}
+                  {tf('plate.payTo', { name: loudDebt.toName })}
                 </SettleUpFlow>
-                <SnoozeButton itemKey={plateItemKey(loudDebt)} label="Todavía no" />
+                <SnoozeButton itemKey={plateItemKey(loudDebt)} label={t('plate.later')} />
               </div>
             </section>
           )}
@@ -127,9 +125,9 @@ export default async function PlatePage() {
               <Loud
                 title={
                   loudest.asks === 'availability'
-                    ? 'Falta que marques cuándo puedes'
+                    ? tr('event.markAvailability')
                     : loudest.asks === 'rsvp'
-                      ? '¿Vas a ir?'
+                      ? tr('plate.rsvp')
                       : (loudest.pollLabel ?? 'Falta tu voto')
                 }
                 body={
@@ -137,9 +135,9 @@ export default async function PlatePage() {
                     {loudest.eventTitle}
                     {loudest.clubName ? `, con ${loudest.clubName}` : ''}.{' '}
                     {loudest.asks === 'availability'
-                      ? 'Nadie puede fijar la fecha hasta que respondan todos.'
+                      ? tr('plate.needsAll')
                       : loudest.asks === 'rsvp'
-                        ? 'Saber quién va decide el lugar y lo que hay que llevar.'
+                        ? tr('plate.rsvpWhy')
                         : 'La encuesta sigue abierta.'}
                   </>
                 }
@@ -175,7 +173,7 @@ export default async function PlatePage() {
               asking whether you are coming. */}
           {restAnswers.length > 0 && (
             <section>
-              <SectionHeader>Te están esperando · {restAnswers.length}</SectionHeader>
+              <SectionHeader>{t('plate.waiting')} · {restAnswers.length}</SectionHeader>
               <div className="flex flex-col gap-2">
                 {restAnswers.map((item, i) => (
                   <PlateItemRow
@@ -190,9 +188,9 @@ export default async function PlatePage() {
                     tone="honey"
                     title={
                       item.asks === 'availability'
-                        ? 'Marca cuándo puedes'
+                        ? tr('plate.markWhen')
                         : item.asks === 'rsvp'
-                          ? '¿Vas a ir?'
+                          ? tr('plate.rsvp')
                           : (item.pollLabel ?? 'Falta tu voto')
                     }
                     eventTitle={item.eventTitle}
@@ -218,8 +216,8 @@ export default async function PlatePage() {
               {/* The order is the information, so the header says it. Without
                   that, "oldest first" looks like an arbitrary shuffle to
                   anyone who expected the biggest number on top. */}
-              <SectionHeader action={restDebts.length > 1 ? <span className="text-[12.5px] text-ink-300">más viejo primero</span> : null}>
-                {loudDebt ? 'También por pagar' : 'Pagos · por hacer'}
+              <SectionHeader action={restDebts.length > 1 ? <span className="text-[12.5px] text-ink-300">{t('plate.pay.oldest')}</span> : null}>
+                {loudDebt ? tr('plate.alsoToPay') : tr('plate.toPay')}
               </SectionHeader>
               <div className="flex flex-col gap-2">
                 {restDebts.map((item, i) => (
@@ -227,7 +225,7 @@ export default async function PlatePage() {
                     key={i}
                     icon="money-bill-transfer"
                     tone="danger"
-                    title={`${item.toName} puso ${fmtMoney(item.amountCents)}`}
+                    title={tf('plate.put', { name: item.toName, amount: fmtMoney(item.amountCents) })}
                     eventTitle={item.eventTitle}
                     eventHref={`/e/${item.eventSlug}`}
                     note={ageLabel(ageInDays(item.heldAt)) ?? item.clubName ?? undefined}
@@ -252,7 +250,7 @@ export default async function PlatePage() {
 
           {board.tasks.length > 0 && (
             <section className="mt-[26px]">
-              <SectionHeader>Tareas</SectionHeader>
+              <SectionHeader>{t('plate.tasks')}</SectionHeader>
               <div className="flex flex-col gap-2">
                 {board.tasks.map((item) => (
                   <PlateItemRow
@@ -280,7 +278,7 @@ export default async function PlatePage() {
 
           {board.bringing.length > 0 && (
             <section className="mt-[18px]">
-              <SectionHeader>Traes</SectionHeader>
+              <SectionHeader>{t('plate.bringing')}</SectionHeader>
               <div className="flex flex-col gap-2">
                 {board.bringing.map((item) => (
                   <PlateItemRow

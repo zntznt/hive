@@ -5,6 +5,7 @@ import { updateNotifPrefs } from '@/app/actions'
 import { useToast } from '@/components/ui/Toast'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { NOTIF_TOPICS } from '@/lib/notif-topics'
+import { useT } from '@/components/ui/LangProvider'
 
 type Matrix = Partial<Record<string, { email?: boolean; whatsapp?: boolean; push?: boolean }>>
 type ChannelId = 'email' | 'whatsapp' | 'push'
@@ -47,6 +48,7 @@ export default function NotifPrefsForm({
   push: { live: boolean; deviceName: string; reason: string | null }
 }) {
   const toast = useToast()
+  const tr = useT()
   const formRef = useRef<HTMLFormElement>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -65,9 +67,9 @@ export default function NotifPrefsForm({
   )
 
   const CH: { id: ChannelId; icon: IconName; label: string; scope: string; live: boolean }[] = [
-    { id: 'email', icon: 'envelope', label: 'Correo', scope: 'tú', live: true },
-    { id: 'whatsapp', icon: 'whatsapp', label: 'WhatsApp', scope: 'tú', live: hasWhatsapp },
-    { id: 'push', icon: 'bell', label: 'Avisos', scope: push.deviceName, live: push.live },
+    { id: 'email', icon: 'envelope', label: tr('notif.email'), scope: tr('notif.scope.you'), live: true },
+    { id: 'whatsapp', icon: 'whatsapp', label: tr('notif.whatsapp'), scope: tr('notif.scope.you'), live: hasWhatsapp },
+    { id: 'push', icon: 'bell', label: tr('notif.push'), scope: push.deviceName, live: push.live },
   ]
 
   async function commit(next: Matrix) {
@@ -84,7 +86,7 @@ export default function NotifPrefsForm({
       await updateNotifPrefs(fd)
       toast('Listo')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo guardar.')
+      setError(e instanceof Error ? e.message : tr('common.notSaved'))
     } finally {
       setSaving(false)
     }
@@ -123,7 +125,7 @@ export default function NotifPrefsForm({
             <span
               className={`pr-1.5 text-[13.5px] leading-snug text-ink-700 ${i ? 'border-t border-line-divider pt-1.5' : ''} pb-1.5`}
             >
-              {t.label}
+              {tr(t.labelKey)}
             </span>
             {CH.map((c) => {
               const on = !!rows[t.key]?.[c.id] && c.live
@@ -138,7 +140,7 @@ export default function NotifPrefsForm({
                     type="button"
                     role="switch"
                     aria-checked={on}
-                    aria-label={`${t.label} · ${c.label}`}
+                    aria-label={`${tr(t.labelKey)} · ${c.label}`}
                     disabled={!c.live}
                     onClick={() => flip(t.key, c.id)}
                     className="grid h-11 w-11 place-items-center disabled:cursor-not-allowed"
@@ -180,7 +182,7 @@ export default function NotifPrefsForm({
 
       {!hasWhatsapp && (
         <p className="mt-2 text-xs leading-relaxed text-ink-300">
-          Agrega tu número de WhatsApp arriba para encender esa columna.
+          {tr('notif.needWhatsapp')}
         </p>
       )}
 

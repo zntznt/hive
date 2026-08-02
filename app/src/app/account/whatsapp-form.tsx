@@ -8,12 +8,14 @@ import { CodeEntryStep } from '@/components/ui/CodeEntryStep'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
+import { useT } from '@/components/ui/LangProvider'
 import { formatPhone } from '@/lib/phone'
 
 // The WhatsApp number is both where notices go and a way to sign in. Because
 // it is the second thing, it is not saved on sight: a code goes to the number
 // first, and the account only changes when that code comes back.
 export default function WhatsappForm({ phone, verifiedAt }: { phone: string | null; verifiedAt: string | null }) {
+  const tr = useT()
   const toast = useToast()
   const [step, setStep] = useState<'closed' | 'number' | 'code'>('closed')
   const [sentAt, setSentAt] = useState<number | undefined>(undefined)
@@ -51,7 +53,7 @@ export default function WhatsappForm({ phone, verifiedAt }: { phone: string | nu
         setCode('')
         return
       }
-      toast(res.enabledWhatsapp ? 'Listo, ya te avisamos por WhatsApp' : 'WhatsApp actualizado')
+      toast(res.enabledWhatsapp ? tr('account.wa.done') : 'WhatsApp actualizado')
       close()
     })
   }
@@ -60,7 +62,7 @@ export default function WhatsappForm({ phone, verifiedAt }: { phone: string | nu
     <div className="rounded-md border border-line-card bg-paper px-3.5 py-2.5 text-sm">
       <div className="flex items-center justify-between gap-2">
         <span className="min-w-0 truncate text-ink-900">
-          WhatsApp <span className="text-ink-500">· {phone ? formatPhone(phone) : 'no agregado'}</span>
+          WhatsApp <span className="text-ink-500">· {phone ? formatPhone(phone) : tr('account.wa.notAdded')}</span>
         </span>
         <div className="flex shrink-0 items-center gap-2">
           {/* a number saved before verification existed keeps working, but
@@ -73,7 +75,7 @@ export default function WhatsappForm({ phone, verifiedAt }: { phone: string | nu
             onClick={() => (step === 'closed' ? setStep('number') : close())}
             className="tap rounded-md border-[1.5px] border-honey-500 px-2.5 py-1 text-xs font-bold text-honey-700"
           >
-            {step !== 'closed' ? 'cancelar' : phone ? 'cambiar' : 'agregar'}
+            {step !== 'closed' ? tr('common.cancel') : phone ? tr('common.change') : tr('account.wa.add')}
           </button>
         </div>
       </div>
@@ -81,8 +83,8 @@ export default function WhatsappForm({ phone, verifiedAt }: { phone: string | nu
       {step === 'number' && (
         <div className="mt-2.5 flex flex-col gap-2 border-t border-line-card pt-2.5">
           <Input
-            label="Número de WhatsApp"
-            placeholder="+52 55 1234 5678"
+            label={tr('account.wa.number')}
+            placeholder={tr('account.wa.ph')}
             inputMode="tel"
             value={value}
             onChange={(e) => setValue(e.target.value)}
@@ -93,7 +95,7 @@ export default function WhatsappForm({ phone, verifiedAt }: { phone: string | nu
           {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
           <div className="flex items-center gap-2">
             <Button size="sm" disabled={pending || !value.trim()} onClick={sendCode}>
-              {pending ? 'Enviando…' : 'Mandar código'}
+              {pending ? tr('common.sending') : tr('account.wa.send')}
             </Button>
             {phone && (
               <Button size="sm" variant="ghost" disabled={pending} onClick={() => setConfirmRemove(true)}>
@@ -120,7 +122,7 @@ export default function WhatsappForm({ phone, verifiedAt }: { phone: string | nu
             surface="light"
             compact
             onBack={() => setStep('number')}
-            backLabel="Cambiar número"
+            backLabel={tr('account.wa.change')}
           />
         </div>
       )}
@@ -129,7 +131,7 @@ export default function WhatsappForm({ phone, verifiedAt }: { phone: string | nu
         <Modal
           open
           onClose={() => setConfirmRemove(false)}
-          title="¿Quitar tu WhatsApp?"
+          title={tr('account.wa.remove')}
           footer={
             <>
               <Button variant="ghost" onClick={() => setConfirmRemove(false)}>

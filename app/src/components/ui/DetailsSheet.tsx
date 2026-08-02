@@ -15,7 +15,7 @@ import { SummaryRow } from './Density'
 // check who the organizers are and you go back to deciding whether you are
 // going. A route would put a back button in the way of that.
 export function DetailsSheet({
-  label = 'Detalles, organizadores, calendario',
+  label,
   title = 'Detalles',
   children,
 }: {
