@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
-import { useT } from '@/components/ui/LangProvider'
+import { useT, useTf } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
 import { Icon } from '@/components/ui/Icon'
 import { useToast } from '@/components/ui/Toast'
@@ -35,6 +35,7 @@ export function CalendarSubscribe({
   isAdmin: boolean
 }) {
   const tr = useT()
+  const tf = useTf()
   const [confirming, setConfirming] = useState(false)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -76,10 +77,10 @@ export function CalendarSubscribe({
         </span>
         <span className="min-w-0">
           <span className="block font-display text-base font-bold leading-tight text-ink-900">
-            Suscríbete a {clubName}
+            {tf('cal.subscribeTo', { club: clubName })}
           </span>
           <span className="mt-1 block text-[13px] leading-relaxed text-ink-700">
-            Agrégalo una vez y cada evento del club aparece solo en tu calendario.
+            {tr('cal.once')}
           </span>
         </span>
       </div>
@@ -89,20 +90,19 @@ export function CalendarSubscribe({
           href={webcal}
           className="tap inline-flex min-h-11 flex-1 basis-[150px] items-center justify-center rounded-pill bg-honey-500 px-4 text-[13.5px] font-extrabold text-charcoal shadow-lip"
         >
-          Suscribirme
+          {tr('cal.subscribe')}
         </a>
         <button
           type="button"
           onClick={copy}
           className="tap inline-flex min-h-11 flex-1 basis-[120px] items-center justify-center rounded-pill border-[1.5px] border-line-card bg-paper px-4 text-[13.5px] font-bold text-ink-900"
         >
-          Copiar enlace
+          {tr('event.bar.copyLink')}
         </button>
       </div>
 
       <p className="mt-2.5 text-xs leading-relaxed text-ink-300">
-        Los eventos nuevos, los cambios de hora y las cancelaciones llegan solos. Tu calendario se actualiza por su
-        cuenta, normalmente en unas horas. Puedes quitarlo desde ahí cuando quieras.
+        {tr('cal.autoUpdates')}
       </p>
 
       <div className="mt-3 border-t border-line-divider pt-3">
@@ -113,15 +113,14 @@ export function CalendarSubscribe({
         {isAdmin && (
           <div className="mt-2.5">
             <p className="mb-2 text-xs leading-relaxed text-ink-300">
-              Quien tenga este enlace puede ver el calendario del club sin ser miembro. Cámbialo si se compartió de
-              más.
+              {tr('cal.linkWarn')}
             </p>
             <button
               type="button"
               onClick={() => setConfirming(true)}
               className="tap inline-flex min-h-11 items-center gap-2 rounded-pill border-[1.5px] border-line-card bg-paper px-[15px] text-[12.5px] font-bold text-ink-900"
             >
-              <Icon name="rotate" size={11} /> Cambiar el enlace
+              <Icon name="rotate" size={11} /> {tr('cal.rotate')}
             </button>
           </div>
         )}
@@ -136,17 +135,16 @@ export function CalendarSubscribe({
           footer={
             <>
               <Button variant="ghost" onClick={() => setConfirming(false)}>
-                Dejarlo así
+                {tr('cal.keepIt')}
               </Button>
               <Button variant="danger" disabled={pending} onClick={rotate}>
-                {pending ? 'Cambiando…' : tr('common.changeIt')}
+                {tr(pending ? 'common.saving' : 'common.changeIt')}
               </Button>
             </>
           }
         >
           <p className="text-sm leading-relaxed text-ink-700">
-            El enlace anterior deja de actualizarse de inmediato, así que quien lo tuviera, con permiso o sin él, deja
-            de ver los eventos del club. Los miembros necesitan el enlace nuevo para volver a suscribirse.
+            {tr('cal.rotateWarn')}
           </p>
           {error && <p className="mt-3 rounded-md bg-danger-bg p-3 text-xs text-danger">{error}</p>}
         </Modal>

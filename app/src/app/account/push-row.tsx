@@ -248,7 +248,7 @@ export function PushRow({
               {pending ? tr('common.sending') : 'Probar'}
             </button>
             <button type="button" onClick={disable} disabled={busy} className={pill}>
-              Apagar
+              {tr('common.off')}
             </button>
           </span>
         ) : state === 'default' ? (
@@ -265,8 +265,7 @@ export function PushRow({
           <>{tr('push.what')}</>
         ) : state === 'install' ? (
           <>
-            En iPhone hay que agregar Hive a la pantalla de inicio antes de poder activar los avisos. Toca Compartir y
-            luego &quot;Agregar a inicio&quot;.
+            {tr('push.iosHint')}
           </>
         ) : state === 'denied' ? (
           <>{tr('push.blocked.help')}</>

@@ -387,7 +387,7 @@ export default async function EventsPage({
                     </span>
                   ) : owedShown > 0 ? (
                     <span className="mt-1.5 inline-block rounded-pill bg-honey-100 px-2.5 py-[3px] text-[11px] font-extrabold text-honey-800">
-                      se debe {fmtMoney(owedShown)}
+                      {tf('money.owedAmount', { amount: fmtMoney(owedShown) })}
                     </span>
                   ) : null}
                 </div>
@@ -407,7 +407,7 @@ export default async function EventsPage({
             <span className="inline-flex items-center gap-1 text-[12.5px] font-bold text-ink-300"><Icon name="chevron-left" size={10} /> {t('event.prev')}</span>
           )}
           <span className="text-[12.5px] font-bold text-ink-500">
-            Página {clampedPage} de {totalPages}
+            {tf('events.pageOf', { n: clampedPage, total: totalPages })}
           </span>
           {clampedPage < totalPages ? (
             <Link href={pageHref(clampedPage + 1)} className="inline-flex items-center gap-1 tap text-[12.5px] font-bold text-honey-700">

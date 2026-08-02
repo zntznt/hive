@@ -21,7 +21,7 @@ export default function CopyButton({ path, label }: { path: string; label?: stri
     >
       {copied ? (
         <>
-          <Icon name="check" size={11} /> Copiado
+          <Icon name="check" size={11} /> {tr('common.copied')}
         </>
       ) : (
         text

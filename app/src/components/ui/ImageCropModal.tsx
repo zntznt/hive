@@ -177,10 +177,10 @@ export function ImageCropModal({
       footer={
         <>
           <Button variant="ghost" onClick={onCancel}>
-            Cancelar
+            {tr('common.cancel')}
           </Button>
           <Button disabled={!img} onClick={apply}>
-            Usar foto
+            {tr('crop.usePhoto')}
           </Button>
         </>
       }

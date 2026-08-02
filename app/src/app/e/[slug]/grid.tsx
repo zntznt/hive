@@ -325,7 +325,7 @@ export default function Grid({
           "guardando". Failure gets its own colour and its own sentence. */}
       {failed ? (
         <p className="mt-2.5 text-[11.5px] font-bold text-danger">
-          No se pudo guardar. Revisa tu conexión y vuelve a marcar.
+          {tr('grid.saveFailed')}
         </p>
       ) : (
         <p className="mt-2.5 text-[11.5px] text-ink-300">
@@ -374,7 +374,7 @@ export default function Grid({
         <div className="mt-5 rounded-lg border border-line-card bg-paper p-3.5">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[13.5px] font-bold text-ink-900">
-              Faltan {waitingOn.length} de {totalMembers}
+              {tf('grid.missingOf', { n: waitingOn.length, total: totalMembers })}
             </span>
             {unreached.length > 0 && (
               <button

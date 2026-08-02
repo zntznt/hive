@@ -110,7 +110,7 @@ export default function SearchClient({
           onClick={() => router.back()}
           className="inline-flex min-h-11 items-center px-1 text-[13.5px] font-bold text-ink-700"
         >
-          Cancelar
+          {tr('common.cancel')}
         </button>
       </div>
 
@@ -146,7 +146,7 @@ export default function SearchClient({
                 href={`/club/${c.slug}`}
                 avatar={<HexAvatar name={c.name} size={32} />}
                 title={c.name}
-                sub={`${c.members} ${c.members === 1 ? 'miembro' : 'miembros'} · ${c.upcoming} ${
+                sub={`${tf(c.members === 1 ? 'club.members1' : 'club.membersN', { n: c.members })} · ${c.upcoming} ${
                   c.upcoming === 1 ? tr('search.upcomingCountOne') : tr('search.upcomingCount')
                 }`}
               />
@@ -157,7 +157,7 @@ export default function SearchClient({
 
       {found.events.length > 0 && (
         <>
-          <SectionHeader>Eventos · {found.events.length}</SectionHeader>
+          <SectionHeader>{tf('search.eventsN', { n: found.events.length })}</SectionHeader>
           <div className="mb-[26px] flex flex-col gap-2">
             {found.events.map((e) => (
               <Row
@@ -174,7 +174,7 @@ export default function SearchClient({
 
       {found.people.length > 0 && (
         <>
-          <SectionHeader>Personas · {found.people.length}</SectionHeader>
+          <SectionHeader>{tf('search.peopleN', { n: found.people.length })}</SectionHeader>
           <div className="mb-[26px] flex flex-col gap-2">
             {found.people.map((p) => (
               <Row
@@ -191,7 +191,7 @@ export default function SearchClient({
 
       {nothing && (
         <p className="rounded-lg bg-cream-sunk px-[18px] py-[22px] text-center text-[13.5px] text-ink-500">
-          Nada con «{q.trim()}».
+          {tf('search.nothingFor', { q: q.trim() })}
         </p>
       )}
     </main>

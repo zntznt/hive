@@ -421,8 +421,8 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         : event.status === 'done'
           ? (event.chosen_start ? tf('event.heldOn', { date: fmtDayMonth(event.chosen_start, lang) }) : t('event.heldLower'))
           : event.status === 'cancelled'
-            ? 'cancelado'
-            : 'borrador'
+            ? t('event.cancelledChip')
+            : t('event.draftChip')
 
   return (
     <>
@@ -448,8 +448,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         <div className="mb-3.5 flex items-start gap-2.5 rounded-md border border-danger-bg bg-danger-bg px-3.5 py-2.5 text-[13.5px] leading-relaxed text-ink-700">
           <Icon name="trash" size={15} />
           <span>
-            Está en la papelera desde {timeAgo(event.deleted_at, lang)}. Se borra solo a los 30 días. Ya no aparece en
-            listas, pero se puede recuperar hasta entonces.
+            {tf('event.inBin', { ago: timeAgo(event.deleted_at, lang) })}
           </span>
         </div>
       )}
@@ -467,7 +466,6 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           <span aria-hidden="true"><Icon name="ban" size={15} /></span>
           <span>
             {t('event.cancelledLong')}
-            correo y WhatsApp. Los balances abiertos siguen pendientes de liquidar.
           </span>
         </div>
       )}
@@ -524,8 +522,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             title={t('event.markAvailability')}
             body={
               <>
-                Nadie puede fijar la fecha hasta que respondan todos. Faltan {waitingOn.length} de{' '}
-                {(members ?? []).length}, y la cuadrícula está abajo.
+                {tf('event.nobodyCanFix', { n: waitingOn.length, total: (members ?? []).length })}
               </>
             }
             faces={waitingOn.map((w) => w.user)}
@@ -588,7 +585,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         <div className="mb-5 flex items-center gap-2.5 rounded-lg border-[1.5px] border-honey-500 bg-honey-50 px-3.5 py-3">
           <Icon name="basket-shopping" size={15} className="flex-shrink-0 text-honey-800" />
           <span className="min-w-0 flex-1 text-[13.5px] font-bold text-ink-900">
-            Dijiste que llevas {myUnfinished.title}
+            {tf('event.youBring', { what: myUnfinished.title })}
           </span>
           <span className="flex-shrink-0 text-[12.5px] text-ink-500">{t('event.dontForget')}</span>
         </div>
@@ -602,7 +599,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             </span>
             <div className="min-w-0 flex-1">
               <div className="text-sm font-extrabold text-ink-900">
-                Estás aquí como invitado de{' '}
+                {t('event.hereAsGuestOf')}{' '}
                 <Link href={`/club/${club!.slug}`} className="text-honey-700">
                   {club!.name}
                 </Link>
@@ -617,7 +614,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             </div>
             {club!.join_mode === 'anyone_with_link' &&
               (pendingJoinReq ? (
-                <Badge tone="pending">pendiente</Badge>
+                <Badge tone="pending">{t('status.pending')}</Badge>
               ) : (
                 <RequestJoinClubButton joinToken={club!.join_token} />
               ))}
@@ -717,7 +714,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               {myGuests.map((g) => (
                 <form key={g.id} action={removeGuest.bind(null, g.id, event.slug)} className="mb-1.5 flex items-center justify-between gap-2 text-sm last:mb-0">
                   <span className="text-ink-700">+1 · {g.name}</span>
-                  <button className="tap text-xs font-bold text-ink-500">quitar</button>
+                  <button className="tap text-xs font-bold text-ink-500">{t('common.removeLower')}</button>
                 </form>
               ))}
               {/* the form is hidden rather than left to fail: guests_fit
@@ -736,13 +733,13 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
           {myRsvp?.status === 'in' && myWaitPos >= 0 && (
             <p className="mt-3 rounded-md bg-honey-50 px-3 py-2 text-sm text-honey-900">
-              Estás en lista de espera (puesto {myWaitPos + 1}). Te avisamos si se libera una plaza.
+              {tf('event.waitlistNote', { n: myWaitPos + 1 })}
             </p>
           )}
 
           {waitlisted.length > 0 && (
             <div className="mt-3 rounded-md border border-line-card bg-paper p-3.5">
-              <div className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-500">Lista de espera · {waitlisted.length}</div>
+              <div className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-500">{tf('event.waitlistHeader', { n: waitlisted.length })}</div>
               <div className="flex flex-col gap-1.5">
                 {waitlisted.map((r, i) => (
                   <div key={r.user_id} className="flex items-center gap-2 text-sm text-ink-700">
@@ -779,7 +776,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         {/* the count that matters is what is still unclaimed, and it belongs
             in the header rather than in an empty state under the list */}
         {unclaimed.length > 0 && (
-          <span className="text-[11.5px] font-bold text-honey-800">faltan {unclaimed.length}</span>
+          <span className="text-[11.5px] font-bold text-honey-800">{tf('event.unclaimedN', { n: unclaimed.length })}</span>
         )}
         {!isDone && event.status !== 'cancelled' && (
           <span className="ml-auto">
@@ -803,7 +800,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           lie. */}
       {carriedOver && (
         <p className="rounded-md border border-line-card bg-cream-sunk px-3.5 py-3 text-[12.5px] leading-relaxed text-ink-700">
-          {t('event.reused')} {t('event.reusedTail')}
+          {t('event.reused')}
         </p>
       )}
       {contributions.length === 0 && <p className="text-sm text-ink-500">{t('event.contrib.empty')}</p>}
@@ -814,7 +811,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               <span className={c.done ? 'text-ink-300 line-through' : 'text-ink-900'}>
                 {c.title}
                 {c.qty ? ` · ${c.qty}` : ''}
-                {c.kind === 'task' && <Badge className="ml-2">tarea</Badge>}
+                {c.kind === 'task' && <Badge className="ml-2">{t('event.taskBadge')}</Badge>}
               </span>
               {c.assigned_to ? (
                 <span className="flex items-center gap-2 text-ink-500">
@@ -828,13 +825,13 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                         </button>
                       </form>
                       <form action={toggleContribution.bind(null, c.id, event.slug, true)}>
-                        <button className="tap text-xs font-bold text-honey-700">hecho</button>
+                        <button className="tap text-xs font-bold text-honey-700">{t('event.markDoneLower')}</button>
                       </form>
                     </>
                   )}
                   {c.done && (c.assigned_to === profile.id || isOrganizer) && (
                     <form action={toggleContribution.bind(null, c.id, event.slug, false)}>
-                      <button className="tap text-xs font-bold text-honey-700">deshacer</button>
+                      <button className="tap text-xs font-bold text-honey-700">{t('common.undo')}</button>
                     </form>
                   )}
                 </span>
@@ -871,7 +868,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               </span>
             }
           >
-            Todavía no hay gastos ni encuestas.
+            {t('event.noExpensesOrPolls')}
           </FoldedEmpties>
         </div>
       ) : (
@@ -964,7 +961,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           <div className="flex flex-col gap-1.5 text-[12.5px] text-ink-500">
             <span className="eyebrow text-ink-500">{t('event.sheet')}</span>
             <span>
-              <Icon name="globe" size={11} /> Las horas se muestran en Ciudad de México (GMT-6).
+              <Icon name="globe" size={11} /> {t('event.timesInMx')}
             </span>
             <span>
               <Icon name="lock" size={11} />{' '}
@@ -976,7 +973,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             </span>
             {event.capacity != null && (
               <span>
-                <Icon name="users" size={11} /> cupo para {event.capacity}
+                <Icon name="users" size={11} /> {tf('event.capacityFor', { n: event.capacity })}
                 {event.waitlist_enabled ? t('event.withWaitlist') : ''}.
               </span>
             )}

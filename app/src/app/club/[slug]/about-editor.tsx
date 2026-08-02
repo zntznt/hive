@@ -73,7 +73,7 @@ export function AboutEditor({
           footer={
             <>
               <Button variant="ghost" onClick={() => setOpen(false)}>
-                Cancelar
+                {tr('common.cancel')}
               </Button>
               <Button disabled={pending} onClick={submit}>
                 {tr(isAdmin ? 'common.save' : 'club.about.submit')}
@@ -102,7 +102,7 @@ export function AboutEditor({
                 ))}
                 {rows.length < 4 && (
                   <button onClick={addLink} className="tap self-start text-[12.5px] font-bold text-honey-700">
-                    <Icon name="plus" size={10} /> Añadir enlace
+                    <Icon name="plus" size={10} /> {tr('club.addLink')}
                   </button>
                 )}
               </div>

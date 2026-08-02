@@ -83,7 +83,7 @@ function CategoryModal({
             <>
               {category && (
                 <Button variant="danger" disabled={pending} onClick={remove}>
-                  Eliminar
+                  {tr('common.delete')}
                 </Button>
               )}
               <Button disabled={pending || !name.trim()} onClick={save}>

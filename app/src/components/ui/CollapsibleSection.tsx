@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from 'react'
 import { Icon, type IconName } from './Icon'
+import { useT } from './LangProvider'
 
 // A section that reports itself instead of showing itself.
 //
@@ -45,6 +46,7 @@ export function CollapsibleSection({
   children: ReactNode
   className?: string
 }) {
+  const tr = useT()
   const [open, setOpen] = useState(defaultOpen)
   const hot = tone === 'hot'
 
@@ -85,7 +87,7 @@ export function CollapsibleSection({
           aria-expanded
           className="tap -my-[11px] ml-auto inline-flex min-h-11 items-center px-1 text-xs font-bold text-honey-800"
         >
-          Ocultar
+          {tr('common.hide')}
         </button>
       </div>
       {children}

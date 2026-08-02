@@ -197,7 +197,7 @@ export default function Photos({
             <img src={shown.url} alt={tf('photos.by', { name: shown.by })} className="max-h-[60vh] w-full rounded-md object-contain" />
             <span className="flex items-center gap-2.5 text-[12.5px] text-ink-500">
               <UserAvatar user={shown.byUser} size={24} />
-              La subió {shown.by} · {timeAgo(shown.at, lang)}
+              {tf('photos.uploadedBy', { name: shown.by, ago: timeAgo(shown.at, lang) })}
             </span>
           </div>
         </Modal>

@@ -122,6 +122,7 @@ function Extra({
   onRemove: () => void
   children: React.ReactNode
 }) {
+  const t = useT()
   if (!added) {
     return (
       <button
@@ -144,7 +145,7 @@ function Extra({
         <Icon name={icon} size={15} className="flex-shrink-0 text-honey-700" />
         <span className="min-w-0 flex-1 text-[13.5px] font-bold text-ink-900">{title}</span>
         <button type="button" onClick={onRemove} className="tap flex-shrink-0 text-[12.5px] font-bold text-ink-500">
-          Quitar
+          {t('common.remove')}
         </button>
       </div>
       {children}
@@ -416,7 +417,7 @@ export default function EventForm({
             defaultValue={toDatetimeLocal(initial?.confirm_deadline ?? null)}
           />
           <p className="mt-1.5 text-xs text-ink-300">
-            Un recordatorio, uno solo. Nadie pierde su lugar ni se cierra nada.
+            {t('form.reminderNote')}
           </p>
         </Extra>
 

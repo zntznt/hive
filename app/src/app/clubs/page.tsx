@@ -36,7 +36,7 @@ type Row = {
 
 export default async function ClubsPage() {
   const { supabase, profile } = await requireProfile()
-  const { t , lang } = await getT()
+  const { t, tf, lang } = await getT()
 
   const { data: memberships } = await supabase
     .from('club_members')
@@ -186,7 +186,7 @@ export default async function ClubsPage() {
                           {club.name}
                         </span>
                         {m.role === 'admin' && <Badge tone="admin">admin</Badge>}
-                        {m.role === 'organizer' && <Badge>organizador</Badge>}
+                        {m.role === 'organizer' && <Badge>{t('role.organizer')}</Badge>}
                       </span>
                       {/* who, not how many */}
                       <span className="mt-1.5 flex justify-center">
@@ -234,7 +234,7 @@ export default async function ClubsPage() {
                         </span>
                         <span className="block truncate text-xs text-on-dark-mute">
                           {footer.event.area ? `${footer.event.location} · ` : ''}
-                          {footer.event.title} · hoy {footer.window}
+                          {tf('clubs.todayLine', { title: footer.event.title, window: footer.window })}
                         </span>
                       </span>
                       <Icon name="chevron-right" size={10} className="flex-shrink-0 text-on-dark-mute" />

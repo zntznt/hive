@@ -65,7 +65,7 @@ export function InviteModal({
     <>
       {!controlled && (
         <button onClick={() => setOpen(true)} className="tap text-[12.5px] font-bold text-honey-700">
-          <Icon name="plus" size={10} /> Invitar
+          <Icon name="plus" size={10} /> {tr('event.invite')}
         </button>
       )}
       {open && (
@@ -77,10 +77,10 @@ export function InviteModal({
           footer={
             <>
               <Button variant="ghost" onClick={() => setOpen(false)}>
-                Cancelar
+                {tr('common.cancel')}
               </Button>
               <Button disabled={pending || (!email.trim() && !phone.trim())} onClick={submit}>
-                Enviar invitación
+                {tr('club.sendInvite')}
               </Button>
             </>
           }

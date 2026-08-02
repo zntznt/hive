@@ -46,17 +46,16 @@ export function DangerZone({
         <>
           <div className="flex flex-wrap gap-2.5">
             <Button variant="secondary" size="sm" onClick={() => setModal('leave')}>
-              Salir del club
+              {tr('club.bar.leave')}
             </Button>
             {isAdmin && (
               <Button variant="danger" size="sm" onClick={() => setModal('delete')}>
-                Eliminar club
+                {tr('club.bar.delete')}
               </Button>
             )}
           </div>
           <p className="mt-2.5 text-xs text-ink-300">
-            Cualquiera puede salir. Un club siempre necesita al menos un admin, así que el último admin debe pasar el
-            puesto o eliminar el club.
+            {tr('club.danger.leaveNote')}
           </p>
         </>
       )}
@@ -84,7 +83,7 @@ export function DangerZone({
                     })
                   }
                 >
-                  Salir del club
+                  {tr('club.bar.leave')}
                 </Button>
               </>
             )
@@ -94,8 +93,7 @@ export function DangerZone({
             <div className="flex items-start gap-3 rounded-md bg-warning-bg px-3.5 py-3.5">
               <span aria-hidden="true"><Icon name="triangle-exclamation" size={13} /></span>
               <p className="text-[13.5px] leading-relaxed text-ink-700">
-                Eres el único admin. Un club no se puede quedar sin admin, así que pasa el puesto a otro miembro
-                primero, o elimina el club.
+                {tr('club.danger.onlyAdmin')}
               </p>
             </div>
           ) : (
@@ -124,7 +122,7 @@ export function DangerZone({
                   })
                 }
               >
-                Eliminar club
+                {tr('club.bar.delete')}
               </Button>
             </>
           }
@@ -132,9 +130,7 @@ export function DangerZone({
           <div className="flex items-start gap-3 rounded-md bg-danger-bg px-3.5 py-3.5">
             <span aria-hidden="true"><Icon name="triangle-exclamation" size={13} /></span>
             <p className="text-[13.5px] leading-relaxed text-ink-700">
-              Se elimina cada evento, categoría, aportación y balance de este club
-              {memberCount === 1 ? tr('club.forOneMember') : tf('club.forNMembers', { n: memberCount })}. No hay
-              manera de deshacerlo.
+              {tf('club.danger.deleteNote', { members: memberCount === 1 ? tr('club.forOneMember') : tf('club.forNMembers', { n: memberCount }) })}
             </p>
           </div>
         </Modal>

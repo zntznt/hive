@@ -240,7 +240,7 @@ export default async function PlatePage() {
                         amountCents={item.amountCents}
                         toPaymentMethods={methodsFor(item.toUserId)}
                       >
-                        Pagar
+                        {tr('plate.payAction')}
                       </SettleUpFlow>
                     }
                   />

@@ -97,7 +97,7 @@ export function WhereCard({
         <span className="text-sm text-ink-300">{tr('event.noPlaceYet2')}</span>
         {canEdit && (
           <Link href={editHref} className="tap text-[12.5px] font-bold text-honey-700">
-            Poner un lugar
+            {tr('where.setPlace')}
           </Link>
         )}
       </div>

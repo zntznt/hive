@@ -149,7 +149,7 @@ export default async function AdminPage() {
               <div className="grid grid-cols-2 gap-2">
                 <form action={setUserStatus.bind(null, loudUser.id, 'active')}>
                   <Button block display>
-                    Verificar
+                    {tr('common.verify')}
                   </Button>
                 </form>
                 {/* Declining disables the account rather than deleting it: the
@@ -158,7 +158,7 @@ export default async function AdminPage() {
                     not. */}
                 <form action={setUserStatus.bind(null, loudUser.id, 'disabled')}>
                   <Button block variant="secondary">
-                    Rechazar
+                    {tr('settle.reject')}
                   </Button>
                 </form>
               </div>
@@ -243,17 +243,17 @@ export default async function AdminPage() {
             tone={counts.failed > 0 ? 'hot' : undefined}
             summary={
               <span className={`text-[12.5px] ${counts.failed > 0 ? 'font-bold text-danger' : 'text-ink-300'}`}>
-                {counts.queued} en cola, {counts.failed} {counts.failed === 1 ? 'fallo' : 'fallos'}
+                {tf(counts.failed === 1 ? 'admin.queued1' : 'admin.queuedN', { n: counts.queued, f: counts.failed })}
               </span>
             }
           >
             <p className="text-sm text-ink-700">
-              en cola {counts.queued} · esperando confirmación {counts.pending} · enviados {counts.sent} · registrados{' '}
-              {counts.logged} ·{' '}
-              <span className={counts.failed ? 'font-bold text-danger' : ''}>fallos {counts.failed}</span>
+              {tf('admin.outboxQueued', { n: counts.queued })} · {tf('admin.outboxPending', { n: counts.pending })} ·{' '}
+              {tf('admin.outboxSent', { n: counts.sent })} · {tf('admin.outboxLogged', { n: counts.logged })} ·{' '}
+              <span className={counts.failed ? 'font-bold text-danger' : ''}>{tf('admin.outboxFailed', { n: counts.failed })}</span>
             </p>
             <p className="mb-2 text-[11.5px] text-ink-300">
-              Los totales son de toda la bandeja. Abajo, los 40 más recientes.
+              {tr('admin.totalsNote')}
             </p>
             <OutboxLog rows={outboxRows} />
           </CollapsibleSection>
@@ -265,7 +265,7 @@ export default async function AdminPage() {
             summary={
               <span className={`text-[12.5px] ${rejected > 0 ? 'font-bold text-danger' : 'text-ink-300'}`}>
                 {rejected > 0
-                  ? `${rejected} ${rejected === 1 ? 'rechazada' : 'rechazadas'} en Meta`
+                  ? tf(rejected === 1 ? 'admin.rejected1' : 'admin.rejectedN', { n: rejected })
                   : `${templateKeys.length}`}
               </span>
             }

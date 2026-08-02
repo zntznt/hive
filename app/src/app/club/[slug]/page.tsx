@@ -262,7 +262,7 @@ export default async function ClubPage({
         <p className="mb-[26px]">
           <Link href={`/club/${slug}/new-event`} className="block">
             <Button display block size="lg" icon={<Icon name="plus" size={12} />}>
-              Nuevo evento
+              {t('clubs.newEvent')}
             </Button>
           </Link>
         </p>
@@ -302,7 +302,7 @@ export default async function ClubPage({
         <>
           <SectionHeader
           >
-            Esperando a los admins · {(changeReqs ?? []).length}
+            {tf('club.waitingAdmins', { n: (changeReqs ?? []).length })}
           </SectionHeader>
           <div className="mb-6 flex flex-col gap-2">
             {(changeReqs ?? []).map((r) => {
@@ -326,7 +326,7 @@ export default async function ClubPage({
                     </span>
                     {isAdmin ? null : (
                       <span className="flex flex-shrink-0 items-center gap-1.5 rounded-pill bg-honey-100 px-[11px] py-[5px] text-[11px] font-bold text-honey-800">
-                        pendiente
+                        {t('status.pending')}
                       </span>
                     )}
                   </div>
@@ -368,7 +368,7 @@ export default async function ClubPage({
         <>
           <SectionHeader
           >
-            Solicitudes para unirse · {(joinReqs ?? []).length}
+            {tf('club.joinRequests', { n: (joinReqs ?? []).length })}
           </SectionHeader>
           <div className="mb-6 flex flex-col gap-2">
             {(joinReqs ?? []).map((r) => {
@@ -390,7 +390,7 @@ export default async function ClubPage({
                     </span>
                   ) : (
                     <span className="flex flex-shrink-0 items-center gap-1.5 rounded-pill bg-honey-100 px-[11px] py-[5px] text-[11px] font-bold text-honey-800">
-                      pendiente
+                      {t('status.pending')}
                     </span>
                   )}
                 </Card>
@@ -406,11 +406,11 @@ export default async function ClubPage({
           <SectionHeader
             action={
               <Link href={`/events?club=${club.id}&owed=true`} className="inline-flex items-center gap-1 tap text-[12.5px] font-bold text-honey-700">
-                Ver eventos <Icon name="chevron-right" size={10} />
+                {t('club.seeEvents')} <Icon name="chevron-right" size={10} />
               </Link>
             }
           >
-            Dinero pendiente
+            {t('search.owed')}
           </SectionHeader>
           <div className="overflow-hidden rounded-lg border border-line-card bg-paper">
             {owedByMember.map((o, i) => (
@@ -424,7 +424,7 @@ export default async function ClubPage({
                   <span className="text-sm text-ink-900">{o.user.display_name}</span>
                 </span>
                 <span className="text-[13px] font-extrabold text-danger">
-                  {fmtMoney(o.cents)} <span className="font-semibold text-ink-300">· {o.eventCount} evento{o.eventCount > 1 ? 's' : ''}</span>
+                  {fmtMoney(o.cents)} <span className="font-semibold text-ink-300">· {tf(o.eventCount === 1 ? 'club.eventCount1' : 'club.eventCountN', { n: o.eventCount })}</span>
                 </span>
               </Link>
             ))}
@@ -466,11 +466,11 @@ export default async function ClubPage({
                 href={`/events?club=${club.id}&when=past`}
                 className="tap inline-flex items-center gap-1 text-[12.5px] font-bold text-honey-700"
               >
-                Historial completo <Icon name="chevron-right" size={10} />
+                {t('club.bar.history')} <Icon name="chevron-right" size={10} />
               </Link>
             }
           >
-            Historial
+            {t('club.history')}
           </SectionHeader>
           <div className="overflow-hidden rounded-lg border border-line-card bg-paper">
             {held.slice(0, 3).map((e, i) => {

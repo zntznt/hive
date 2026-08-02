@@ -61,7 +61,7 @@ export default function Polls({
                     {closed && <Badge>{tr('poll.closed')}</Badge>}
                     {isOrganizer && (
                       <form action={(closed ? reopenPoll : closePoll).bind(null, p.id, slug)}>
-                        <button className="tap font-bold text-ink-500">{closed ? 'reabrir' : 'cerrar'}</button>
+                        <button className="tap font-bold text-ink-500">{tr(closed ? 'poll.reopen' : 'poll.close')}</button>
                       </form>
                     )}
                   </span>

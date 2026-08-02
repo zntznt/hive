@@ -218,7 +218,7 @@ export function LocationPicker({
               }}
               className="tap flex-shrink-0 text-[12.5px] font-bold text-honey-700"
             >
-              Cambiar
+              {tr('common.changeIt')}
             </button>
           </div>
         </div>

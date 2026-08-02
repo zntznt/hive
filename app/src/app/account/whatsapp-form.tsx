@@ -135,7 +135,7 @@ export default function WhatsappForm({ phone, verifiedAt }: { phone: string | nu
           footer={
             <>
               <Button variant="ghost" onClick={() => setConfirmRemove(false)}>
-                Cancelar
+                {tr('common.cancel')}
               </Button>
               <Button
                 variant="danger"

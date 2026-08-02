@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { AppBar, type MenuItem } from '@/components/ui/AppBar'
 import { InviteModal } from './invite-modal'
 import { DangerZone } from './danger-zone'
-import { useT } from '@/components/ui/LangProvider'
+import { useT, useTf } from '@/components/ui/LangProvider'
 
 // The club's top bar.
 //
@@ -38,6 +38,7 @@ export function ClubBar({
   pastCount: number
 }) {
   const tr = useT()
+  const tf = useTf()
   const [inviting, setInviting] = useState(false)
   const [danger, setDanger] = useState<'leave' | 'delete' | null>(null)
 
@@ -57,7 +58,7 @@ export function ClubBar({
     <>
       <AppBar
         title={clubName}
-        subtitle={`${memberCount} ${memberCount === 1 ? 'miembro' : 'miembros'}`}
+        subtitle={tf(memberCount === 1 ? 'club.members1' : 'club.membersN', { n: memberCount })}
         subtitleHref={`/club/${slug}/members`}
         backHref="/clubs"
         action={isManager ? { label: tr('event.invite'), icon: 'user-plus', onClick: () => setInviting(true) } : undefined}

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { Modal } from '@/components/ui/Modal'
-import { useT } from '@/components/ui/LangProvider'
+import { useT, useTf } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { duplicateEvent } from '@/app/actions'
@@ -81,6 +81,7 @@ export function DuplicateModal({
   onClose: () => void
 }) {
   const tr = useT()
+  const tf = useTf()
   const [extraWeeks, setExtraWeeks] = useState(0)
   const [picking, setPicking] = useState(false)
   const [pending, startTransition] = useTransition()
@@ -131,8 +132,7 @@ export function DuplicateModal({
             <p className="mb-1 text-[11.5px] font-extrabold uppercase tracking-[.06em] text-honey-800">{tr('event.dup.newDate')}</p>
             <div className="flex items-start justify-between gap-2.5">
               <p className="min-w-0 text-sm leading-relaxed text-ink-700">
-                Va a buscar fecha la semana del{' '}
-                <b className="text-ink-900">{weekLabel(weeks[extraWeeks] ?? weeks[0])}</b>, a la misma hora.
+                {tf('dup.weekOf', { date: weekLabel(weeks[extraWeeks] ?? weeks[0]) })}
               </p>
               {weeks.length > 1 && (
                 <button
@@ -191,7 +191,6 @@ export function DuplicateModal({
           </span>
           <span>
             {tr('dup.notice')}
-            aviso no se puede retirar.
           </span>
         </div>
 

@@ -40,10 +40,10 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
     <main className="mx-auto w-full max-w-col px-4 pb-6 pt-5">
       <header className="mb-6 flex items-baseline justify-between gap-3">
         <h1 className="text-[22px] font-display font-bold leading-[1.2] text-ink-900">
-          Invitar · {event.title}
+          {tf('inv.inviteTo', { title: event.title })}
         </h1>
         <Link href={`/e/${slug}`} className="tap inline-flex items-center shrink-0 text-sm font-semibold text-honey-700 underline">
-          volver
+          {tr('common.back.lower')}
         </Link>
       </header>
 
@@ -55,7 +55,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
             <CopyButton path={`/e/${slug}`} />
           </div>
           <p className="mt-2 text-xs text-ink-500">
-            Pégalo en el grupo de WhatsApp y los miembros del club entran directo.
+            {tr('inv.pasteInWa')}
           </p>
           <form
             action={updateJoinPolicy.bind(null, event.id, slug)}
@@ -74,7 +74,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
               </Select>
             </div>
             <Button variant="secondary" size="sm">
-              Guardar
+              {tr('common.save')}
             </Button>
           </form>
         </Card>
@@ -90,20 +90,17 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
             <Input name="email" type="email" placeholder={tr('inv.email.ph')} />
             <Input name="phone" placeholder={tr('inv.wa.ph')} />
             <Button block type="submit">
-              Crear invitación
+              {tr('inv.createOne')}
             </Button>
             <p className="text-xs text-ink-500">
-              Si dejas un correo, la invitación se manda sola por correo en cuanto la creas. Por
-              WhatsApp todavía no mandamos el mensaje solos, copia el enlace personal que aparece
-              abajo y pégalo tú en el chat. El enlace funciona igual por cualquiera de los dos
-              caminos, en cuanto lo abran quedan agregados al club y al evento.
+              {tr('inv.howItWorks')}
             </p>
           </form>
         </Card>
       </section>
 
       <section>
-        <SectionHeader>Invitaciones · {(invitations ?? []).length}</SectionHeader>
+        <SectionHeader>{tf('inv.headerN', { n: (invitations ?? []).length })}</SectionHeader>
         {(invitations ?? []).length === 0 ? (
           <EmptyState
             icon="envelope"

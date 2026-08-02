@@ -7,6 +7,7 @@ import { Icon } from '@/components/ui/Icon'
 import { FaceStack } from '@/components/ui/FaceStack'
 import { type AvatarUser } from '@/components/ui/Avatar'
 import { BANNER_ASPECT_CLASS } from '@/lib/banner'
+import { useT } from '@/components/ui/LangProvider'
 
 // The club's front door, and the one card that changes shape with the day.
 //
@@ -54,10 +55,11 @@ export function ClubHeader({
   edit?: ReactNode
   foldedByDefault?: boolean
 }) {
+  const tr = useT()
   const [open, setOpen] = useState(!foldedByDefault)
 
   const badge =
-    role === 'admin' ? <Badge tone="admin">admin</Badge> : role === 'organizer' ? <Badge>organizador</Badge> : null
+    role === 'admin' ? <Badge tone="admin">admin</Badge> : role === 'organizer' ? <Badge>{tr('role.organizer')}</Badge> : null
 
   if (!open) {
     return (
@@ -111,7 +113,7 @@ export function ClubHeader({
             aria-expanded
             className="tap absolute left-2.5 top-2.5 inline-flex min-h-11 items-center rounded-pill bg-charcoal/55 px-2.5 text-xs font-bold text-on-dark"
           >
-            Ocultar
+            {tr('common.hide')}
           </button>
         )}
       </div>

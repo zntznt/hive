@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { ChevronDownIcon } from '@/components/ui/Icon'
 import { Badge } from '@/components/ui/Badge'
 import { updateNotificationTemplate, submitWhatsappTemplate, refreshWhatsappTemplates } from '@/app/actions'
-import { useT } from '@/components/ui/LangProvider'
+import { useT, useTf } from '@/components/ui/LangProvider'
 import type { StringKey } from '@/lib/lang'
 
 type Tpl = {
@@ -30,6 +30,7 @@ const WA_LABEL: Record<string, { key: StringKey; tone: 'active' | 'pending' | 'd
 // Meta reviews asynchronously, so nothing here changes status on its own.
 export function TemplateSyncBar() {
   const tr = useT()
+  const tf = useTf()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   return (
@@ -72,6 +73,7 @@ export function TemplateRow({
   whatsapp?: Tpl
 }) {
   const tr = useT()
+  const tf = useTf()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -137,12 +139,11 @@ export function TemplateRow({
               </form>
 
               <p className="text-[11px] leading-snug text-ink-300">
-                Guardar solo cambia el texto en Hive. WhatsApp sigue enviando la última versión aprobada, así que
-                mándala a revisión cuando la cambies. Meta tarda de unas horas a un par de días.
+                {tr('admin.waSaveNote')}
               </p>
 
               {whatsapp.wa_vars && whatsapp.wa_vars.length > 0 && (
-                <p className="font-mono text-[11px] text-ink-500">orden: {whatsapp.wa_vars.join(' · ')}</p>
+                <p className="font-mono text-[11px] text-ink-500">{tf('admin.varOrder', { vars: whatsapp.wa_vars.join(' · ') })}</p>
               )}
 
               <button

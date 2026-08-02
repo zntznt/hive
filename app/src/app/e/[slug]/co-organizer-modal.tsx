@@ -31,7 +31,7 @@ export function CoOrganizerButton({ eventId, slug, candidates }: { eventId: stri
   return (
     <>
       <button onClick={() => setOpen(true)} className="tap text-[12.5px] font-bold text-honey-700">
-        <Icon name="plus" size={10} /> Co-organizador
+        <Icon name="plus" size={10} /> {tr('event.coorganizer')}
       </button>
       {open && (
         <Modal open onClose={() => setOpen(false)} title={tr('event.coorg.add')} subtitle={tr('event.coorg.can')}>
