@@ -43,23 +43,22 @@ export default function ClubJoinSignIn({ token, clubName }: Props) {
         <div className="mb-4 flex justify-center">
           <BrandMark size="sm" showWordmark={false} />
         </div>
-        <p className="eyebrow mb-1 text-center text-honey-700">Únete a</p>
+        <p className="eyebrow mb-1 text-center text-honey-700">{tr('club.joinTo')}</p>
         <h1 className="mb-6 text-center font-display text-xl font-bold text-ink-900">
           «{clubName}»
         </h1>
 
         {sent ? (
-          <p className="rounded-md bg-honey-50 p-4 text-center text-ink-700">
-            {tr('signin.checkEmailLink')}
-            aquí y pedir tu ingreso.
-          </p>
+          /* One sentence, not `signin.checkEmailLink` with "aquí y pedir tu
+             ingreso." welded onto the end of it. That join left a dangling
+             half-clause in Spanish under an English sentence, and it read as a
+             rendering fault. */
+          <p className="rounded-md bg-honey-50 p-4 text-center text-ink-700">{tr('club.join.sent')}</p>
         ) : (
           <form onSubmit={send} className="space-y-3">
-            <p className="text-center text-sm text-ink-500">
-              Pon tu correo y te mandamos un enlace para entrar. Sin contraseñas.
-            </p>
+            <p className="text-center text-sm text-ink-500">{tr('inv.emailIntro')}</p>
             <label className="block text-sm text-ink-700" htmlFor="email">
-              Tu correo
+              {tr('inv.yourEmail')}
             </label>
             <input
               id="email"
@@ -71,7 +70,7 @@ export default function ClubJoinSignIn({ token, clubName }: Props) {
               className="w-full rounded-md border-[1.5px] border-line-input bg-paper p-3 outline-none focus:border-honey-500"
             />
             <Button type="submit" block size="lg" disabled={sending}>
-              {sending ? 'Enviando…' : 'Continuar'}
+              {tr(sending ? 'common.sending' : 'common.continue')}
             </Button>
             {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
           </form>

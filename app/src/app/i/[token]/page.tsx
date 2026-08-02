@@ -31,9 +31,7 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
     return (
       <main className="mx-auto flex min-h-screen max-w-entry flex-col justify-center px-4 pb-10 pt-6 text-center">
         <h1 className="mb-2 font-display text-xl font-bold text-ink-900">{tr('inv.notFound')}</h1>
-        <p className="text-ink-500">
-          El enlace no es válido. Pide a quien organiza que te mande otro.
-        </p>
+        <p className="text-ink-500">{tr('inv.notFound.hint')}</p>
       </main>
     )
   }

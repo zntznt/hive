@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { supabaseBrowser } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
-import { useT, useTf } from '@/components/ui/LangProvider'
+import { useLang, useT, useTf } from '@/components/ui/LangProvider'
+import { fmtDateTime } from '@/lib/time'
 import { Input } from '@/components/ui/Input'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { BrandMark } from '@/components/ui/BrandMark'
@@ -29,22 +30,6 @@ type Props = {
   claimed: boolean
   claimedByMe: boolean
   goHref: string
-}
-
-function whenLabel(iso: string) {
-  const d = new Date(iso)
-  const day = new Intl.DateTimeFormat('es-MX', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    timeZone: 'America/Mexico_City',
-  }).format(d)
-  const hour = new Intl.DateTimeFormat('es-MX', {
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone: 'America/Mexico_City',
-  }).format(d)
-  return `${day[0].toUpperCase()}${day.slice(1)} · ${hour}`
 }
 
 function Fact({ icon, children }: { icon: IconName; children: React.ReactNode }) {
@@ -76,6 +61,7 @@ export default function InviteSignIn({
 }: Props) {
   const tr = useT()
   const tf = useTf()
+  const lang = useLang()
   const [email, setEmail] = useState(presetEmail ?? '')
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
@@ -120,6 +106,7 @@ export default function InviteSignIn({
   // on when, where and who else va, so those go above the sign-in instead of
   // behind it.
   const spots = capacity != null && going != null ? capacity - going : null
+  const sentTo = tr('inv.sentTo').split('{email}')
 
   return (
     <main className="mx-auto flex min-h-screen max-w-entry flex-col justify-center px-4 pb-10 pt-6">
@@ -134,21 +121,23 @@ export default function InviteSignIn({
           <p className="eyebrow text-honey-700">{tr('inv.youWere')}</p>
           <h1 className="mt-1 font-display text-[26px] font-bold leading-tight text-ink-900">{headerTitle}</h1>
           <p className="mt-0.5 text-sm text-ink-500">
-            {eventTitle && clubName ? (
-              <>
-                {inviter ? `${inviter} te invitó` : 'Te invitaron'} con <b className="text-ink-700">{clubName}</b>.
-              </>
-            ) : inviter ? (
-              `${inviter} te invitó a unirte.`
-            ) : (
-              'Te invitaron a unirte.'
-            )}
+            {eventTitle && clubName
+              ? inviter
+                ? tf('inv.sub.eventClub.by', { name: inviter, club: clubName })
+                : tf('inv.sub.eventClub', { club: clubName })
+              : inviter
+                ? tf('inv.sub.by', { name: inviter })
+                : tr('inv.sub')}
           </p>
 
           {eventTitle && !expired && (
             <ul className="mt-4 flex flex-col gap-2 border-t border-line-divider pt-3.5">
+              {/* The date is `fmtDateTime`'s job. This screen used to build its
+                  own Intl formatter with 'es-MX' hardcoded and the timezone
+                  written out a second time, so an English reader got a Spanish
+                  weekday and the app's clock had two places to change. */}
               <Fact icon="calendar-day">
-                {when ? whenLabel(when) : tr('invite.findingDate')}
+                {when ? fmtDateTime(when, lang) : tr('invite.findingDate')}
               </Fact>
               <Fact icon="location-dot">{where || tr('invite.noPlace')}</Fact>
               <Fact icon="users">
@@ -157,8 +146,10 @@ export default function InviteSignIn({
                   <span className="text-ink-500">
                     {' · '}
                     {spots! > 0
-                      ? `${spots === 1 ? 'queda 1' : `quedan ${spots}`} de ${capacity} de cupo`
-                      : `El cupo de ${capacity} ya está lleno, entrarías a la lista de espera`}
+                      ? spots === 1
+                        ? tf('invite.spotsOne', { capacity })
+                        : tf('invite.spotsMany', { n: spots!, capacity })
+                      : tf('invite.full', { capacity })}
                   </span>
                 )}
               </Fact>
@@ -171,8 +162,7 @@ export default function InviteSignIn({
             <div className="flex flex-col gap-3.5">
               <h2 className="font-display text-xl font-bold text-ink-900">{tr('inv.tooLate')}</h2>
               <p className="text-sm text-ink-500">
-                {tr('invite.linkLasts')} {inviter ? tf('invite.askPerson', { name: inviter }) : tr('invite.askAnother')} y
-                entras sin problema.
+                {inviter ? tf('invite.expired.by', { name: inviter }) : tr('invite.expired')}
               </p>
             </div>
           ) : claimedByMe ? (
@@ -181,11 +171,11 @@ export default function InviteSignIn({
             <div className="flex flex-col gap-3.5">
               <h2 className="font-display text-xl font-bold text-ink-900">{tr('inv.alreadyIn')}</h2>
               <p className="text-sm text-ink-500">
-                Usaste esta invitación{clubName ? ` y ya eres parte de «${clubName}»` : ''}.
+                {clubName ? tf('inv.alreadyIn.club', { club: clubName }) : tr('inv.alreadyIn.hint')}
               </p>
               <Link href={goHref} className="block">
                 <Button display block size="lg">
-                  {eventTitle ? 'Ir al evento' : 'Ir al club'}
+                  {tr(eventTitle ? 'inv.goEvent' : 'inv.goClub')}
                 </Button>
               </Link>
             </div>
@@ -193,8 +183,7 @@ export default function InviteSignIn({
             <div className="flex flex-col gap-3.5">
               <h2 className="font-display text-xl font-bold text-ink-900">{tr('inv.used')}</h2>
               <p className="text-sm text-ink-500">
-                Alguien más la abrió antes. {inviter ? `Pídele otra a ${inviter}` : tr('invite.askAnotherF')} si
-                era para ti.
+                {inviter ? tf('inv.used.by', { name: inviter }) : tr('inv.used.hint')}
               </p>
             </div>
           ) : signedIn ? (
@@ -203,11 +192,10 @@ export default function InviteSignIn({
                club by getting them to follow a URL. */
             <div className="flex flex-col gap-3.5">
               <h2 className="font-display text-xl font-bold text-ink-900">
-                {clubName ? `¿Te unes a ${clubName}?` : tr('invite.accept?')}
+                {clubName ? tf('inv.joinClub?', { club: clubName }) : tr('invite.accept?')}
               </h2>
               <p className="text-sm text-ink-500">
-                {tr('inv.signedIn')}{clubName ? tf('inv.joinClub', { club: clubName }) : tr('inv.youreIn')} y quien
-                organiza va a ver tu nombre.
+                {clubName ? tf('inv.signedIn.club', { club: clubName }) : tr('inv.signedIn.event')}
               </p>
               <Button display block size="lg" disabled={joining} onClick={join}>
                 {joining ? tr('invite.oneMoment') : tr('invite.accept')}
@@ -221,37 +209,39 @@ export default function InviteSignIn({
                 onClick={() => say(!isDeclined)}
                 className="tap mx-auto text-[13px] font-bold text-ink-500 underline decoration-line-input underline-offset-4 disabled:opacity-50"
               >
-                {saying ? 'Un momento…' : isDeclined ? tr('invite.saidNo') : 'No voy a poder'}
+                {saying ? tr('invite.oneMoment') : tr(isDeclined ? 'invite.saidNo' : 'invite.cant')}
               </button>
             </div>
           ) : isDeclined ? (
             <div className="flex flex-col gap-3.5">
               <h2 className="font-display text-xl font-bold text-ink-900">{tr('inv.noted')}</h2>
               <p className="text-sm text-ink-500">
-                {inviter ? `${inviter} va a ver que no puedes.` : tr('invite.willSee')} Si cambias
-                de opinión, este enlace sigue sirviendo.
+                {inviter ? tf('invite.declined.by', { name: inviter }) : tr('invite.declined')}
               </p>
               <Button variant="secondary" block disabled={saying} onClick={() => say(false)}>
-                {saying ? 'Un momento…' : tr('invite.changedMind')}
+                {saying ? tr('invite.oneMoment') : tr('invite.changedMind')}
               </Button>
             </div>
           ) : sent ? (
             <div className="flex flex-col gap-4">
               <h2 className="font-display text-xl font-bold text-ink-900">{tr('signin.checkEmail')}</h2>
+              {/* One sentence in the table, split on its slot so the address
+                  can still be bold. The translator owns the whole sentence and
+                  can put {email} wherever their language wants it. */}
               <p className="text-sm text-ink-500">
-                Te mandamos un enlace a <b className="text-honey-700">{email}</b>. Ábrelo en este mismo navegador.
+                {sentTo[0]}
+                <b className="text-honey-700">{email}</b>
+                {sentTo[1]}
               </p>
               <BeeLoader />
             </div>
           ) : (
             <>
-              <p className="mb-4 text-sm text-ink-700">
-                Pon tu correo y te mandamos un enlace para entrar. Sin contraseñas.
-              </p>
+              <p className="mb-4 text-sm text-ink-700">{tr('inv.emailIntro')}</p>
               <form onSubmit={send} className="flex flex-col gap-3.5">
                 {phoneOnly && (
                   <p className="rounded-md bg-cream-sunk p-3 text-xs text-ink-500">
-                    Te invitaron por WhatsApp. Por ahora se entra con correo, pon el tuyo y tu invitación queda ligada.
+                    {tr('inv.phoneOnly')}
                   </p>
                 )}
                 <Input
@@ -282,7 +272,7 @@ export default function InviteSignIn({
                   onClick={() => say(true)}
                   className="min-h-11 cursor-pointer px-3 text-[13px] font-bold text-ink-500 underline decoration-line-input underline-offset-4 disabled:opacity-50"
                 >
-                  {saying ? 'Avisando…' : 'No voy a poder'}
+                  {tr(saying ? 'invite.telling' : 'invite.cant')}
                 </button>
               </div>
             </>
