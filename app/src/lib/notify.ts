@@ -85,7 +85,7 @@ export async function queueNotification(
   const db = pipelineDb(supabase)
   const { data: user } = await db
     .from('users')
-    .select('email, phone_whatsapp, notif_email, notif_whatsapp, notif_prefs')
+    .select('email, phone_whatsapp, notif_email, notif_whatsapp, notif_prefs, lang')
     .eq('id', userId)
     .maybeSingle()
 
@@ -118,18 +118,45 @@ export async function queueNotification(
   // which is the only reading of "mute" that is not a surprise.
   //
   // Only queued when a subscription exists and a push version of the template
-  // does, since the outbox has a foreign key on (channel, template).
+  // does, since the outbox has a foreign key on (channel, template, lang).
   const [{ count: subCount }, { data: pushTpl }] = await Promise.all([
     db.from('push_subscriptions').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-    db.from('notification_templates').select('key').eq('channel', 'push').eq('key', template).maybeSingle(),
+    db.from('notification_templates').select('key').eq('channel', 'push').eq('key', template).eq('lang', 'es').maybeSingle(),
   ])
   if (pushOn && subCount && pushTpl) channels.push('push')
 
   if (!channels.length) return
 
-  await db
-    .from('notification_outbox')
-    .insert(channels.map((channel) => ({ user_id: userId, channel, template, payload: vars })))
+  // The language the person reads, resolved the same way the interface is: an
+  // explicit choice in Tú, otherwise Spanish. There is no Accept-Language to
+  // consult here, because nobody is holding a browser when this runs.
+  //
+  // Then, per channel, the language that channel can actually deliver. A
+  // template only exists in English where somebody has written it, and
+  // WhatsApp has none, so this asks rather than assumes: an English reader
+  // gets English mail and Spanish WhatsApp until the Meta review is done, and
+  // the row records which one it was.
+  const want = user?.lang === 'en' ? 'en' : 'es'
+  const langFor = new Map<string, string>()
+  if (want !== 'es') {
+    const { data: available } = await db
+      .from('notification_templates')
+      .select('channel')
+      .eq('key', template)
+      .eq('lang', want)
+      .in('channel', channels)
+    for (const row of available ?? []) langFor.set(row.channel as string, want)
+  }
+
+  await db.from('notification_outbox').insert(
+    channels.map((channel) => ({
+      user_id: userId,
+      channel,
+      template,
+      payload: vars,
+      lang: langFor.get(channel) ?? 'es',
+    }))
+  )
 }
 
 // Records a send that never passed through the queue. Direct sends go to
@@ -164,9 +191,18 @@ async function recordDirectSend(
 // editing the "invitation" template in the admin CMS covers both.
 export async function sendTemplatedEmail(
   supabase: SupabaseClient,
-  { to, template, vars }: { to: string; template: TemplateKey; vars: Record<string, string> }
+  { to, template, vars, lang = 'es' }: { to: string; template: TemplateKey; vars: Record<string, string>; lang?: 'es' | 'en' }
 ) {
-  const { data: tpl } = await pipelineDb(supabase).from('notification_templates').select('*').eq('channel', 'email').eq('key', template).maybeSingle()
+  // Direct sends go to people who may have no account, so there is nobody to
+  // ask. Spanish is the app's own language and the safe answer; the addressed
+  // sends above resolve properly from the recipient.
+  const { data: tpl } = await pipelineDb(supabase)
+    .from('notification_templates')
+    .select('*')
+    .eq('channel', 'email')
+    .eq('key', template)
+    .eq('lang', lang)
+    .maybeSingle()
   if (!tpl) return { ok: false as const, skipped: true as const, error: 'sin plantilla' }
   const subject = renderTemplate(tpl.subject ?? 'Hive', vars)
   const html = renderTemplate(tpl.body, vars).replace(/\n/g, '<br>')
@@ -192,6 +228,9 @@ export async function sendTemplatedWhatsapp(
     .select('*')
     .eq('channel', 'whatsapp')
     .eq('key', template)
+    // WhatsApp has no English templates: each one needs Meta's approval, so
+    // adding a language there is a submission and a wait, not an insert.
+    .eq('lang', 'es')
     .maybeSingle()
   if (!tpl) return { ok: false as const, skipped: true as const, error: 'sin plantilla' }
   if (tpl.wa_status !== 'approved') {
@@ -300,7 +339,16 @@ export async function dispatchQueuedNotifications(supabase: SupabaseClient, limi
   for (const row of rows) {
     const channel = row.channel as 'email' | 'whatsapp' | 'push'
     const [{ data: tpl }, { data: user }] = await Promise.all([
-      db.from('notification_templates').select('*').eq('channel', channel).eq('key', row.template).maybeSingle(),
+      // The row carries the language, so the drain does not re-decide it. A
+      // person who switched language between queueing and sending gets the
+      // message that was actually addressed to them.
+      db
+        .from('notification_templates')
+        .select('*')
+        .eq('channel', channel)
+        .eq('key', row.template)
+        .eq('lang', (row as { lang?: string }).lang ?? 'es')
+        .maybeSingle(),
       db.from('users').select('email, phone_whatsapp, display_name, notif_prefs').eq('id', row.user_id).maybeSingle(),
     ])
 

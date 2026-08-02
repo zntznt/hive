@@ -708,7 +708,9 @@ export async function toggleAppAdmin(userId: string, makeAdmin: boolean) {
   revalidatePath('/admin')
 }
 
-export async function updateNotificationTemplate(channel: 'email' | 'whatsapp', key: string, formData: FormData) {
+// `lang` is bound, so it comes before formData: a form action receives
+// formData last, and anything after it cannot be supplied by the form.
+export async function updateNotificationTemplate(channel: 'email' | 'whatsapp', key: string, lang: 'es' | 'en', formData: FormData) {
   const supabase = await supabaseServer()
   const {
     data: { user },
@@ -721,6 +723,10 @@ export async function updateNotificationTemplate(channel: 'email' | 'whatsapp', 
     .update({ subject, body, updated_at: new Date().toISOString(), updated_by: user?.id ?? null })
     .eq('channel', channel)
     .eq('key', key)
+    // A key is one row per language now. Without this the update would touch
+    // both and an admin editing the Spanish copy would silently overwrite the
+    // English one with it.
+    .eq('lang', lang)
   if (error) throw new Error(error.message)
   revalidatePath('/admin')
 }
@@ -742,6 +748,9 @@ export async function submitWhatsappTemplate(key: string) {
     .select('body, wa_language')
     .eq('channel', 'whatsapp')
     .eq('key', key)
+    // WhatsApp is Spanish-only: an English template there is a Meta
+    // submission, not a row.
+    .eq('lang', 'es')
     .maybeSingle()
   if (!tpl) throw new Error('no existe esa plantilla')
 
@@ -761,6 +770,7 @@ export async function submitWhatsappTemplate(key: string) {
     )
     .eq('channel', 'whatsapp')
     .eq('key', key)
+    .eq('lang', 'es')
 
   revalidatePath('/admin')
   if (!result.ok) throw new Error(result.error)
@@ -787,6 +797,7 @@ export async function refreshWhatsappTemplates() {
       .update({ wa_status: t.status, wa_synced_at: new Date().toISOString() })
       .eq('channel', 'whatsapp')
       .eq('key', t.name)
+      .eq('lang', 'es')
   }
   revalidatePath('/admin')
 }

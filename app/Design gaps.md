@@ -129,6 +129,43 @@ remember.
 `signin_throttle` is deliberately kept off both roles, matching production: it
 records failed attempts per address, so reading it enumerates who has an account.
 
+**And 0052 was half of the fix.** It granted `anon` and `authenticated` and
+stopped, leaving `service_role` with nothing. That is the role the notification
+pipeline runs as, on purpose: `lib/supabase/service.ts` exists so that sending
+does not run under a member's session, because templates are admin-only and the
+outbox is scoped per person. So on a database built from these files, every
+notification failed silently, the dispatcher read "permission denied for table
+users" and filed the send as having no template.
+
+0054 finishes it. `service_role` also gets `signin_throttle`, which the other
+two are kept off: it is the role that writes it, and RLS is not in front of it
+because service_role bypasses RLS by design.
+
+Found by running the pipeline against a fresh sandbox rather than reading it,
+which is the only way this class of thing turns up. Twice in two days now, so
+the lesson is worth stating plainly: a grant is not a detail of the schema, it
+is the schema.
+
+---
+
+# Notifications follow the reader, except on WhatsApp
+
+The app follows the phone, so an English member was getting an English
+interface and Spanish mail. Migration 0053 gives `notification_templates` a
+language and makes the primary key `(channel, key, lang)`; the outbox records
+which language it actually sent, rather than leaving it to be re-derived from
+a preference the person may since have changed.
+
+English exists for email and push. **WhatsApp is deliberately Spanish-only**:
+every template there has to be submitted to Meta and approved before it can
+send, which is an external review with its own turnaround and a person in the
+loop. So an English member gets English email and Spanish WhatsApp, decided per
+channel, and the row says which.
+
+The database enforces it rather than trusting the code: the outbox's foreign
+key is on `(channel, template, lang)`, so queueing a message in a language that
+has no template is refused outright. Verified by trying it.
+
 ---
 
 # The verification harness, and a correction

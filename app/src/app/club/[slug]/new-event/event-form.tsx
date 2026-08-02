@@ -421,8 +421,7 @@ export default function EventForm({
         </Extra>
 
         <p className="mt-1 px-0.5 text-xs leading-relaxed text-ink-300">
-          La mayoría de los eventos no necesitan ninguna. La lista de lo que hay que traer y las encuestas se agregan
-          en el evento, una vez que existe y la gente ya puede apartar cosas.
+          {t('form.extras.hint')}
         </p>
       </div>
 
@@ -443,7 +442,7 @@ export default function EventForm({
           : edit
             ? 'Guardar cambios'
             : showSchedWindow
-              ? 'Crear y pedir horarios'
+              ? t('form.createAndAsk')
               : 'Crear evento'}
       </Button>
       {!title.trim() && <p className="-mt-2 text-center text-xs text-ink-300">{t('form.title.missing')}</p>}
