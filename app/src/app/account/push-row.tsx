@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { savePushSubscription, removePushSubscription, sendTestPush } from '@/app/actions'
 import { useToast } from '@/components/ui/Toast'
@@ -67,7 +67,18 @@ function urlBase64ToUint8Array(base64: string) {
   return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)))
 }
 
-export function PushRow({ vapidPublicKey, devices }: { vapidPublicKey: string; devices: { endpoint: string; label: string | null }[] }) {
+export function PushRow({
+  vapidPublicKey,
+  devices,
+  onState,
+}: {
+  vapidPublicKey: string
+  devices: { endpoint: string; label: string | null }[]
+  // Reported upward so the notification matrix can draw push as a dead column
+  // when this browser cannot ring. Whether it can is a fact about the browser,
+  // discovered here, and the matrix must not go and ask a second time.
+  onState?: (s: { live: boolean; deviceName: string; reason: string | null }) => void
+}) {
   const [state, setState] = useState<State>('checking')
   const [endpoint, setEndpoint] = useState<string | null>(null)
   const [label, setLabel] = useState('este dispositivo')
@@ -192,6 +203,25 @@ export function PushRow({ vapidPublicKey, devices }: { vapidPublicKey: string; d
   // activado en: Chrome en este equipo". The label is what names a device to
   // the person, so the label is what has to be unique here. The dead row gets
   // cleaned up the next time something is sent to it, which is soon enough.
+  // The reason, in the words the matrix prints under its table. Kept next to
+  // the states it describes so a new state cannot be added without one.
+  const REASON: Record<string, string | null> = {
+    checking: null,
+    granted: null,
+    default: 'Los avisos están apagados en este dispositivo.',
+    denied: 'Este navegador está bloqueando los avisos en este dispositivo.',
+    install: 'En iPhone hay que agregar Hive a la pantalla de inicio antes de poder activar los avisos.',
+    unsupported: 'Este navegador no puede mostrar avisos.',
+  }
+  const reportedRef = useRef('')
+  useEffect(() => {
+    const next = `${state}|${label}`
+    if (reportedRef.current === next) return
+    reportedRef.current = next
+    onState?.({ live: state === 'granted', deviceName: label, reason: REASON[state] ?? null })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, label])
+
   const otherDevices = devices.filter((d) => d.endpoint !== endpoint && d.label !== label)
 
   const pill =

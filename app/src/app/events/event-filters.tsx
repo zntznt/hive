@@ -1,0 +1,143 @@
+'use client'
+
+import Link from 'next/link'
+import { useState } from 'react'
+import { Modal } from '@/components/ui/Modal'
+import { Icon } from '@/components/ui/Icon'
+
+// The href is computed on the server and carried here. A client component
+// cannot be handed a function to build one, and the URL is the filter state,
+// so each option arrives already knowing where it points.
+export type FilterOption = { value: string; label: string; href: string }
+export type FilterGroup = {
+  key: string
+  // What the group is called in the sheet. The chip says the *value*, because
+  // "Los Jueves" is more use on a chip than "Club".
+  label: string
+  options: FilterOption[]
+  current: string
+  // What "off" looks like for this one, so a chip only exists when it is on.
+  none: string
+  // Where the chip's x goes: this filter, unset.
+  clearHref: string
+}
+
+// The filters for the events list.
+//
+// This screen used to open with six dropdowns in a 3x2 grid inside a panel,
+// above a checkbox and a Filtrar button, before a single event was visible.
+// Somebody who tapped Eventos to see what was coming up had to scroll past
+// their own settings to reach the content, which is the loud slot spent on a
+// query builder.
+//
+// So: the list starts at the top, and the filters are a quiet scrollable row
+// of what is actually on. An unset filter is not a control sitting at zero, it
+// is absent. Each chip is a link that turns itself off, and the sheet's
+// options are links too, because the URL already carries the whole state and
+// nothing here needs a submit button. Every other control in this app commits
+// when you touch it.
+//
+// Six native selects at three-across in a 460px column is about 130px each,
+// which truncates every club name and every place to nothing - the two filters
+// most likely to be used were the two that could not show their own values.
+export function EventFilters({
+  groups,
+  owedOnly,
+  owedHref,
+}: {
+  groups: FilterGroup[]
+  owedOnly: boolean
+  // Where the money filter's toggle goes, on or off.
+  owedHref: string
+}) {
+  const [open, setOpen] = useState(false)
+
+  const on = groups.filter((g) => g.current !== g.none)
+  const chipBase =
+    'inline-flex flex-shrink-0 items-center gap-1.5 rounded-pill border px-3 text-[12.5px] font-bold tap'
+
+  return (
+    <>
+      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]{display:none}">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={`${chipBase} border-line-card bg-paper text-ink-700`}
+        >
+          <Icon name="sliders" size={11} />
+          Filtros
+        </button>
+
+        {on.map((g) => {
+          const label = g.options.find((o) => o.value === g.current)?.label ?? g.current
+          return (
+            <Link
+              key={g.key}
+              href={g.clearHref}
+              className={`${chipBase} border-honey-500 bg-honey-100 text-honey-800`}
+              aria-label={`Quitar filtro ${label}`}
+            >
+              {label}
+              <Icon name="xmark" size={10} />
+            </Link>
+          )
+        })}
+
+        {owedOnly && (
+          <Link
+            href={owedHref}
+            className={`${chipBase} border-honey-500 bg-honey-100 text-honey-800`}
+            aria-label="Quitar filtro con dinero pendiente"
+          >
+            Con dinero pendiente
+            <Icon name="xmark" size={10} />
+          </Link>
+        )}
+      </div>
+
+      {open && (
+        <Modal open onClose={() => setOpen(false)} title="Filtros">
+          <div className="flex flex-col gap-[18px]">
+            {groups.map((g) => (
+              <div key={g.key}>
+                <span className="eyebrow mb-2 block">{g.label}</span>
+                <div className="flex flex-wrap gap-2">
+                  {g.options.map((o) => {
+                    const active = o.value === g.current
+                    return (
+                      <Link
+                        key={o.value}
+                        href={o.href}
+                        onClick={() => setOpen(false)}
+                        aria-pressed={active}
+                        className={`${chipBase} ${
+                          active ? 'border-honey-500 bg-honey-100 text-honey-800' : 'border-line-card bg-paper text-ink-700'
+                        }`}
+                      >
+                        {o.label}
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+
+            <div>
+              <span className="eyebrow mb-2 block">Dinero</span>
+              <Link
+                href={owedHref}
+                onClick={() => setOpen(false)}
+                aria-pressed={owedOnly}
+                className={`${chipBase} ${
+                  owedOnly ? 'border-honey-500 bg-honey-100 text-honey-800' : 'border-line-card bg-paper text-ink-700'
+                }`}
+              >
+                Solo con dinero pendiente
+              </Link>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </>
+  )
+}

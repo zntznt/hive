@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Icon, type IconName } from './Icon'
+import { useT } from './LangProvider'
+import { type StringKey } from '@/lib/lang'
 
 // Persistent bottom navigation: Clubs · Events · Home · Plate · You, with Home
 // in the raised centre slot because it is the one screen that answers "what
@@ -20,15 +22,18 @@ import { Icon, type IconName } from './Icon'
 // decision unmade.
 const BARE = ['/i/', '/c/', '/pending', '/auth/']
 
-type Tab = { id: string; href: string; label: string; icon: IconName }
+// The label is a KEY, not a string. Module-level copy freezes whichever
+// language rendered first, which is trap three in the design's language
+// section and the reason this list holds keys and resolves them below.
+type Tab = { id: string; href: string; labelKey: StringKey; icon: IconName }
 
 const LEFT: Tab[] = [
-  { id: 'clubs', href: '/clubs', label: 'Clubes', icon: 'hashtag' },
-  { id: 'events', href: '/events', label: 'Eventos', icon: 'calendar-days' },
+  { id: 'clubs', href: '/clubs', labelKey: 'tab.clubs', icon: 'hashtag' },
+  { id: 'events', href: '/events', labelKey: 'tab.events', icon: 'calendar-days' },
 ]
 const RIGHT: Tab[] = [
-  { id: 'plate', href: '/plate', label: 'Pendientes', icon: 'list-check' },
-  { id: 'account', href: '/account', label: 'Tú', icon: 'user' },
+  { id: 'plate', href: '/plate', labelKey: 'tab.plate', icon: 'list-check' },
+  { id: 'account', href: '/account', labelKey: 'tab.you', icon: 'user' },
 ]
 
 // A pushed screen keeps its parent tab lit: an event belongs to Events, a club
@@ -44,6 +49,7 @@ function activeId(pathname: string) {
 
 export function TabBar({ plateCount = 0 }: { plateCount?: number }) {
   const pathname = usePathname()
+  const t = useT()
   if (BARE.some((p) => pathname.startsWith(p))) return null
 
   const active = activeId(pathname)
@@ -67,7 +73,7 @@ export function TabBar({ plateCount = 0 }: { plateCount?: number }) {
             </span>
           )}
         </span>
-        <span className={`text-[10.5px] tracking-[.01em] ${on ? 'font-extrabold' : 'font-semibold'}`}>{tab.label}</span>
+        <span className={`text-[10.5px] tracking-[.01em] ${on ? 'font-extrabold' : 'font-semibold'}`}>{t(tab.labelKey)}</span>
       </Link>
     )
   }

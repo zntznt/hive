@@ -2,14 +2,13 @@ import Link from 'next/link'
 import { requireProfile } from '@/lib/gate'
 import type { EventRow, RsvpStatus } from '@/lib/types'
 import { fmtMoney } from '@/lib/money'
-import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
-import { Select, Checkbox } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Page, PageHeader } from '@/components/ui/Page'
 import { Icon, MapPinIcon } from '@/components/ui/Icon'
 import { WhenPill } from '@/components/ui/WhenPill'
+import { EventFilters } from './event-filters'
+import { isEventDay } from '@/lib/time'
 
 // Cross-club event browser: the single "event viewer" page. Reached from Home,
 // Club history, and Plate's "still owed" links via query presets (?club=, ?when=,
@@ -180,78 +179,98 @@ export default async function EventsPage({
     sort: sort !== 'newest' ? sort : undefined,
   }
   const pageHref = (p: number) => `/events${qs({ ...baseParams, page: p > 1 ? String(p) : undefined })}`
+  // One filter changed, page reset. Computed here because the chips are links
+  // and a link needs its destination before it renders.
+  const withFilter = (key: string, value: string) =>
+    `/events${qs({ ...baseParams, [key]: value || undefined, page: undefined })}`
+  const opts = (key: string, list: { value: string; label: string }[], none: string) =>
+    list.map((o) => ({ ...o, href: withFilter(key, o.value === none ? '' : o.value) }))
 
   return (
     <Page>
-      <PageHeader
-        title="Eventos"
-        lede="Todos los eventos de tus clubs. Filtra, ordena y toca uno para abrirlo."
-        action={
-          <Link href="/" className="tap inline-flex items-center text-sm text-ink-500 underline">
-            inicio
-          </Link>
-        }
-      />
+      {/* A lede says what a screen is for, not how to operate it. If a page
+          has to explain that a list item is tappable, the problem is the list.
+          The "inicio" link that used to sit here was a third way back on a
+          screen that already has a tab bar and the phone's own back gesture. */}
+      <PageHeader title="Eventos" lede="Todo lo que han hecho tus clubes." />
 
-      <Card pad="md">
-        <form method="get" action="/events" className="space-y-3.5">
-          <div className="grid grid-cols-3 gap-2.5">
-            <Select label="Club" name="club" defaultValue={club}>
-              <option value="all">Todos</option>
-              {clubs.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </Select>
-            <Select label="Categoría" name="cat" defaultValue={cat}>
-              <option value="all">Todas</option>
-              {categoryNames.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </Select>
-            <Select label="Quién fue" name="person" defaultValue={person}>
-              <option value="all">Cualquiera</option>
-              {people.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.id === profile.id ? 'Tú' : p.name}
-                </option>
-              ))}
-            </Select>
-            <Select label="Cuándo" name="when" defaultValue={when}>
-              <option value="all">Cualquier fecha</option>
-              <option value="upcoming">Próximos</option>
-              <option value="past">Pasados</option>
-            </Select>
-            <Select label="Lugar" name="place" defaultValue={place}>
-              <option value="all">Cualquiera</option>
-              {places.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </Select>
-            <Select label="Ordenar" name="sort" defaultValue={sort}>
-              <option value="newest">Más recientes</option>
-              <option value="oldest">Más antiguos</option>
-              <option value="owed">Más se debe</option>
-            </Select>
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <Checkbox
-              name="owed"
-              value="true"
-              defaultChecked={owedOnly}
-              label="Solo con dinero pendiente"
-            />
-            <Button type="submit" size="sm">
-              Filtrar
-            </Button>
-          </div>
-        </form>
-      </Card>
+      <EventFilters
+        groups={[
+          {
+            key: 'club',
+            label: 'Club',
+            none: 'all',
+            current: club,
+            clearHref: withFilter('club', ''),
+            options: opts('club', [{ value: 'all', label: 'Todos' }, ...clubs.map((c) => ({ value: c.id, label: c.name }))], 'all'),
+          },
+          {
+            key: 'cat',
+            label: 'Categoría',
+            none: 'all',
+            current: cat,
+            clearHref: withFilter('cat', ''),
+            options: opts('cat', [{ value: 'all', label: 'Todas' }, ...categoryNames.map((n) => ({ value: n, label: n }))], 'all'),
+          },
+          {
+            key: 'person',
+            label: 'Quién fue',
+            none: 'all',
+            current: person,
+            clearHref: withFilter('person', ''),
+            options: opts(
+              'person',
+              [
+                { value: 'all', label: 'Cualquiera' },
+                ...people.map((p) => ({ value: p.id, label: p.id === profile.id ? 'Tú' : p.name })),
+              ],
+              'all'
+            ),
+          },
+          {
+            key: 'when',
+            label: 'Cuándo',
+            none: 'all',
+            current: when,
+            clearHref: withFilter('when', ''),
+            options: opts(
+              'when',
+              [
+                { value: 'all', label: 'Cualquier fecha' },
+                { value: 'upcoming', label: 'Próximos' },
+                { value: 'past', label: 'Pasados' },
+              ],
+              'all'
+            ),
+          },
+          {
+            key: 'place',
+            label: 'Lugar',
+            none: 'all',
+            current: place,
+            clearHref: withFilter('place', ''),
+            options: opts('place', [{ value: 'all', label: 'Cualquiera' }, ...places.map((p) => ({ value: p, label: p }))], 'all'),
+          },
+          {
+            key: 'sort',
+            label: 'Ordenar',
+            none: 'newest',
+            current: sort,
+            clearHref: withFilter('sort', ''),
+            options: opts(
+              'sort',
+              [
+                { value: 'newest', label: 'Más recientes' },
+                { value: 'oldest', label: 'Más antiguos' },
+                { value: 'owed', label: 'Más se debe' },
+              ],
+              'newest'
+            ),
+          },
+        ]}
+        owedOnly={owedOnly}
+        owedHref={withFilter('owed', owedOnly ? '' : 'true')}
+      />
 
       <div className="mb-2.5 mt-[26px] flex items-baseline justify-between text-[12.5px] text-ink-500">
         <span>
@@ -290,13 +309,34 @@ export default async function EventsPage({
             statusBadge = <Badge tone="mine">vas</Badge>
           }
 
+          // Rule 9: the shape comes from what is on it, not from what it is.
+          // Tonight is a card with a honey border; anything else upcoming is a
+          // row; a past event that owes nothing is the quietest thing on the
+          // page, because it is finished and nobody needs it.
+          const tonight = isEventDay(e) && e.status !== 'cancelled'
+          const settled = past && owedShown === 0
           return (
-            <div key={e.id} className="relative rounded-lg border border-line-card bg-paper p-4 shadow-card">
+            <div
+              key={e.id}
+              className={`relative rounded-lg bg-paper shadow-card ${
+                tonight
+                  ? 'border-[1.5px] border-honey-500 p-4'
+                  : settled
+                    ? 'border border-line-card px-3.5 py-2.5 opacity-[.82]'
+                    : 'border border-line-card px-3.5 py-3'
+              }`}
+            >
               <Link href={`/e/${e.slug}`} className="absolute inset-0 rounded-lg" aria-label={`Ver ${e.title}`} />
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="truncate font-display text-[16px] font-bold text-ink-900">{e.title}</span>
+                    <span
+                      className={`truncate font-display font-bold text-ink-900 ${
+                        tonight ? 'text-[17px]' : settled ? 'text-[14px]' : 'text-[15.5px]'
+                      }`}
+                    >
+                      {e.title}
+                    </span>
                     {statusBadge}
                   </div>
                   <div className="mt-1 text-[12.5px] text-ink-500">
@@ -312,10 +352,12 @@ export default async function EventsPage({
                     )}{' '}
                     · {catLabel}
                   </div>
+                  {/* On the day the street leads: by then the only open
+                      question is how to get there. */}
                   <div className="mt-0.5 flex items-center gap-1 text-[12.5px] text-ink-500">
                     <MapPinIcon />
-                    <span className="truncate">
-                      {e.location ?? 'sin lugar'} · {attendees.length} fueron
+                    <span className={`truncate ${tonight ? 'font-bold text-ink-900' : ''}`}>
+                      {(tonight ? (e.area ?? e.location) : e.location) ?? 'sin lugar'} · {attendees.length} fueron
                     </span>
                   </div>
                 </div>
@@ -348,7 +390,7 @@ export default async function EventsPage({
       </div>
 
       {totalPages > 1 && (
-        <div className="mt-5 flex items-center justify-center gap-3.5">
+        <div className="mt-[26px] flex items-center justify-center gap-3.5">
           {clampedPage > 1 ? (
             <Link href={pageHref(clampedPage - 1)} className="inline-flex items-center gap-1 tap text-[12.5px] font-bold text-honey-700">
               <Icon name="chevron-left" size={10} /> Anterior

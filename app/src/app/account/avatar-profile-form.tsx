@@ -1,10 +1,11 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { updateProfile } from '@/app/actions'
 import { useToast } from '@/components/ui/Toast'
 import { Input } from '@/components/ui/Input'
-import { BugAvatarPicker } from '@/components/ui/BugAvatar'
+import { BugAvatarPicker, randomBugAvatar } from '@/components/ui/BugAvatar'
+import { t, type Lang } from '@/lib/lang'
 import { HexAvatar } from '@/components/ui/HexAvatar'
 import { ImageCropModal } from '@/components/ui/ImageCropModal'
 import { uploadAvatarPhoto, dataUrlToBlob } from '@/lib/upload'
@@ -16,6 +17,11 @@ type Props = {
   avatarBug: string
   avatarColor: string
   avatarPhotoUrl: string | null
+  lang: Lang
+  // The language control is passed in rather than imported, so this component
+  // stays about the avatar and the name and the page keeps deciding what else
+  // belongs in the group.
+  language?: React.ReactNode
 }
 
 // Who you are: the bug, the colour, the photo, the name. One section, and no
@@ -38,10 +44,17 @@ export default function AvatarProfileForm({
   avatarBug,
   avatarColor,
   avatarPhotoUrl,
+  lang,
+  language,
 }: Props) {
   const toast = useToast()
-  const [bug, setBug] = useState(avatarBug)
-  const [color, setColor] = useState(avatarColor)
+  // A member who has never opened this screen has no avatar of their own, so
+  // they are dealt one rather than being handed the first of each list.
+  // Rolled once in the initialiser so a re-render never reshuffles it, and
+  // written back on mount so what they were dealt is what everyone else sees.
+  const dealt = useRef(randomBugAvatar())
+  const [bug, setBug] = useState(avatarBug || dealt.current.bug)
+  const [color, setColor] = useState(avatarColor || dealt.current.color)
   const [name, setName] = useState(displayName)
   // photoUrl doubles as "using a photo": present -> avatar_kind is photo,
   // cleared -> back to the bug (mirrors the design prototype's Back to my bug).
@@ -107,10 +120,19 @@ export default function AvatarProfileForm({
     }
   }
 
+  // Emitted on mount only when the person had none, so the deal is what gets
+  // saved. Not on every mount: it must not overwrite a choice.
+  const dealtEmitted = useRef(false)
+  useEffect(() => {
+    if (dealtEmitted.current) return
+    dealtEmitted.current = true
+    if (!avatarBug || !avatarColor) save({ bug: dealt.current.bug, color: dealt.current.color })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return (
     <>
       <section>
-        <p className="eyebrow mb-2.5">Tú</p>
         <BugAvatarPicker
           bug={bug}
           color={color}
@@ -125,7 +147,7 @@ export default function AvatarProfileForm({
             footnote to them. */}
         <label className="tap mt-3 flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-pill border-[1.5px] border-line-input bg-paper px-3.5 text-[13px] font-bold text-ink-700">
           {photoUrl && <HexAvatar name={name} size={26} src={photoUrl} />}
-          {uploading ? 'Subiendo…' : photoUrl ? 'Cambiar foto' : 'O usa tu propia foto'}
+          {uploading ? t(lang, 'saving') : photoUrl ? t(lang, 'account.photo.change') : t(lang, 'account.photo')}
           <input
             ref={fileRef}
             type="file"
@@ -144,18 +166,18 @@ export default function AvatarProfileForm({
             }}
             className="tap mt-2 block w-full text-center text-[12.5px] font-bold text-ink-500"
           >
-            Volver a tu bicho
+            {t(lang, 'account.photo.back')}
           </button>
         )}
         <p className="mt-2.5 text-xs text-ink-300">
           {kind === 'photo'
-            ? 'Tu foto se muestra en vez de tu bicho, con el mismo recorte hexagonal.'
-            : 'Elige un bicho y un color para que el club te distinga a simple vista.'}
+            ? t(lang, 'account.photo.hint')
+            : t(lang, 'account.bug.hint')}
         </p>
 
         <div className="mt-3.5">
           <Input
-            label="Nombre visible"
+            label={t(lang, 'account.name')}
             name="display_name"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -164,8 +186,9 @@ export default function AvatarProfileForm({
             maxLength={60}
           />
         </div>
+        {language}
         {error && <p className="mt-2.5 rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
-        {saving && <p className="mt-2 text-xs text-ink-300">Guardando…</p>}
+        {saving && <p className="mt-2 text-xs text-ink-300">{t(lang, 'saving')}</p>}
       </section>
 
       {cropSrc && (

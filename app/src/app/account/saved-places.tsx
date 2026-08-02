@@ -10,7 +10,7 @@ import { addSavedPlace, updateSavedPlace, removeSavedPlace } from '@/app/actions
 import { Icon } from '@/components/ui/Icon'
 import { Button } from '@/components/ui/Button'
 
-export type Place = { id: string; name: string; addr: string | null; query: string; lat: number | null; lng: number | null }
+export type Place = { id: string; name: string; addr: string | null; query: string; lat: number | null; lng: number | null; area: string | null }
 
 // "Places you can host" on Account. Feeds LocationPicker's "tus lugares"
 // suggestions when setting an event's location, across every club.
@@ -132,6 +132,7 @@ export function SavedPlaces({ places }: { places: Place[] }) {
           label="Dirección"
           defaultValue={target?.addr ?? target?.query ?? ''}
           defaultPoint={target?.lat != null && target?.lng != null ? { lat: target.lat, lng: target.lng } : null}
+          defaultArea={target?.area ?? null}
           onChange={setWhere}
         />
         {error && <p className="rounded-md bg-danger-bg px-3 py-2 text-[12.5px] text-danger">{error}</p>}

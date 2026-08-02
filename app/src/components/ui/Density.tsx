@@ -194,29 +194,3 @@ export function DoorGroup({ label = 'En otra parte', children }: { label?: strin
     </div>
   )
 }
-
-// --- rule 8: on the day, the address surfaces -------------------------------
-
-// The most time-critical fact in the app, promoted out of the details sheet
-// for the hours when it is the only thing you need from this screen.
-export function DayBanner({ place, note, mapHref }: { place: string; note?: ReactNode; mapHref?: string }) {
-  return (
-    <div className="flex items-center gap-3 rounded-lg bg-charcoal px-3.5 py-3">
-      <Icon name="location-dot" size={15} className="flex-shrink-0 text-honey-500" />
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-sm font-bold text-white">{place}</span>
-        {note && <span className="text-xs text-on-dark-mute">{note}</span>}
-      </span>
-      {mapHref && (
-        <a
-          href={mapHref}
-          target="_blank"
-          rel="noreferrer"
-          className="flex min-h-11 flex-shrink-0 items-center rounded-pill bg-honey-500 px-3 text-xs font-extrabold text-charcoal"
-        >
-          Mapa
-        </a>
-      )}
-    </div>
-  )
-}

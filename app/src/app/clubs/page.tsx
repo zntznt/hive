@@ -57,7 +57,7 @@ export default async function ClubsPage() {
     clubIds.length
       ? supabase
           .from('events')
-          .select('id, slug, title, chosen_start, chosen_end, location, club_id, status')
+          .select('id, slug, title, chosen_start, chosen_end, location, area, club_id, status')
           .in('club_id', clubIds)
           .is('deleted_at', null)
           .order('chosen_start', { ascending: false, nullsFirst: false })
@@ -110,9 +110,11 @@ export default async function ClubsPage() {
     return { m, club: m.clubs!, footer: clubFooter(evs, lastDone?.chosen_start ?? null, now) }
   })
 
-  // Rule 6: no more than four identical rows. Past four clubs the quiet ones
-  // stop being cards and become one labelled group, so the ones with something
-  // going on keep their shape.
+  // Rule 6 answers *too many*, not *quiet*. Past four clubs the quiet ones
+  // stop being cards and become one labelled group; at four or fewer a quiet
+  // club still gets a card, just a shorter one. Gating on quietness instead
+  // meant somebody in two clubs, one of them dormant, got one card and then a
+  // section header over a single lonely row.
   const grouped = carded.length > 4
   const loud = grouped ? carded.filter((c) => c.footer.kind !== 'quiet') : carded
   const quiet = grouped ? carded.filter((c) => c.footer.kind === 'quiet') : []
@@ -126,7 +128,7 @@ export default async function ClubsPage() {
 
   return (
     <Page>
-      <PageHeader title="Clubes" action={<CreateClubButton />} />
+      <PageHeader title="Clubes" />
 
       {clubs.length === 0 ? (
         <EmptyState
@@ -142,6 +144,11 @@ export default async function ClubsPage() {
               const total = countOf.get(m.club_id) ?? faces.length
               const strip = (pathsOf.get(m.club_id) ?? []).map((p) => signed.get(p)).filter(Boolean) as string[]
               const tonight = footer.kind === 'today'
+              // Height tracks how much is going on. A quiet club keeps its
+              // card but wears a smaller mark and a tighter head, and never a
+              // photo strip: emptiness must not cost as much height as
+              // activity.
+              const hush = footer.kind === 'quiet'
               return (
                 <div
                   key={m.club_id}
@@ -165,10 +172,14 @@ export default async function ClubsPage() {
                       }
                     />
                     <span className="block px-3.5 pb-[13px]">
-                      <span className="relative -mt-[30px] mx-auto grid h-[66px] w-[60px] place-items-center bg-paper [clip-path:polygon(50%_0,100%_25%,100%_75%,50%_100%,0_75%,0_25%)]">
-                        <HexAvatar name={club.name} src={club.avatar_url} size={54} />
+                      <span
+                        className={`relative mx-auto grid place-items-center bg-paper [clip-path:polygon(50%_0,100%_25%,100%_75%,50%_100%,0_75%,0_25%)] ${
+                          hush ? '-mt-[24px] h-[52px] w-[47px]' : '-mt-[28px] h-[62px] w-[56px]'
+                        }`}
+                      >
+                        <HexAvatar name={club.name} src={club.avatar_url} size={hush ? 42 : 50} />
                       </span>
-                      <span className="mt-1.5 flex flex-wrap items-center justify-center gap-[7px]">
+                      <span className={`flex flex-wrap items-center justify-center gap-[7px] ${hush ? 'mt-1' : 'mt-1.5'}`}>
                         <span className="font-display text-[19px] font-bold leading-[1.15] text-ink-900">
                           {club.name}
                         </span>
@@ -185,7 +196,7 @@ export default async function ClubsPage() {
                   {/* Recent photos, only when there are some. Three empty
                       dashed boxes on a list is the club telling you about a
                       feature instead of about itself. */}
-                  {strip.length > 0 && (
+                  {strip.length > 0 && !hush && (
                     <Link href={`/club/${club.slug}`} className="flex gap-1.5 px-3 pb-3">
                       {strip.map((url, i) => (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -212,10 +223,15 @@ export default async function ClubsPage() {
                     >
                       <Icon name="location-dot" size={14} className="flex-shrink-0 text-honey-500" />
                       <span className="min-w-0 flex-1">
+                        {/* The street at full weight, the venue name and the
+                            hours beneath. On the day this line has one job and
+                            it is to be the address; the name of the place is
+                            the one thing the person already knows. */}
                         <span className="block truncate text-sm font-bold text-on-dark">
-                          {footer.event.location ?? footer.event.title}
+                          {footer.event.area ?? footer.event.location ?? footer.event.title}
                         </span>
                         <span className="block truncate text-xs text-on-dark-mute">
+                          {footer.event.area ? `${footer.event.location} · ` : ''}
                           {footer.event.title} · hoy {footer.window}
                         </span>
                       </span>
@@ -249,6 +265,14 @@ export default async function ClubsPage() {
                 </div>
               )
             })}
+          </div>
+
+          {/* Its own row, after the list. Creating a club is the rarest thing
+              on this screen and the header is its most prominent slot, and you
+              decide to start one after looking at the ones you have and not
+              finding the one you wanted. Home already puts it here. */}
+          <div className="mt-3">
+            <CreateClubButton />
           </div>
 
           {quiet.length > 0 && (

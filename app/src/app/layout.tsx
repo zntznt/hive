@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
 import Chrome from "./chrome";
+import { LangProvider } from "@/components/ui/LangProvider";
+import { currentLang } from "@/lib/current-lang";
 
 // Nunito Sans + Baloo 2, self-hosted from public/fonts/ (see globals.css
 // @font-face). next/font/google needs a build-time fetch that isn't reliable
@@ -46,20 +48,26 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Resolved once, here, and handed to every client component below. Reading
+  // navigator.language further down would let the shell and the rows disagree
+  // for a paint, and disagree permanently for anyone with an override.
+  const lang = await currentLang();
   return (
-    <html lang="es" className="h-full antialiased">
+    <html lang={lang} className="h-full antialiased">
       <body className="min-h-full flex flex-col bg-cream text-ink-700 font-body">
         {/* 92px of clearance for the fixed tab bar belongs here, not to each
             page, so a new screen cannot forget it and hide its own last row. */}
+        <LangProvider lang={lang}>
         <ToastProvider>
           <div className="flex-1 pb-[92px]">{children}</div>
           <Chrome />
         </ToastProvider>
+        </LangProvider>
       </body>
     </html>
   );

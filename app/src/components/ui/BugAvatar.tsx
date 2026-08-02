@@ -42,6 +42,23 @@ export function BugAvatar({
   )
 }
 
+// A new member is dealt one at random rather than being the first of each
+// list. Otherwise everyone who never opens this screen is an orange `bug` and
+// the avatars stop telling people apart, which is the entire job.
+export function randomBugAvatar() {
+  const bug = BUG_OPTIONS[Math.floor(Math.random() * BUG_OPTIONS.length)]
+  const color = BUG_COLORS[Math.floor(Math.random() * BUG_COLORS.length)]
+  return { bug: bug as string, color }
+}
+
+// Pick a bug and a colour. The preview updates live.
+//
+// It STACKS rather than sitting beside its preview. Side by side the tile rows
+// only ever get about 250px of a 375px phone, which is what forces a hardcoded
+// column count and squeezes the tiles below the glyphs they hold. Full width,
+// five bugs and eight colours each get a row that reflows on its own terms
+// (auto-fit + minmax), the preview can be bigger, and neither row depends on a
+// column count that matches the other.
 export function BugAvatarPicker({
   bug,
   color,
@@ -52,45 +69,54 @@ export function BugAvatarPicker({
   onChange: (v: { bug: string; color: string }) => void
 }) {
   return (
-    <div className="flex items-start gap-[18px]">
-      <div className="flex-shrink-0 text-center">
-        <BugAvatar bug={bug} color={color} size={76} />
-        <div className="mt-1.5 text-[11px] text-ink-300">Tú</div>
+    <div className="flex flex-col gap-3.5">
+      <div className="flex justify-center">
+        <BugAvatar bug={bug} color={color} size={88} />
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="grid grid-cols-5 gap-2">
-          {BUG_OPTIONS.map((b) => {
-            const on = b === bug
-            return (
-              <button
-                key={b}
-                type="button"
-                onClick={() => onChange({ bug: b, color })}
-                aria-label={`bug ${b}`}
-                className={`grid aspect-square place-items-center rounded-md p-1 ${
-                  on ? 'border-[1.5px] border-honey-500 bg-honey-100' : 'border-[1.5px] border-transparent bg-cream-sunk'
-                }`}
-              >
-                <BugAvatar bug={b} color={color} size={34} shape="rounded" />
-              </button>
-            )
-          })}
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {BUG_COLORS.map((c) => {
-            const on = c === color
-            return (
-              <button
-                key={c}
-                type="button"
-                onClick={() => onChange({ bug, color: c })}
-                aria-label={`color ${c}`}
-                className="tap h-[26px] w-[26px] rounded-full border-2 border-paper"
-                style={{ background: c, outline: on ? '2px solid var(--charcoal)' : '2px solid var(--border-input)' }}
+
+      <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(52px, 1fr))' }}>
+        {BUG_OPTIONS.map((b) => {
+          const on = b === bug
+          return (
+            <button
+              key={b}
+              type="button"
+              onClick={() => onChange({ bug: b, color })}
+              aria-label={`bicho ${b}`}
+              aria-pressed={on}
+              className={`grid aspect-square min-w-0 place-items-center rounded-md p-1.5 ${
+                on ? 'border-[1.5px] border-honey-500 bg-honey-100' : 'border-[1.5px] border-transparent bg-cream-sunk'
+              }`}
+            >
+              <BugAvatar bug={b} color={color} size={34} shape="rounded" />
+            </button>
+          )
+        })}
+      </div>
+
+      {/* A 28px circle inside a 44px button. The swatch used to be the target,
+          which is 18px under the floor, and colours sit in a tight row so they
+          are the easiest thing on the page to mis-tap. */}
+      <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(36px, 1fr))' }}>
+        {BUG_COLORS.map((c) => {
+          const on = c === color
+          return (
+            <button
+              key={c}
+              type="button"
+              onClick={() => onChange({ bug, color: c })}
+              aria-label={`color ${c}`}
+              aria-pressed={on}
+              className="grid h-11 w-full min-w-0 place-items-center rounded-full p-0"
+            >
+              <span
+                aria-hidden="true"
+                className="h-7 w-7 rounded-full border-2 border-paper"
+                style={{ background: c, outline: on ? '2px solid var(--charcoal)' : '2px solid var(--line-input)' }}
               />
-            )
-          })}
-        </div>
+            </button>
+          )
+        })}
       </div>
     </div>
   )

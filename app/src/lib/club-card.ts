@@ -21,6 +21,9 @@ export type CardEvent = {
   chosen_start: string | null
   chosen_end?: string | null
   location: string | null
+  // The street, when the pin has been resolved to one. On the day this is what
+  // the footer prints: the venue name is the thing the person already knows.
+  area?: string | null
   status: string
 }
 
