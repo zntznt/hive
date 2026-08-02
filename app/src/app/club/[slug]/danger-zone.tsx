@@ -65,7 +65,7 @@ export function DangerZone({
         <Modal
           open
           onClose={() => setModal(null)}
-          title={`¿Salir de ${clubName}?`}
+          title={tf('club.leave?', { club: clubName })}
           subtitle={isLastAdmin ? tr('club.lastAdmin') : tr('club.reinvited')}
           footer={
             isLastAdmin ? (
@@ -108,7 +108,7 @@ export function DangerZone({
         <Modal
           open
           onClose={() => setModal(null)}
-          title={`¿Eliminar ${clubName}?`}
+          title={tf('club.delete?', { club: clubName })}
           subtitle={tr('club.irreversible')}
           footer={
             <>

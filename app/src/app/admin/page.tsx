@@ -14,14 +14,17 @@ import { TemplateRow, TemplateSyncBar } from './template-row'
 import OutboxLog, { type OutboxRow } from './outbox-log'
 import { AppBar } from '@/components/ui/AppBar'
 import { getT } from '@/lib/current-lang'
+import type { StringKey } from '@/lib/lang'
 
 // The account states, in Spanish. The badge printed the database enum, so an
 // admin read "active" and "disabled" on a screen where everything else is
 // Spanish. The outbox log next to it already had exactly this map.
-const STATUS_LABEL: Record<string, string> = {
-  active: 'con acceso',
-  disabled: 'sin acceso',
-  pending: 'sin verificar',
+// Keys, not copy: a module-level const freezes whichever language loaded the
+// module first, which is trap three. Resolved at render below.
+const STATUS_LABEL: Record<string, StringKey> = {
+  active: 'admin.access.yes',
+  disabled: 'admin.access.no',
+  pending: 'account.wa.unverified',
 }
 
 // The platform panel: accounts and delivery, and nothing else.
@@ -93,7 +96,7 @@ export default async function AdminPage() {
         row.destination ??
         (row.channel === 'push' ? u?.display_name : row.channel === 'whatsapp' ? u?.phone_whatsapp : u?.email) ??
         u?.display_name ??
-        'sin destinatario',
+        tr('admin.noRecipient'),
     }
   }) as OutboxRow[]
 
@@ -134,10 +137,10 @@ export default async function AdminPage() {
         {loudUser ? (
           <div className="mb-[26px]">
             <Loud
-              title={`${loudUser.display_name} espera verificación`}
+              title={tf('admin.awaitingVerification', { name: loudUser.display_name })}
               body={
                 <>
-                  Se registró {timeAgo(loudUser.created_at ?? '', lang)} como {loudUser.email ?? loudUser.phone_whatsapp}.{' '}
+                  {tf('admin.signedUpAs', { ago: timeAgo(loudUser.created_at ?? '', lang), contact: loudUser.email ?? loudUser.phone_whatsapp ?? '' })}{' '}
                   {(loudClubs ?? []).length === 0 ? tr('admin.noClubYet') : tr('admin.alreadyClub')}
                 </>
               }
@@ -182,7 +185,7 @@ export default async function AdminPage() {
                 <FaceStack people={restUsers.slice(0, 4) as unknown as AvatarUser[]} size={20} max={4} />
                 <span className="text-[12.5px] text-ink-300">
                   {users.length}
-                  {disabled > 0 && ` · ${disabled} sin acceso`}
+                  {disabled > 0 && tf('admin.noAccessN', { n: disabled })}
                 </span>
               </span>
             }
@@ -205,7 +208,7 @@ export default async function AdminPage() {
                     {u.display_name}
                     <span className="text-ink-300">{u.email ?? u.phone_whatsapp}</span>
                     <Badge tone={u.status === 'active' ? 'active' : 'disabled'}>
-                      {STATUS_LABEL[u.status] ?? u.status}
+                      {STATUS_LABEL[u.status] ? tr(STATUS_LABEL[u.status]) : u.status}
                     </Badge>
                     {u.is_app_admin && <Badge tone="admin">admin</Badge>}
                   </span>
@@ -222,7 +225,7 @@ export default async function AdminPage() {
                       )}
                       <form action={toggleAppAdmin.bind(null, u.id, !u.is_app_admin)}>
                         <button className="tap text-xs font-bold text-ink-500">
-                          {u.is_app_admin ? 'quitar admin' : 'hacer admin'}
+                          {u.is_app_admin ? tr('admin.removeAdmin') : tr('admin.makeAdmin')}
                         </button>
                       </form>
                     </span>

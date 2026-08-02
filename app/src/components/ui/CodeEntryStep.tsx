@@ -58,7 +58,7 @@ export function CodeEntryStep({
   surface = 'dark',
   compact = false,
   onBack,
-  backLabel = 'Cambiar',
+  backLabel,
   onResend,
 }: {
   value: string

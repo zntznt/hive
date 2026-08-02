@@ -84,7 +84,7 @@ export default function NotifPrefsForm({
     }
     try {
       await updateNotifPrefs(fd)
-      toast('Listo')
+      toast(tr('common.saved'))
     } catch (e) {
       setError(e instanceof Error ? e.message : tr('common.notSaved'))
     } finally {
@@ -192,13 +192,13 @@ export default function NotifPrefsForm({
             <Icon name="bell-slash" size={13} className="text-ink-500" />
           </span>
           <span>
-            {push.reason} Lo que elijas aquí se guarda y empieza a aplicar en cuanto se encienda.
+            {push.reason} {tr('notif.kept')}
           </span>
         </p>
       )}
 
       {error && <p className="mt-2.5 rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
-      {saving && <p className="mt-2 text-xs text-ink-300">Guardando…</p>}
+      {saving && <p className="mt-2 text-xs text-ink-300">{tr('common.saving')}</p>}
     </form>
   )
 }

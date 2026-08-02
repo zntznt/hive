@@ -159,7 +159,7 @@ export function WhereCard({
                 exists to remove. */}
             <span className="text-[15px] font-bold text-on-dark">{area ?? location}</span>
             <span className="text-xs text-on-dark-mute">
-              {area ? `${location}${span ? ` · hoy ${span}` : ''}` : span ? `hoy ${span}` : ''}
+              {area ? `${location}${span ? ` · ${tf('where.today', { span })}` : ''}` : span ? tf('where.today', { span }) : ''}
             </span>
           </span>
         </div>

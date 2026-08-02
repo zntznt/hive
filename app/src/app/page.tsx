@@ -93,9 +93,15 @@ function plateRowContent(
   }
 }
 
-function rsvpChip(eventStatus: string, myStatus?: string, waitlisted?: boolean) {
+function rsvpChip(
+  eventStatus: string,
+  t: (k: StringKey) => string,
+  myStatus?: string,
+  waitlisted?: boolean
+) {
   if (eventStatus === 'scheduling') return null
-  if (myStatus === 'in') return waitlisted ? <Badge tone="pending">en espera</Badge> : <Badge tone="mine">vas</Badge>
+  if (myStatus === 'in')
+    return <Badge tone={waitlisted ? 'pending' : 'mine'}>{t(waitlisted ? 'badge.waiting' : 'badge.going')}</Badge>
   return null
 }
 
@@ -154,7 +160,7 @@ export default async function Home() {
   ])
 
   const total = plateCount(board)
-  const away = await getAwayItems(supabase, profile.id)
+  const away = await getAwayItems(supabase, profile.id, lang)
   // Three, then the link. Four rows plus a link is five things under a header
   // whose whole job is to be a preview, at which point the reader is doing
   // Plate's work on the wrong screen.
@@ -217,7 +223,7 @@ export default async function Home() {
   const footerByClub = new Map<string, ClubFooter>()
   for (const c of clubs) {
     const mine = allUpcoming.filter((e) => e.club_id === c.id) as unknown as CardEvent[]
-    footerByClub.set(c.id, clubFooter(mine, lastActivityByClub.get(c.id) ?? null))
+    footerByClub.set(c.id, clubFooter(mine, lastActivityByClub.get(c.id) ?? null, new Date(), lang))
   }
 
   return (
@@ -384,7 +390,7 @@ export default async function Home() {
                   </span>
                   <span className="flex flex-shrink-0 flex-col items-end gap-1">
                     <WhenPill at={e.chosen_start} status={e.status} />
-                    {rsvpChip(e.status, rsvpByEvent.get(e.id)?.status, rsvpByEvent.get(e.id)?.waitlist_pos != null)}
+                    {rsvpChip(e.status, t, rsvpByEvent.get(e.id)?.status, rsvpByEvent.get(e.id)?.waitlist_pos != null)}
                   </span>
                 </Link>
               ))}

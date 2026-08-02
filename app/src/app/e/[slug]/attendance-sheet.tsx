@@ -150,7 +150,7 @@ export function AttendanceSheet({
 
         <div className="border-t border-line-divider p-4">
           <Button block disabled={pending} onClick={save}>
-            {pending ? 'Guardando…' : 'Guardar lista'}
+            {tr(pending ? 'common.saving' : 'attendance.save')}
           </Button>
           {error && <p className="mt-2.5 rounded-md bg-danger-bg p-3 text-xs text-danger">{error}</p>}
           <div className="mt-2.5 flex items-center justify-between gap-2.5">
@@ -184,7 +184,7 @@ export function AttendanceSheet({
         <Icon name="clipboard-check" size={16} className="flex-shrink-0 text-ink-300" />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-bold text-ink-900">
-            {everyone ? tr('roll.allCame') : `${cameCount} de ${total} ${cameCount === 1 ? 'vino' : 'vinieron'}`}
+            {everyone ? tr('roll.allCame') : tf(cameCount === 1 ? 'attendance.came1' : 'attendance.cameN', { n: cameCount, total })}
           </span>
           <span className="mt-0.5 block truncate text-[12px] text-ink-300">
             La pasó {takenBy ?? tr('event.organization')} · {timeAgo(takenAt, lang)}

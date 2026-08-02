@@ -7,7 +7,7 @@ import { HexAvatar } from '@/components/ui/HexAvatar'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Icon } from '@/components/ui/Icon'
-import { useT } from '@/components/ui/LangProvider'
+import { useT, useTf } from '@/components/ui/LangProvider'
 
 export type SearchClub = { slug: string; name: string; members: number; upcoming: number }
 export type SearchEvent = { slug: string; title: string; club: string; when: string; place: string | null }
@@ -29,6 +29,7 @@ export default function SearchClient({
   people: SearchPerson[]
 }) {
   const tr = useT()
+  const tf = useTf()
   const [q, setQ] = useState('')
   const ref = useRef<HTMLInputElement>(null)
   const router = useRouter()
@@ -87,7 +88,7 @@ export default function SearchClient({
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Busca eventos, clubs, personas"
+            placeholder={tr('common.search')}
             className="flex-1 border-none bg-transparent text-sm text-ink-900 outline-none"
           />
           {q && (
@@ -115,13 +116,13 @@ export default function SearchClient({
 
       {!term && (
         <>
-          <SectionHeader>Ir a</SectionHeader>
+          <SectionHeader>{tr('search.goTo')}</SectionHeader>
           <div className="mb-[26px] flex flex-wrap gap-2">
             {[
-              ['Dinero pendiente', '/events?owed=true'],
-              ['Tu historial', `/events?person=${myId}&when=past`],
-              ['Esta semana', '/events?when=upcoming'],
-              ['Eventos pasados', '/events?when=past'],
+              [tr('search.owed'), '/events?owed=true'],
+              [tr('search.history'), `/events?person=${myId}&when=past`],
+              [tr('search.thisWeek'), '/events?when=upcoming'],
+              [tr('search.past'), '/events?when=past'],
             ].map(([label, href]) => (
               <Link
                 key={label}
@@ -181,7 +182,7 @@ export default function SearchClient({
                 href={`/events?person=${p.id}`}
                 avatar={<UserAvatar user={p.user} size={32} />}
                 title={p.name}
-                sub={`${p.shared} ${p.shared === 1 ? 'evento juntos' : 'eventos juntos'}`}
+                sub={tf(p.shared === 1 ? 'search.together1' : 'search.togetherN', { n: p.shared })}
               />
             ))}
           </div>

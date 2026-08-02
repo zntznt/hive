@@ -104,7 +104,7 @@ export async function startPhoneChange(userId: string, phone: string): Promise<S
         await db.from('phone_verifications').delete().eq('user_id', userId)
       }
     } catch (e) {
-      const reason = e instanceof Error ? e.message : 'error desconocido al enviar'
+      const reason = e instanceof Error ? e.message : 'unknown send error'
       if (logged) {
         await db.from('notification_outbox').update({ status: 'failed', error: reason }).eq('id', logged.id)
       }

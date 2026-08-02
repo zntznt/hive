@@ -16,7 +16,7 @@ import { t } from "@/lib/lang";
 export async function generateMetadata(): Promise<Metadata> {
   const lang = await currentLang()
   return {
-  title: "Hive · tu club, organizado",
+  title: t(lang, 'app.title'),
   description:
     t(lang, 'app.description'),
   manifest: "/assets/pwa/manifest.webmanifest",

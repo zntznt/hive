@@ -186,7 +186,7 @@ export function FoldedEmpties({ children, action }: { children: ReactNode; actio
 
 // Links to elsewhere, grouped and labelled, so they stop impersonating
 // sections of this page.
-export function DoorGroup({ label = 'En otra parte', children }: { label?: string; children: ReactNode }) {
+export function DoorGroup({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="mt-[26px] flex flex-col gap-[7px] border-t border-line-card pt-[11px]">
       <span className="eyebrow px-0.5">{label}</span>

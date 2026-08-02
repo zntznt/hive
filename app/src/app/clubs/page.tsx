@@ -109,7 +109,7 @@ export default async function ClubsPage() {
   const carded = clubs.map((m) => {
     const evs = eventsOf.get(m.club_id) ?? []
     const lastDone = evs.find((e) => e.chosen_start && Date.parse(e.chosen_start) < now.getTime())
-    return { m, club: m.clubs!, footer: clubFooter(evs, lastDone?.chosen_start ?? null, now) }
+    return { m, club: m.clubs!, footer: clubFooter(evs, lastDone?.chosen_start ?? null, now, lang) }
   })
 
   // Rule 6 answers *too many*, not *quiet*. Past four clubs the quiet ones

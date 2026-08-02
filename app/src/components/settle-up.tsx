@@ -11,7 +11,7 @@ import { dataUrlToBlob, uploadPaymentProof } from '@/lib/upload'
 import { downscaleToDataUrl } from '@/lib/downscale'
 import { recordSettlement, confirmSettlement, deleteSettlement } from '@/app/actions'
 import { Icon } from '@/components/ui/Icon'
-import { useT } from '@/components/ui/LangProvider'
+import { useT, useTf } from '@/components/ui/LangProvider'
 
 type PaymentMethodRow = { kind: string; value: string }
 
@@ -41,6 +41,7 @@ export function SettleUpFlow({
   display?: boolean
 }) {
   const tr = useT()
+  const tf = useTf()
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState<1 | 2 | 3 | 'done'>(1)
   const [method, setMethod] = useState('bank_account')
@@ -66,10 +67,10 @@ export function SettleUpFlow({
       // straight off the camera this is three to five megabytes and the bucket
       // stops at two, so shrink it here rather than let the upload fail after
       // the member has already picked their method
-      setProofDataUrl(await downscaleToDataUrl(f))
+      setProofDataUrl(await downscaleToDataUrl(f, tr))
     } catch (err) {
       setProofDataUrl(null)
-      setError(err instanceof Error ? err.message : 'No pudimos leer esa imagen.')
+      setError(err instanceof Error ? err.message : tr('err.image.read'))
     }
   }
 
@@ -110,7 +111,7 @@ export function SettleUpFlow({
           open
           onClose={close}
           title={step === 'done' ? tr('plate.done!') : tr('money.markPaid')}
-          subtitle={step === 'done' ? undefined : `Tú → ${toName} · ${fmtMoney(amountCents)}`}
+          subtitle={step === 'done' ? undefined : tf('settle.youTo', { name: toName, amount: fmtMoney(amountCents) })}
           footer={
             step === 'done' ? (
               <Button onClick={close}>{tr('common.close')}</Button>
@@ -136,9 +137,7 @@ export function SettleUpFlow({
             <div className="py-2 text-center">
               <div className="mb-2 text-honey-500"><Icon name="jar" size={30} /></div>
               <div className="text-sm text-ink-700">
-                {isCash
-                  ? `${toName} confirma cuando lo tenga en mano.`
-                  : `Enviado. ${toName} solo necesita confirmar tu comprobante.`}
+                {tf(isCash ? 'settle.cashHint' : 'settle.sentHint', { name: toName })}
               </div>
             </div>
           )}
@@ -193,7 +192,7 @@ export function SettleUpFlow({
                 <span className="font-semibold">{toName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-ink-500">Cantidad</span>
+                <span className="text-ink-500">{tr('money.amount')}</span>
                 <span className="font-semibold">{fmtMoney(amountCents)}</span>
               </div>
               <div className="flex justify-between">
@@ -233,6 +232,7 @@ export function ConfirmPaymentModal({
   children: ReactNode
 }) {
   const tr = useT()
+  const tf = useTf()
   const [open, setOpen] = useState(false)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
@@ -255,11 +255,11 @@ export function ConfirmPaymentModal({
           open
           onClose={() => setOpen(false)}
           title={tr('money.receipt')}
-          subtitle={`${fromName} → Tú · ${fmtMoney(amountCents)}${method ? ` · ${(PAYMENT_METHOD_KEYS[method] ? tr(PAYMENT_METHOD_KEYS[method]) : method)}` : ''}`}
+          subtitle={`${tf('settle.fromYou', { name: fromName, amount: fmtMoney(amountCents) })}${method ? ` · ${PAYMENT_METHOD_KEYS[method] ? tr(PAYMENT_METHOD_KEYS[method]) : method}` : ''}`}
           footer={
             <>
               <Button variant="danger" disabled={pending} onClick={() => act(deleteSettlement)}>
-                Rechazar
+                {tr('settle.reject')}
               </Button>
               <Button disabled={pending} onClick={() => act(confirmSettlement)}>
                 Confirmar recibido

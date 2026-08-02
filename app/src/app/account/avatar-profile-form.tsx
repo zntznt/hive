@@ -84,8 +84,12 @@ export default function AvatarProfileForm({
       const url = await uploadAvatarPhoto(userId, blob)
       setPhotoUrl(url)
       await save({ photoUrl: url })
-    } catch (e) {
-      setError(e instanceof Error ? `No se pudo subir la foto. ${e.message}` : t(lang, 'account.photo.failed'))
+    } catch {
+      // e.message from a server action is Next's sanitised paragraph in
+      // production, so prefixing it with our own sentence produced a Spanish
+      // opener onto an English wall of internals. The written copy is better
+      // on its own.
+      setError(t(lang, 'account.photo.failed'))
     } finally {
       setUploading(false)
     }
@@ -112,7 +116,7 @@ export default function AvatarProfileForm({
     fd.set('avatar_photo_url', p ?? '')
     try {
       await updateProfile(fd)
-      toast('Listo')
+      toast(t(lang, 'common.saved'))
     } catch (e) {
       setError(e instanceof Error ? e.message : t(lang, 'common.notSaved'))
     } finally {
@@ -197,7 +201,7 @@ export default function AvatarProfileForm({
           shape="hex"
           aspect={0.92}
           outWidth={512}
-          title="Encuadra tu foto"
+          title={t(lang, 'crop.title')}
           onCancel={() => setCropSrc(null)}
           onApply={onCropApply}
         />

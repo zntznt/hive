@@ -203,7 +203,7 @@ export async function requestSigninCode(contact: string): Promise<CodeRequest> {
     } catch (e) {
       // Nothing is listening by now, so an uncaught throw here is how the
       // last two attempts disappeared. Leave the reason on the row instead.
-      const reason = e instanceof Error ? e.message : 'error desconocido al enviar'
+      const reason = e instanceof Error ? e.message : 'unknown send error'
       if (logged) {
         await db.from('notification_outbox').update({ status: 'failed', error: reason }).eq('id', logged.id)
       }

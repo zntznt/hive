@@ -48,7 +48,7 @@ export function CalendarSubscribe({
   async function copy() {
     try {
       await navigator.clipboard.writeText(httpUrl)
-      toast('Enlace copiado.')
+      toast(tr('club.linkCopied'))
     } catch {
       toast(tr('club.cal.copyFailed'))
     }
@@ -139,7 +139,7 @@ export function CalendarSubscribe({
                 Dejarlo así
               </Button>
               <Button variant="danger" disabled={pending} onClick={rotate}>
-                {pending ? 'Cambiando…' : 'Cambiar'}
+                {pending ? 'Cambiando…' : tr('common.changeIt')}
               </Button>
             </>
           }

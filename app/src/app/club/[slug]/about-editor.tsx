@@ -54,7 +54,7 @@ export function AboutEditor({
     startTransition(async () => {
       await updateClubAbout(clubId, slug, fd)
       setOpen(false)
-      toast(isAdmin ? 'Acerca de actualizado.' : tr('club.about.sent'))
+      toast(isAdmin ? tr('club.aboutUpdated') : tr('club.about.sent'))
       router.refresh()
     })
   }
@@ -76,7 +76,7 @@ export function AboutEditor({
                 Cancelar
               </Button>
               <Button disabled={pending} onClick={submit}>
-                {isAdmin ? 'Guardar' : tr('club.about.submit')}
+                {tr(isAdmin ? 'common.save' : 'club.about.submit')}
               </Button>
             </>
           }

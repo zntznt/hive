@@ -1,3 +1,4 @@
+import { tf, type Lang } from './lang'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 // "Since you were away": the last 48 hours of things that happened to you,
@@ -17,7 +18,11 @@ export type AwayItem = {
 
 const WINDOW_HOURS = 48
 
-export async function getAwayItems(supabase: SupabaseClient, userId: string): Promise<AwayItem[]> {
+export async function getAwayItems(
+  supabase: SupabaseClient,
+  userId: string,
+  lang: Lang = 'es'
+): Promise<AwayItem[]> {
   const since = new Date(Date.now() - WINDOW_HOURS * 3600_000).toISOString()
 
   const { data: myClubs } = await supabase.from('club_members').select('club_id').eq('user_id', userId)
@@ -58,7 +63,7 @@ export async function getAwayItems(supabase: SupabaseClient, userId: string): Pr
       items.push({
         id: `cancelled-${e.id}`,
         kind: 'cancelled',
-        text: `Se canceló "${e.title}"`,
+        text: tf(lang, 'away.cancelled', { title: e.title }),
         href: `/e/${e.slug}`,
         at: e.cancelled_at,
       })
@@ -66,7 +71,7 @@ export async function getAwayItems(supabase: SupabaseClient, userId: string): Pr
       items.push({
         id: `locked-${e.id}`,
         kind: 'time_locked',
-        text: `Ya hay fecha para "${e.title}"`,
+        text: tf(lang, 'away.timeLocked', { title: e.title }),
         href: `/e/${e.slug}`,
         at: e.scheduled_at,
       })
@@ -82,7 +87,7 @@ export async function getAwayItems(supabase: SupabaseClient, userId: string): Pr
     items.push({
       id: `settled-${s.id}`,
       kind: 'settled',
-      text: `Tu pago de "${s.events.title}" quedó confirmado`,
+      text: tf(lang, 'away.settled', { title: s.events.title }),
       href: `/e/${s.events.slug}`,
       at: s.created_at,
     })

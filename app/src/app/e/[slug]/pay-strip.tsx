@@ -34,7 +34,7 @@ export function PayStrip({
             try {
               navigator.clipboard.writeText(methodValue)
             } catch {}
-            toast('Datos de pago copiados')
+            toast(tr('pay.copied'))
           }}
           className="tap text-[12.5px] font-bold text-honey-700"
         >

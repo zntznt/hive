@@ -472,7 +472,7 @@ export function dispatchAfterResponse(supabase: SupabaseClient, limit = 20) {
       await reconcileHandoffs(supabase)
       await dispatchQueuedNotifications(supabase, limit)
     } catch (e) {
-      console.error('[notify] dispatch tras la respuesta falló', e)
+      console.error('[notify] dispatch after response failed', e)
     }
   })
 }

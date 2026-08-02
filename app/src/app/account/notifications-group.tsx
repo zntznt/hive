@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { PushRow } from './push-row'
 import NotifPrefsForm from './notif-prefs-form'
+import { useT } from '@/components/ui/LangProvider'
 
 // "Cómo te avisa Hive": the channels and the per-topic grid, together.
 //
@@ -31,12 +32,13 @@ export function NotificationsGroup({
   prefs: Partial<Record<string, { email?: boolean; whatsapp?: boolean; push?: boolean }>>
   hasWhatsapp: boolean
 }) {
+  const tr = useT()
   // 'checking' until the browser answers, which is why the column starts dead
   // with no reason printed: a column that flashes live and then dies reads as
   // a bug, and a reason shown before we have one would be a guess.
   const [push, setPush] = useState<{ live: boolean; deviceName: string; reason: string | null }>({
     live: false,
-    deviceName: 'este dispositivo',
+    deviceName: tr('account.device.this'),
     reason: null,
   })
 

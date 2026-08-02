@@ -2,9 +2,12 @@
 
 import { useState } from 'react'
 import { Icon } from '@/components/ui/Icon'
+import { useT } from '@/components/ui/LangProvider'
 
 // `path` is origin-relative ("/e/abc"); the full URL is built client-side
-export default function CopyButton({ path, label = 'Copiar enlace' }: { path: string; label?: string }) {
+export default function CopyButton({ path, label }: { path: string; label?: string }) {
+  const tr = useT()
+  const text = label ?? tr('event.bar.copyLink')
   const [copied, setCopied] = useState(false)
   return (
     <button
@@ -21,7 +24,7 @@ export default function CopyButton({ path, label = 'Copiar enlace' }: { path: st
           <Icon name="check" size={11} /> Copiado
         </>
       ) : (
-        label
+        text
       )}
     </button>
   )

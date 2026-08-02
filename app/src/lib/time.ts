@@ -1,4 +1,4 @@
-import type { Lang } from './lang'
+import { t, tf, type Lang } from './lang'
 // One clock for the whole app.
 //
 // Hive runs in Mexico and every screen says so, but half the date formatting
@@ -47,10 +47,10 @@ export const fmtMonthYear = (iso: string | Date, lang: Lang = 'es') =>
 //
 // The Clubs tab already did this correctly while the event page for the very
 // same event said "Desde las 20:00", which is the drift this replaces.
-export function fmtSpan(startIso: string | Date | null, endIso?: string | Date | null): string {
+export function fmtSpan(startIso: string | Date | null, endIso?: string | Date | null, lang: Lang = 'es'): string {
   if (!startIso) return ''
-  const start = fmtTime(startIso)
-  return endIso ? `${start} a ${fmtTime(endIso)}` : `desde las ${start}`
+  const start = fmtTime(startIso, lang)
+  return endIso ? tf(lang, 'time.range', { a: start, b: fmtTime(endIso, lang) }) : tf(lang, 'time.from', { start })
 }
 
 // Whether an event falls on today, in Mexico City, where the club is.
@@ -105,17 +105,27 @@ export function fmtWindow(
   startDay: string | null,
   endDay: string | null,
   timeMin?: number,
-  timeMax?: number
+  timeMax?: number,
+  lang: Lang = 'es'
 ): string | null {
   if (!startDay) return null
   const days =
     endDay && endDay !== startDay
-      ? `${fmtDayMonth(mexicoDay(startDay))} a ${fmtDayMonth(mexicoDay(endDay))}`
-      : fmtDayMonth(mexicoDay(startDay))
+      ? tf(lang, 'time.range', {
+          a: fmtDayMonth(mexicoDay(startDay), lang),
+          b: fmtDayMonth(mexicoDay(endDay), lang),
+        })
+      : fmtDayMonth(mexicoDay(startDay), lang)
   if (timeMin == null || timeMax == null) return days
   // Named by where the window sits, not by its length: a window that starts at
   // 19:00 is an evening whether it runs three hours or six.
   const part =
-    timeMin >= 17 * 60 ? 'noches' : timeMax <= 13 * 60 ? 'mañanas' : timeMin >= 12 * 60 ? 'tardes' : 'todo el día'
+    timeMin >= 17 * 60
+      ? t(lang, 'time.evenings')
+      : timeMax <= 13 * 60
+        ? t(lang, 'time.mornings')
+        : timeMin >= 12 * 60
+          ? t(lang, 'time.afternoons')
+          : t(lang, 'time.allDay')
   return `${days} · ${part}`
 }

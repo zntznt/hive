@@ -50,7 +50,7 @@ export function TemplateSyncBar() {
         }}
         className="tap text-xs font-bold text-honey-700 disabled:opacity-50"
       >
-        {busy ? 'Actualizando…' : 'Actualizar estados de WhatsApp'}
+        {busy ? 'Actualizando…' : tr('admin.syncWa')}
       </button>
       {error && <span className="text-xs text-danger">{error}</span>}
     </div>
@@ -161,7 +161,7 @@ export function TemplateRow({
                 }}
                 className="tap self-start text-xs font-bold text-honey-700 disabled:opacity-50"
               >
-                {busy ? 'Enviando…' : status ? tr('admin.tpl.resend') : tr('admin.tpl.send')}
+                {busy ? tr('common.sending') : status ? tr('admin.tpl.resend') : tr('admin.tpl.send')}
               </button>
 
               {(error || whatsapp.wa_error) && (

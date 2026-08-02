@@ -87,7 +87,7 @@ function CategoryModal({
                 </Button>
               )}
               <Button disabled={pending || !name.trim()} onClick={save}>
-                {isAdmin ? (category ? 'Guardar' : tr('club.cat.add')) : tr('club.about.submit')}
+                {isAdmin ? (category ? tr('common.save') : tr('club.cat.add')) : tr('club.about.submit')}
               </Button>
             </>
           }

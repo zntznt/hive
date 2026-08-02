@@ -334,7 +334,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   // The modal is a contract, so this is built from the event's own row rather
   // than from a sentence somebody wrote once and forgot to update.
   const carriesOver: { icon: IconName; text: string }[] = [
-    { icon: 'heading', text: `El nombre, ${event.title}` },
+    { icon: 'heading', text: tf('event.nameIs', { title: event.title }) },
     event.location ? { icon: 'location-dot', text: event.location } : null,
     category ? { icon: 'tag', text: category.name as string } : null,
     event.capacity != null
@@ -345,7 +345,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       : null,
     {
       icon: 'user-plus',
-      text: event.allow_guests ? 'Se permiten invitados' : 'Sin invitados',
+      text: t(event.allow_guests ? 'event.guestsAllowed' : 'event.noGuests'),
     },
     contributions.length > 0
       ? {
@@ -378,9 +378,9 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   // phases have somebody who did a thing and a next step nobody should have to
   // ask about: once there is a time it is "who locked it and were we told",
   // and before that it is "who opened the poll and when does it close".
-  const organizerName = nameOf.get(event.organizer_user_id) ?? 'Quien organiza'
+  const organizerName = nameOf.get(event.organizer_user_id) ?? t('event.organizer')
   const receipt: { icon: IconName; text: string } | null = event.scheduled_at
-    ? { icon: 'lock', text: `${organizerName} fijó la hora ${timeAgo(event.scheduled_at, lang)} · se avisó a todos` }
+    ? { icon: 'lock', text: tf('event.lockedTime', { name: organizerName, ago: timeAgo(event.scheduled_at, lang) }) }
     : event.status === 'scheduling'
       ? {
           icon: 'pen',
@@ -413,13 +413,13 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
   const dateChip =
     event.status === 'scheduling'
-      ? 'Fecha por definir'
+      ? t('event.dateTBD')
       : event.status === 'scheduled' && event.chosen_start
         ? // day plus the whole span, not just the start: the end is what tells
           // you if you are free after and when to get a ride home
-          `${fmtDayMonth(event.chosen_start, lang)} · ${fmtSpan(event.chosen_start, event.chosen_end)}`
+          `${fmtDayMonth(event.chosen_start, lang)} · ${fmtSpan(event.chosen_start, event.chosen_end, lang)}`
         : event.status === 'done'
-          ? `celebrado${event.chosen_start ? ' · ' + fmtDayMonth(event.chosen_start, lang) : ''}`
+          ? (event.chosen_start ? tf('event.heldOn', { date: fmtDayMonth(event.chosen_start, lang) }) : t('event.heldLower'))
           : event.status === 'cancelled'
             ? 'cancelado'
             : 'borrador'
@@ -478,7 +478,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       {loud === 'rsvp' && (
         <div className="mb-3.5">
           <Loud
-            title={`${nameOf.get(event.organizer_user_id) ?? 'Quien organiza'} está esperando tu respuesta`}
+            title={tf('event.waitingYou', { name: nameOf.get(event.organizer_user_id) ?? t('event.organizer') })}
             body={
               <>
                 {event.title}
@@ -542,7 +542,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             eventId={event.id}
             slug={event.slug}
             status={myRsvp.status as 'in' | 'maybe' | 'out'}
-            note={myWaitPos >= 0 ? `en la lista de espera, puesto ${myWaitPos + 1}` : null}
+            note={myWaitPos >= 0 ? tf('event.waitlistPos', { n: myWaitPos + 1 }) : null}
           />
         </div>
       )}
@@ -553,10 +553,10 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         lng={event.lng}
         area={event.area}
         title={event.title}
-        span={fmtSpan(event.chosen_start, event.chosen_end)}
+        span={fmtSpan(event.chosen_start, event.chosen_end, lang)}
         window={
           event.status === 'scheduling'
-            ? fmtWindow(event.sched_start_date, event.sched_end_date, event.sched_time_min, event.sched_time_max)
+            ? fmtWindow(event.sched_start_date, event.sched_end_date, event.sched_time_min, event.sched_time_max, lang)
             : null
         }
         going={seatsTaken}
@@ -631,7 +631,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           receipt moved inside the where-card, next to the time it describes. */}
       {event.cancelled_at && (
         <p className="mb-3.5 text-[12px] text-ink-300">
-          Se canceló {timeAgo(event.cancelled_at, lang)}. Se avisó a quienes iban.
+          {tf('event.cancelledAgo', { ago: timeAgo(event.cancelled_at, lang) })}
         </p>
       )}
 
@@ -803,8 +803,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           lie. */}
       {carriedOver && (
         <p className="rounded-md border border-line-card bg-cream-sunk px-3.5 py-3 text-[12.5px] leading-relaxed text-ink-700">
-          {t('event.reused')}
-          vuelves a traer.
+          {t('event.reused')} {t('event.reusedTail')}
         </p>
       )}
       {contributions.length === 0 && <p className="text-sm text-ink-500">{t('event.contrib.empty')}</p>}
@@ -984,7 +983,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             {event.scheduled_at && (
               <span>
                 <Icon name="calendar-check" size={11} />{' '}
-                {nameOf.get(event.organizer_user_id) ?? 'Quien organiza'} fijó la hora {timeAgo(event.scheduled_at, lang)}.
+                {tf('event.fixedTimeBy', { name: nameOf.get(event.organizer_user_id) ?? t('event.organizer'), ago: timeAgo(event.scheduled_at, lang) })}
               </span>
             )}
           </div>

@@ -46,14 +46,14 @@ export async function GET(request: Request) {
   // quietly leaving the job open to the internet.
   const secret = process.env.CRON_SECRET
   if (!secret) {
-    return NextResponse.json({ error: 'CRON_SECRET no está configurado' }, { status: 503 })
+    return NextResponse.json({ error: 'CRON_SECRET is not configured' }, { status: 503 })
   }
   if (request.headers.get('authorization') !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
   const db = supabaseService()
-  if (!db) return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY no está configurado' }, { status: 500 })
+  if (!db) return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY is not configured' }, { status: 500 })
 
   const now = new Date()
   const { start, end } = dayInMexico(now)

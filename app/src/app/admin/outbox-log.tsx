@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { Icon } from '@/components/ui/Icon'
-import { useT } from '@/components/ui/LangProvider'
+import { useT, useTf } from '@/components/ui/LangProvider'
 import type { StringKey } from '@/lib/lang'
 
 export type OutboxRow = {
@@ -52,6 +52,7 @@ function stamp(iso: string) {
 
 export default function OutboxLog({ rows }: { rows: OutboxRow[] }) {
   const tr = useT()
+  const tf = useTf()
   const [open, setOpen] = useState(false)
 
   if (!rows.length) {
@@ -65,7 +66,7 @@ export default function OutboxLog({ rows }: { rows: OutboxRow[] }) {
         onClick={() => setOpen((o) => !o)}
         className="tap rounded-md border-[1.5px] border-honey-500 px-2.5 py-1 text-xs font-bold text-honey-700"
       >
-        {open ? 'Ocultar' : `Ver los últimos ${rows.length}`}
+        {open ? tr('admin.hide') : tf('admin.showLast', { n: rows.length })}
       </button>
 
       {open && (

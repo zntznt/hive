@@ -76,7 +76,7 @@ export function AddContributionButton({
               label={isOrganizer ? tr('contrib.whatNeeded') : tr('contrib.whatBring')}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder={isOrganizer ? 'Hace falta…' : 'Yo traigo…'}
+              placeholder={isOrganizer ? tr('contribution.needed') : tr('contribution.bring')}
               autoFocus
             />
             <Input label={tr('contrib.qty')} value={qty} onChange={(e) => setQty(e.target.value)} placeholder={tr('contrib.qty.ph')} />

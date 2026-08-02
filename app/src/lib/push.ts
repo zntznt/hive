@@ -48,7 +48,7 @@ export type StoredSubscription = {
 }
 
 export async function sendPush(sub: StoredSubscription, payload: PushPayload): Promise<PushResult> {
-  if (!ready()) return { ok: false, skipped: true, error: 'push sin configurar' }
+  if (!ready()) return { ok: false, skipped: true, error: 'push not configured' }
   try {
     await webpush.sendNotification(
       { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
@@ -62,9 +62,9 @@ export async function sendPush(sub: StoredSubscription, payload: PushPayload): P
     // cleared site data, reinstalled, or revoked permission. That is not a
     // failure to report, it is a row to delete.
     if (status === 404 || status === 410) {
-      return { ok: false, skipped: true, error: 'suscripción caducada', gone: true }
+      return { ok: false, skipped: true, error: 'subscription expired', gone: true }
     }
-    const message = e instanceof Error ? e.message : 'error desconocido al enviar push'
+    const message = e instanceof Error ? e.message : 'unknown push send error'
     return { ok: false, skipped: false, error: message }
   }
 }

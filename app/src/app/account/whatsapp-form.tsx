@@ -68,7 +68,7 @@ export default function WhatsappForm({ phone, verifiedAt }: { phone: string | nu
           {/* a number saved before verification existed keeps working, but
               nobody proved it, and the badge should not say otherwise */}
           {phone && (
-            <Badge tone={verifiedAt ? 'active' : 'neutral'}>{verifiedAt ? 'verificado' : 'sin verificar'}</Badge>
+            <Badge tone={verifiedAt ? 'active' : 'neutral'}>{tr(verifiedAt ? 'account.wa.verified' : 'account.wa.unverified')}</Badge>
           )}
           <button
             type="button"

@@ -779,7 +779,7 @@ export async function submitWhatsappTemplate(key: string) {
   } = await supabase.auth.getUser()
   if (!user) throw new Error('not signed in')
   const { data: me } = await supabase.from('users').select('is_app_admin').eq('id', user.id).maybeSingle()
-  if (!me?.is_app_admin) throw new Error('solo los admins pueden hacer esto')
+  if (!me?.is_app_admin) throw new Error('app admins only')
 
   const { data: tpl } = await supabase
     .from('notification_templates')
@@ -790,7 +790,7 @@ export async function submitWhatsappTemplate(key: string) {
     // submission, not a row.
     .eq('lang', 'es')
     .maybeSingle()
-  if (!tpl) throw new Error('no existe esa plantilla')
+  if (!tpl) throw new Error('no such template')
 
   const { createWhatsappTemplate } = await import('@/lib/whatsapp')
   const result = await createWhatsappTemplate({
@@ -822,7 +822,7 @@ export async function refreshWhatsappTemplates() {
   } = await supabase.auth.getUser()
   if (!user) throw new Error('not signed in')
   const { data: me } = await supabase.from('users').select('is_app_admin').eq('id', user.id).maybeSingle()
-  if (!me?.is_app_admin) throw new Error('solo los admins pueden hacer esto')
+  if (!me?.is_app_admin) throw new Error('app admins only')
 
   const { listWhatsappTemplates } = await import('@/lib/whatsapp')
   const result = await listWhatsappTemplates()
@@ -1257,7 +1257,7 @@ export async function createPoll(eventId: string, slug: string, formData: FormDa
     })
     .select('id')
     .single()
-  if (error || !poll) throw new Error(error?.message ?? 'no se pudo crear la encuesta')
+  if (error || !poll) throw new Error(error?.message ?? 'poll create failed')
 
   const { error: optErr } = await supabase
     .from('poll_options')
@@ -1482,7 +1482,7 @@ export async function savePaymentMethods(formData: FormData) {
 // ban stops sessions being issued without rewriting anyone's past.
 export async function requestAccountDeletion(formData: FormData) {
   if (String(formData.get('confirm') ?? '') !== 'DELETE') {
-    throw new Error('Escribe DELETE para confirmar.')
+    throw new Error('type DELETE to confirm')
   }
   const supabase = await supabaseServer()
   const {
@@ -1637,7 +1637,7 @@ export async function duplicateEvent(eventId: string, extraWeeks = 0) {
   if (!user) throw new Error('not signed in')
 
   const { data: src } = await supabase.from('events').select('*').eq('id', eventId).maybeSingle()
-  if (!src) throw new Error('No encontramos ese evento.')
+  if (!src) throw new Error('event not found')
 
   const { randomSlug } = await import('@/lib/slug')
   const slug = randomSlug()
@@ -1724,7 +1724,7 @@ export async function duplicateEvent(eventId: string, extraWeeks = 0) {
       })
     }
   } catch (e) {
-    console.error('[duplicateEvent] no se pudieron encolar los avisos', e)
+    console.error('[duplicateEvent] could not queue the notices', e)
   }
   dispatchAfterResponse(supabase)
   redirect(`/e/${slug}`)

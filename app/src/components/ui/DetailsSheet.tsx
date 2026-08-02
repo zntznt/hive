@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from 'react'
 import { Modal } from './Modal'
 import { SummaryRow } from './Density'
+import { useT } from './LangProvider'
 
 // Rule 3: reference material leaves the page.
 //
@@ -16,13 +17,14 @@ import { SummaryRow } from './Density'
 // going. A route would put a back button in the way of that.
 export function DetailsSheet({
   label,
-  title = 'Detalles',
+  title,
   children,
 }: {
   label?: string
   title?: string
   children: ReactNode
 }) {
+  const tr = useT()
   const [open, setOpen] = useState(false)
   return (
     <>
@@ -30,7 +32,7 @@ export function DetailsSheet({
         <SummaryRow icon="circle-info" label={label} arrow />
       </button>
       {open && (
-        <Modal open onClose={() => setOpen(false)} title={title}>
+        <Modal open onClose={() => setOpen(false)} title={title ?? tr('ui.details')}>
           <div className="flex flex-col gap-[18px]">{children}</div>
         </Modal>
       )}

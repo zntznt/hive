@@ -1,5 +1,7 @@
 'use client'
 
+import { useT } from './LangProvider'
+
 import { useEffect, type ReactNode } from 'react'
 import { Icon } from './Icon'
 
@@ -22,6 +24,7 @@ export function Modal({
   width?: number
   children: ReactNode
 }) {
+  const tr = useT()
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
@@ -54,7 +57,7 @@ export function Modal({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Cerrar"
+              aria-label={tr('common.close')}
               className="tap grid h-8 w-8 flex-shrink-0 place-items-center rounded-sm bg-cream-sunk text-base leading-none text-ink-500"
             >
               <Icon name="xmark" size={12} />

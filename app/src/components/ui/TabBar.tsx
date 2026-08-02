@@ -89,7 +89,7 @@ export function TabBar({ plateCount = 0 }: { plateCount?: number }) {
         ))}
         <Link
           href="/"
-          aria-label="Inicio"
+          aria-label={t('tab.home')}
           aria-current={home ? 'page' : undefined}
           className={`-mt-5 mx-1.5 grid h-[54px] w-[54px] flex-shrink-0 place-items-center rounded-full border-2 border-paper ${
             home

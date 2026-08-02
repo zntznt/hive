@@ -14,7 +14,7 @@ import { Input, Select } from '@/components/ui/Input'
 import { getT } from '@/lib/current-lang'
 
 export default async function InvitesPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { t: tr , lang } = await getT()
+  const { t: tr, tf, lang } = await getT()
   const { supabase, profile } = await requireProfile()
   const { slug } = await params
 
@@ -124,7 +124,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
                       {inv.claimed_by_user_id ? (
                         <Badge tone="active">{tr('inv.accepted')}</Badge>
                       ) : inv.declined_at ? (
-                        <Badge tone="disabled">no puede</Badge>
+                        <Badge tone="disabled">{tr('inv.no')}</Badge>
                       ) : inv.expires_at && new Date(inv.expires_at) < new Date() ? (
                         <Badge tone="neutral">{tr('inv.expired')}</Badge>
                       ) : (
@@ -133,16 +133,16 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
                     </span>
                     <span className="text-[11.5px] text-ink-300">
                       {inv.declined_at
-                        ? `respondió ${timeAgo(inv.declined_at, lang)}`
+                        ? tf('inv.declinedAgo', { ago: timeAgo(inv.declined_at, lang) })
                         : inv.expires_at && new Date(inv.expires_at) < new Date()
-                          ? `venció ${timeAgo(inv.expires_at, lang)}, reenvíala para revivirla`
+                          ? tf('inv.expiredAgo', { ago: timeAgo(inv.expires_at, lang) })
                           : timeAgo(inv.created_at, lang)}
                     </span>
                   </span>
                   {/* a dead link can still be resent: that is what revives it */}
                   {!inv.claimed_by_user_id && !inv.declined_at && (
                     <span className="flex flex-shrink-0 items-center gap-1.5">
-                      <CopyButton path={`/i/${inv.token}`} label="Copiar" />
+                      <CopyButton path={`/i/${inv.token}`} label={tr('common.copy')} />
                       <ResendButton invitationId={inv.id} path={`/e/${slug}/invites`} />
                     </span>
                   )}

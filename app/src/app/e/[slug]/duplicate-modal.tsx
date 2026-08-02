@@ -91,8 +91,8 @@ export function DuplicateModal({
     { icon: 'minus', text: tr('dup.availability') },
     { icon: 'minus', text: tr('dup.contribs') },
     { icon: 'minus', text: tr('dup.guests') },
-    { icon: 'minus', text: 'Gastos y balances' },
-    { icon: 'minus', text: 'Las encuestas' },
+    { icon: 'minus', text: tr('dup.expenses') },
+    { icon: 'minus', text: tr('dup.polls') },
   ]
 
   function create() {
@@ -120,7 +120,7 @@ export function DuplicateModal({
             {tr('common.cancel')}
           </Button>
           <Button disabled={pending} onClick={create}>
-            {pending ? 'Creando…' : 'Crearlo'}
+            {pending ? tr('club.creating') : tr('dup.createIt')}
           </Button>
         </>
       }
@@ -142,7 +142,7 @@ export function DuplicateModal({
                   aria-expanded={picking}
                   className="tap -my-2.5 -mx-1 inline-flex min-h-11 flex-shrink-0 items-center px-1 text-[12.5px] font-bold text-honey-700"
                 >
-                  {picking ? 'Listo' : 'Cambiar'}
+                  {tr(picking ? 'common.done' : 'common.changeIt')}
                 </button>
               )}
             </div>

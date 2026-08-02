@@ -61,7 +61,7 @@ export default function EventAppBar({
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(`${location.origin}/e/${slug}`)
-      toast('Enlace copiado')
+      toast(tr('event.bar.linkCopied'))
     } catch {
       toast(tr('event.copyFailed'))
     }
@@ -82,26 +82,26 @@ export default function EventAppBar({
     })
 
   const menu: (MenuItem | false)[] = [
-    { label: 'Copiar enlace', icon: 'link', onClick: copyLink },
+    { label: tr('event.bar.copyLink'), icon: 'link', onClick: copyLink },
     isOrganizer &&
       !isDeleted &&
       status !== 'done' &&
       status !== 'cancelled' &&
-      !!duplicate && { label: 'Duplicar evento', icon: 'copy' as const, onClick: () => setDuplicating(true) },
-    isOrganizer && status !== 'cancelled' && { label: 'Editar evento', icon: 'pen', href: `/e/${slug}/edit` },
+      !!duplicate && { label: tr('event.bar.duplicate'), icon: 'copy' as const, onClick: () => setDuplicating(true) },
+    isOrganizer && status !== 'cancelled' && { label: tr('event.edit'), icon: 'pen', href: `/e/${slug}/edit` },
     isOrganizer &&
       status === 'scheduled' && {
-        label: 'Marcar celebrado',
+        label: tr('event.bar.markDone'),
         icon: 'flag-checkered',
         disabled: pending,
-        onClick: () => setStatus('done', 'Evento marcado como celebrado'),
+        onClick: () => setStatus('done', tr('event.bar.markedDone')),
       },
     isOrganizer &&
       status === 'done' && {
-        label: 'Reabrir evento',
+        label: tr('event.bar.reopen'),
         icon: 'rotate-left',
         disabled: pending,
-        onClick: () => setStatus('scheduled', 'Evento reabierto'),
+        onClick: () => setStatus('scheduled', tr('event.bar.reopened')),
       },
     isOrganizer &&
       status === 'scheduled' && {
@@ -120,10 +120,10 @@ export default function EventAppBar({
         onClick: () => bin(true),
       },
     isClubAdmin &&
-      isDeleted && { label: 'Recuperar evento', icon: 'rotate-left', disabled: pending, onClick: () => bin(false) },
+      isDeleted && { label: tr('event.bar.restore'), icon: 'rotate-left', disabled: pending, onClick: () => bin(false) },
     !isClubAdmin &&
       isOrganizer && {
-        label: isDeleted ? 'Pedir recuperarlo' : 'Pedir eliminarlo',
+        label: isDeleted ? tr('event.bar.askRestore') : tr('event.bar.askDelete'),
         icon: isDeleted ? 'rotate-left' : 'trash',
         danger: !isDeleted,
         disabled: pending,
