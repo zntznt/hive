@@ -74,6 +74,46 @@ if (error) {
   process.exit(1)
 }
 
+// Signing in proving nothing is the trap this check exists for. Both ways this
+// harness fails end with a perfectly rendered sign-in screen, and a screenshot
+// of the wrong page is worse than an error because it looks like an answer.
+//
+// One: the session works but the database will not answer. A `db reset` that
+// leaves anon and authenticated without table grants gives every query
+// "permission denied", the gate reads a null profile and sends you to the
+// door. Ask a question only a signed-in member can answer, and say so plainly.
+{
+  const { error: readErr } = await supabase.from('users').select('id').eq('id', data.session.user.id).single()
+  if (readErr) {
+    console.error(`signed in as ${who}, but reading their own profile failed: ${readErr.message}`)
+    console.error('the database cannot answer a signed-in query. rebuild it: npm run sandbox:reset')
+    process.exit(1)
+  }
+}
+
+// Two: the app on :3100 is talking to a different Supabase than this script.
+// NEXT_PUBLIC_* is inlined at build time, so `next build` without the sandbox
+// env bakes in the production URL and no amount of env at `next start` undoes
+// it. The server then looks up a member who exists only here, finds nobody,
+// and redirects. `npm run sandbox:app` builds and serves with the env, which
+// is the whole reason it is one script.
+{
+  const res = await fetch(base, { redirect: 'manual' }).catch(() => null)
+  if (!res) {
+    console.error(`nothing is serving ${base}. start it: npm run sandbox:app`)
+    process.exit(1)
+  }
+  const html = await res.text()
+  const wantHost = new URL(e.NEXT_PUBLIC_SUPABASE_URL).host
+  const foreign = [...html.matchAll(/https:\/\/[a-z0-9]+\.supabase\.co/g)].map((m) => m[0])
+  if (!html.includes(wantHost) && foreign.length) {
+    console.error(`the app on ${base} is built against ${foreign[0]}, not the sandbox at ${e.NEXT_PUBLIC_SUPABASE_URL}.`)
+    console.error('NEXT_PUBLIC_* is baked in at build time, so env at start cannot fix it.')
+    console.error('rebuild and serve together: npm run sandbox:app')
+    process.exit(1)
+  }
+}
+
 const ref = new URL(e.NEXT_PUBLIC_SUPABASE_URL).host.split(':')[0]
 const cookieName = `sb-${ref === '127.0.0.1' || ref === 'localhost' ? '127' : ref}-auth-token`
 const value = `base64-${Buffer.from(JSON.stringify(data.session)).toString('base64')}`
@@ -107,6 +147,16 @@ page.on('console', (m) => m.type() === 'error' && problems.push(`console: ${m.te
 
 await page.goto(base + path, { waitUntil: 'domcontentloaded' })
 await page.waitForTimeout(2500)
+// Whatever the cause, a gated route that ends on the sign-in door is a
+// harness fault and not a screenshot. Say which, rather than writing a png of
+// the wrong page.
+if (path !== '/' && new URL(page.url()).pathname === '/') {
+  console.error(`asked for ${path} as ${who} and landed on the sign-in screen.`)
+  console.error('the session is good and the app is on the sandbox, so this is the app logging you out.')
+  console.error('check the gate in src/lib/gate.ts and the policies for whatever this route reads.')
+  process.exitCode = 1
+}
+
 const file = join(SHOTS, `${out}.png`)
 await page.screenshot({ path: file, fullPage: true })
 

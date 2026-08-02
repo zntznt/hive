@@ -76,26 +76,84 @@ el evento nunca se llena, y nadie espera."*
 
 ---
 
-# Known defect in the verification harness, not in the app
+## 5 · English is written but not offered (§7)
 
-`scripts/shoot.mjs` cannot currently screenshot any signed-in page in this container. It signs in
-over the API, hands the browser the session cookie, and the first render is correct: the server
-returns 200 for `/account` as an active admin and the HTML is the right page. Within about a tenth
-of a second of hydration the app performs a full navigation to `/` and lands on sign-in.
+The design says the app follows the phone, with an override in Tú. All of that
+is built: `lang` on `users`, resolution from the override or `Accept-Language`,
+one resolve in the root layout handed to every client component, `<html lang>`,
+the table, `t`/`tf`, and the control.
 
-It is not caused by this pass. With every change on this branch stashed, unmodified `main` bounces
-identically on the same server. It is not the middleware's session refresh either: disabling that
-refresh entirely changes nothing. There are no console errors, no page errors, no failed requests
-and no calls to `/auth/v1/*` in the window where it happens, so it is not a token being rejected.
+What is not built is the copy. The table covers the shell and the account
+screen; every other screen is still Spanish literals in JSX. An English phone
+would get a translated tab bar over Spanish rows, which is exactly what
+whole-language fallback exists to prevent. The design's own words: an Italian
+phone gets English, not an Italian shell with Spanish rows in it. A half-English
+app is that bug wearing a different flag, and worse than either language alone,
+because it reads as a rendering fault rather than a missing translation.
 
-What still works, and what this pass was verified with instead:
+The first screenshot taken after the harness was repaired showed it plainly,
+which is the argument for the harness.
 
-- `npm run sandbox:reset` builds the database from `supabase/migrations` from scratch, which is the
-  only real check that the three new migrations here compose with the other forty-eight.
-- A server-side fetch carrying a real session returns 200 on `/`, `/account`, `/clubs` and
-  `/events`.
-- Typecheck, lint and a production build.
+So `COMPLETE_LANGS` in `lib/lang.ts` lists Spanish only, resolution goes through
+it, and the picker offers what it lists. English returns the moment the table is
+finished: add the strings, add `'en'` to that array, and both the control and the
+resolution pick it up with no other change.
 
-This wants fixing before the next visual pass, because step 2 of the design's own "how to check your
-work" is to point `shoot.mjs` at the eleven screens and compare them to the reference captures, and
-right now that step cannot run.
+A deliberate hold, not an abandoned feature. The expensive half, the plumbing and
+the three traps it has to avoid, is done and has a screen proving it.
+
+---
+
+# Fixed here: the migrations could not build a working database
+
+Worth recording, because it was invisible for a long time and `sandbox:reset` is
+the only thing that could have found it.
+
+A database built from `supabase/migrations` gave `anon` and `authenticated` no
+SELECT, INSERT, UPDATE or DELETE on any table in `public`. Every table has RLS
+and a working policy and none of it was ever reached: Postgres refused at the
+privilege layer first. Signing in worked, the first query returned "permission
+denied for table users", the gate read a null profile, and the person landed back
+on the sign-in screen they had just used.
+
+Production never had it. Its tables were created through Supabase's own API,
+where a default privilege grants those roles everything new in `public`;
+replaying the same files as `postgres` locally does not. Migration 0052 grants
+what production already reports, so it is a no-op there and a repair everywhere
+else, and it sets the default privilege so the next table does not have to
+remember.
+
+`signin_throttle` is deliberately kept off both roles, matching production: it
+records failed attempts per address, so reading it enumerates who has an account.
+
+---
+
+# The verification harness, and a correction
+
+An earlier version of this file said `scripts/shoot.mjs` could not screenshot a
+signed-in page, and that the fault was pre-existing because unmodified `main`
+behaved the same. The second half was true and the conclusion was wrong: both
+runs were built the same wrong way, so the comparison proved nothing.
+
+There were two real faults, neither of them in the app's UI.
+
+**The database had no grants.** Recorded above; migration 0052 fixes it.
+
+**The server under test was talking to production.** `NEXT_PUBLIC_*` is inlined
+at build time, so `next build` followed by `next start` with the sandbox env
+gives a server that ignores it: the bundle already has the production Supabase
+URL baked in. `npm run sandbox:app` builds *and* serves with the env, which is
+why it is one script and not two. Building by hand was my own error and it cost
+most of a session.
+
+Both failures ended the same way, at a perfectly rendered sign-in screen, which
+is the worst shape a harness fault can take: it looks like an answer. So
+`shoot.mjs` now checks for both before it takes a picture. It reads the signed-in
+member's own profile and says to run `sandbox:reset` if the database will not
+answer; it compares the Supabase host baked into the served page against the one
+in `.env.sandbox` and says to use `sandbox:app` if they differ; and if a gated
+route still lands on `/`, it says so and exits non-zero rather than writing a png
+of the door.
+
+`shoot.mjs` works. Every screen in this pass was checked against its reference
+with it.

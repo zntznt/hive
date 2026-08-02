@@ -279,7 +279,13 @@ export default async function EventsPage({
         {grandTotalOwed > 0 && (
           <span>
             {person === 'all' ? 'pendiente en total' : person === profile.id ? 'todavía debes' : `${personName} todavía debe`}{' '}
-            <b className="font-extrabold text-danger">{fmtMoney(grandTotalOwed)}</b>
+            {/* Red is only money *you* owe. Filtered to somebody else, or not
+                filtered at all, this is a club's outstanding total and not a
+                debt of yours, and colouring it red made every screen carrying
+                it read like a bill. */}
+            <b className={`font-extrabold ${person === profile.id ? 'text-danger' : 'text-ink-900'}`}>
+              {fmtMoney(grandTotalOwed)}
+            </b>
           </span>
         )}
       </div>

@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Input } from '@/components/ui/Input'
 import { LocationPicker } from '@/components/ui/LocationPicker'
 import { type Point } from '@/components/ui/PinMap'
@@ -73,7 +72,6 @@ export function SavedPlaces({ places }: { places: Place[] }) {
 
   return (
     <section className="mt-[18px]">
-      <SectionHeader>Lugares donde puedes ser anfitrión</SectionHeader>
 
       {places.length > 0 && (
         <div className="mb-3 flex flex-col gap-2">

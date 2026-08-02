@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { setLanguage } from '@/app/actions'
 import { useToast } from '@/components/ui/Toast'
-import { t, type Lang } from '@/lib/lang'
+import { COMPLETE_LANGS, t, type Lang } from '@/lib/lang'
 
 // Three options and no flags. A flag is a country, not a language: Spanish is
 // not Spain to most of the people using this, and English is not the union
@@ -17,10 +17,13 @@ export function LanguageControl({ value, lang }: { value: Lang | null; lang: Lan
   const [pending, startTransition] = useTransition()
   const toast = useToast()
 
+  // Only languages the string table finishes. English is written for the shell
+  // and not for the screens, and offering it would hand somebody a translated
+  // tab bar over Spanish rows. It appears here the moment COMPLETE_LANGS says
+  // it is done, without another edit.
   const OPTIONS: { v: Lang | null; label: string }[] = [
     { v: null, label: t(lang, 'lang.auto') },
-    { v: 'en', label: t(lang, 'lang.en') },
-    { v: 'es', label: t(lang, 'lang.es') },
+    ...COMPLETE_LANGS.map((l) => ({ v: l, label: t(lang, l === 'es' ? 'lang.es' : 'lang.en') })),
   ]
 
   function pick(v: Lang | null) {

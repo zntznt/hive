@@ -13,6 +13,27 @@
 
 export type Lang = 'es' | 'en'
 
+// Which languages the string table actually covers, end to end.
+//
+// The plumbing below is complete and English is written for the shell, but
+// most screens are still Spanish literals in JSX. Resolving an English phone
+// to English today gives translated chrome over Spanish content, which is the
+// precise thing whole-language fallback exists to prevent: an Italian phone
+// gets English, not an Italian shell with Spanish rows in it. A half-English
+// app is that bug wearing a different flag.
+//
+// So Spanish is the only complete language and everything resolves to it.
+// Adding 'en' here is the last step of finishing the table, not the first: put
+// the strings in, then flip this, and the control and the resolution below
+// start offering it without another change.
+export const COMPLETE_LANGS: Lang[] = ['es']
+
+// The language we will actually render in. A language we have not finished is
+// not a language we may pick.
+function complete(lang: Lang): Lang {
+  return COMPLETE_LANGS.includes(lang) ? lang : COMPLETE_LANGS[0]
+}
+
 // The app is written in Spanish and translated into English, so Spanish is the
 // table that has to be complete. `t` falls back to it by construction: a key
 // missing from `en` returns the Spanish, which is visible and fixable, rather
@@ -105,16 +126,16 @@ export function langOf(tag: string | null | undefined): Lang {
 // The server's read. `Accept-Language` is the phone's setting as the browser
 // reports it, and the override beats it because somebody went and chose.
 export function resolveLang(override: string | null | undefined, acceptLanguage: string | null | undefined): Lang {
-  if (override === 'es' || override === 'en') return override
+  if (override === 'es' || override === 'en') return complete(override)
   const first = acceptLanguage?.split(',')[0]?.trim()
-  return langOf(first)
+  return complete(langOf(first))
 }
 
 // The browser's read, for client components that have no server context.
 export function browserLang(override?: string | null): Lang {
-  if (override === 'es' || override === 'en') return override
+  if (override === 'es' || override === 'en') return complete(override)
   if (typeof navigator === 'undefined') return 'es'
-  return langOf(navigator.language)
+  return complete(langOf(navigator.language))
 }
 
 export function t(lang: Lang, key: StringKey): string {
