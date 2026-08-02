@@ -1,3 +1,4 @@
+import { t, tf, type Lang } from './lang'
 import { normalizePhone, formatPhone } from './phone'
 
 // What the member typed, and therefore which channel this sign-in uses.
@@ -33,23 +34,28 @@ export function parseIdentity(raw: string): Identity {
 // The line under the field. It changes as they type, and for a number it
 // carries the normalized form so the country code is visible before they
 // commit to it.
-export function identityHelper(id: Identity): string {
+//
+// Both of these take the translator rather than reaching for one. They are
+// plain functions, not components, so they cannot call a hook, and reading the
+// language at module load would freeze whichever one rendered first. Same
+// shape as `whenPill` and the date formatters.
+export function identityHelper(id: Identity, lang: Lang): string {
   switch (id.kind) {
     case 'email':
-      return 'Te mandamos un código de 6 dígitos a ese correo.'
+      return t(lang, 'signin.helper.email')
     case 'phone':
-      return `Te mandamos un código de 6 dígitos a ${id.display} por WhatsApp.`
+      return tf(lang, 'signin.helper.phone', { display: id.display })
     case 'short':
-      return 'Un número recibe el código por WhatsApp. Los mexicanos no necesitan el +52.'
+      return t(lang, 'signin.helper.short')
     default:
-      return 'Con tu correo o tu WhatsApp. En los dos casos te llega un código de 6 dígitos.'
+      return t(lang, 'signin.hint')
   }
 }
 
 // The button says where the code is going, because on a field that takes two
 // kinds of thing the label is the clearest confirmation of which one it read.
-export function identityAction(id: Identity): string {
-  if (id.kind === 'email') return 'Mándame el código por correo'
-  if (id.kind === 'phone' || id.kind === 'short') return 'Mándame el código por WhatsApp'
-  return 'Continuar'
+export function identityAction(id: Identity, lang: Lang): string {
+  if (id.kind === 'email') return t(lang, 'signin.action.email')
+  if (id.kind === 'phone' || id.kind === 'short') return t(lang, 'signin.action.whatsapp')
+  return t(lang, 'common.continue')
 }

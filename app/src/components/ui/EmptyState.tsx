@@ -3,7 +3,7 @@ import { Icon, type IconName } from './Icon'
 
 // Empty states carry the wink; this is where the bee puns live.
 export function EmptyState({
-  icon = 'bugs',
+  icon = 'jar',
   title,
   hint,
   action,

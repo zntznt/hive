@@ -35,7 +35,7 @@ export default async function ClubJoinPage({ params }: { params: Promise<{ token
       <main className="mx-auto flex min-h-screen max-w-entry flex-col justify-center px-4 pb-10 pt-6">
         <Card honeycomb className="text-center">
           <div className="mb-4 flex justify-center">
-            <BrandMark size="sm" variant="hex" showWordmark={false} />
+            <BrandMark size="sm" showWordmark={false} />
           </div>
           <p className="eyebrow mb-1 text-honey-700">{tr('club.private')}</p>
           <h1 className="mb-2 font-display text-xl font-bold text-ink-900">«{preview.club_name}»</h1>

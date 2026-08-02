@@ -41,7 +41,7 @@ export default function ClubJoinSignIn({ token, clubName }: Props) {
     <main className="mx-auto flex min-h-screen max-w-entry flex-col justify-center px-4 pb-10 pt-6">
       <Card honeycomb>
         <div className="mb-4 flex justify-center">
-          <BrandMark size="sm" variant="hex" showWordmark={false} />
+          <BrandMark size="sm" showWordmark={false} />
         </div>
         <p className="eyebrow mb-1 text-center text-honey-700">Únete a</p>
         <h1 className="mb-6 text-center font-display text-xl font-bold text-ink-900">

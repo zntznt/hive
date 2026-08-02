@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { BrandMark } from '@/components/ui/BrandMark'
 import { Icon } from '@/components/ui/Icon'
 import { useT } from '@/components/ui/LangProvider'
 
@@ -126,8 +127,12 @@ export function InstallPwa() {
             Elige &quot;Agregar a inicio&quot;.
           </li>
           <li className="flex items-center gap-2.5">
+            {/* The mark, because this step is "look for this on your home
+                screen". It takes the row's colour like the two glyphs above
+                it: the sunk square is the step's tile, not a plate under the
+                logo, and honey here would make the third step shout. */}
             <span className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-sm bg-cream-sunk text-ink-500">
-              <Icon name="bugs" size={11} />
+              <BrandMark size={12} tone="inherit" showWordmark={false} />
             </span>
             Ábrelo desde ahí y ya está.
           </li>

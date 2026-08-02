@@ -397,7 +397,7 @@ export default async function Home() {
         <SectionHeader>{t('home.clubs')}</SectionHeader>
         {clubs.length === 0 ? (
           <EmptyState
-            icon="bugs"
+            icon="hashtag"
             title={t('home.clubs.empty.title')}
             hint={t('home.clubs.empty.short')}
           />

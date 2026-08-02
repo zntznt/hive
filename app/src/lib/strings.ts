@@ -811,6 +811,18 @@ export const ES = {
   'signin.code': 'Tu código',
   'signin.codeSent': 'Te mandamos un código de 6 dígitos.',
   'signin.resend': 'Reenviar',
+  'signin.resendLong': '¿No te llegó? Pídelo de nuevo',
+  'signin.sending': 'Enviando…',
+  // The line under the field, which changes as they type. For a number it
+  // carries the normalized form, so the +52 nobody typed is visible before the
+  // message goes somewhere else.
+  'signin.helper.email': 'Te mandamos un código de 6 dígitos a ese correo.',
+  'signin.helper.phone': 'Te mandamos un código de 6 dígitos a {display} por WhatsApp.',
+  'signin.helper.short': 'Un número recibe el código por WhatsApp. Los mexicanos no necesitan el +52.',
+  // The button says where the code is going: on a field that takes two kinds
+  // of thing, the label is the clearest confirmation of which one it read.
+  'signin.action.email': 'Mándame el código por correo',
+  'signin.action.whatsapp': 'Mándame el código por WhatsApp',
 
   // -- pending --------------------------------------------------------------
   'pending.title': 'Estás en la fila',
@@ -1608,6 +1620,13 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'signin.code': 'Your code',
   'signin.codeSent': 'We sent you a 6 digit code.',
   'signin.resend': 'Resend',
+  'signin.resendLong': "Didn't arrive? Ask for another",
+  'signin.sending': 'Sending…',
+  'signin.helper.email': 'We will send a 6 digit code to that email.',
+  'signin.helper.phone': 'We will send a 6 digit code to {display} on WhatsApp.',
+  'signin.helper.short': 'A number gets the code on WhatsApp. Mexican numbers do not need the +52.',
+  'signin.action.email': 'Send me the code by email',
+  'signin.action.whatsapp': 'Send me the code on WhatsApp',
 
   // -- pending --------------------------------------------------------------
   'pending.title': "You're in the queue",
