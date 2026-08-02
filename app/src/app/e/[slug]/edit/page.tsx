@@ -58,6 +58,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ slug
           lat: event.lat,
           lng: event.lng,
           allow_guests: event.allow_guests,
+          maxGuestsPerMember: event.max_guests_per_member,
           capacity: event.capacity,
           waitlist_enabled: event.waitlist_enabled,
           confirm_deadline: event.confirm_deadline,

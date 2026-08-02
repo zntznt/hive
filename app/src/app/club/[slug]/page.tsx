@@ -591,10 +591,13 @@ function EvCard({
         <span className="font-display text-lg font-bold text-ink-900">{e.title}</span>
         {catName && <Chip variant="sage">{catName}</Chip>}
       </div>
-      {/* the map is the quiet card's way of showing where. On the day the
-          address itself carries it, so the iframe would just be noise above
-          the line that matters. */}
-      {embed && !hot && (
+      {/* Kept on the day too. This card used to delete it, on the theory that
+          the address carries the day, and where-card.tsx now argues the
+          opposite in its own header: the head says where to go and the map
+          says how far, and the day of the event is when you want both most.
+          Both files cannot be right, and the event page's reasoning is the
+          one that survived contact with a real evening. */}
+      {embed && (
         <iframe
           title={e.title}
           src={embed}

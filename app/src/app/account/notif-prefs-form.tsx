@@ -3,45 +3,85 @@
 import { Fragment, useRef, useState } from 'react'
 import { updateNotifPrefs } from '@/app/actions'
 import { useToast } from '@/components/ui/Toast'
-import { SectionHeader } from '@/components/ui/SectionHeader'
+import { Icon, type IconName } from '@/components/ui/Icon'
 import { NOTIF_TOPICS } from '@/lib/notif-topics'
 
-type Matrix = Partial<Record<string, { email?: boolean; whatsapp?: boolean }>>
+type Matrix = Partial<Record<string, { email?: boolean; whatsapp?: boolean; push?: boolean }>>
+type ChannelId = 'email' | 'whatsapp' | 'push'
 
-// Topic x channel notification matrix. Every row is a notification the
-// pipeline really sends. Both columns can be on at once: each ticked channel
-// queues its own outbox row. WhatsApp needs a linked number to deliver,
-// otherwise the notification falls back to correo.
+// Topic x channel. Every row is a notification the pipeline really sends, and
+// every ticked cell queues its own outbox row, so two channels on one topic is
+// two messages by design.
 //
-// No Save button. A tickbox that has visibly changed and has not been saved is
-// the screen telling you one thing and the database holding another, and the
-// gap lasts until you notice a button you had no reason to look for. Ten
-// tickboxes made that ten chances to walk away having changed nothing. Each
-// one commits as it is ticked.
+// Three channels at 375px, so the column headers are icons. Words do not fit,
+// least of all in Spanish, and spending the width on words is exactly what
+// left no room for the third channel: two word headers ate 128px of a 460px
+// column, and push ended up homeless in a different group entirely.
+//
+// Email and WhatsApp are per-person; push is per-device. That asymmetry has to
+// be readable rather than hidden, which is what the legend under the grid is
+// for: ticking push here speaks for this phone and no other.
+//
+// A channel that cannot deliver is a dead column, not a live column with a
+// footnote. With no number saved you could tick WhatsApp on five topics and
+// nothing would ever arrive, and the only clue was a sentence underneath. Now
+// the header goes dashed, the cells sink, the switches disable, and the reason
+// plus the way to fix it sits under the table.
+//
+// No Save button: each switch commits as it is flipped.
+
 export default function NotifPrefsForm({
   notifEmail,
   notifWhatsapp,
   prefs,
+  hasWhatsapp,
+  push,
 }: {
   notifEmail: boolean
   notifWhatsapp: boolean
   prefs: Matrix
+  hasWhatsapp: boolean
+  // The push channel's own state, owned by the row above this one, because
+  // whether this device can ring is a fact about the browser and not a
+  // preference. `deviceName` names it, since a switch here is about one phone.
+  push: { live: boolean; deviceName: string; reason: string | null }
 }) {
   const toast = useToast()
   const formRef = useRef<HTMLFormElement>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Mirrored so a switch flips under the thumb; the write follows.
+  const [rows, setRows] = useState<Matrix>(() =>
+    Object.fromEntries(
+      NOTIF_TOPICS.map((t) => [
+        t.key,
+        {
+          email: prefs[t.key]?.email ?? notifEmail,
+          whatsapp: prefs[t.key]?.whatsapp ?? notifWhatsapp,
+          push: prefs[t.key]?.push ?? true,
+        },
+      ])
+    )
+  )
 
-  // Reads the whole grid off the form and sends it, whichever box was ticked.
-  // updateNotifPrefs takes the full matrix, so a partial write would silently
-  // clear every row it did not mention.
-  async function commit() {
-    const form = formRef.current
-    if (!form) return
+  const CH: { id: ChannelId; icon: IconName; label: string; scope: string; live: boolean }[] = [
+    { id: 'email', icon: 'envelope', label: 'Correo', scope: 'tú', live: true },
+    { id: 'whatsapp', icon: 'whatsapp', label: 'WhatsApp', scope: 'tú', live: hasWhatsapp },
+    { id: 'push', icon: 'bell', label: 'Avisos', scope: push.deviceName, live: push.live },
+  ]
+
+  async function commit(next: Matrix) {
     setSaving(true)
     setError(null)
+    const fd = new FormData()
+    for (const t of NOTIF_TOPICS) {
+      const r = next[t.key]
+      if (r?.email) fd.set(`t_${t.key}_email`, 'on')
+      if (r?.whatsapp) fd.set(`t_${t.key}_whatsapp`, 'on')
+      if (r?.push) fd.set(`t_${t.key}_push`, 'on')
+    }
     try {
-      await updateNotifPrefs(new FormData(form))
+      await updateNotifPrefs(fd)
       toast('Listo')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar.')
@@ -50,37 +90,113 @@ export default function NotifPrefsForm({
     }
   }
 
-  const check = 'h-[17px] w-[17px] accent-honey-500'
+  function flip(topic: string, ch: ChannelId) {
+    if (!CH.find((c) => c.id === ch)!.live) return
+    const next = { ...rows, [topic]: { ...rows[topic], [ch]: !rows[topic]?.[ch] } }
+    setRows(next)
+    commit(next)
+  }
 
   return (
-    <section className="mt-[18px]">
-      <SectionHeader>Notificaciones</SectionHeader>
-      <form ref={formRef} onChange={commit} className="flex flex-col gap-2.5">
-        <div className="grid items-center gap-x-2 gap-y-2.5" style={{ gridTemplateColumns: '1fr 52px 76px' }}>
-          <span />
-          <span className="text-center text-[11px] font-extrabold uppercase tracking-wide text-ink-500">Correo</span>
-          <span className="text-center text-[11px] font-extrabold uppercase tracking-wide text-ink-500">WhatsApp</span>
-          {NOTIF_TOPICS.map((t) => {
-            const p = prefs[t.key]
-            return (
-              <Fragment key={t.key}>
-                <span className="text-sm text-ink-700">{t.label}</span>
-                <span className="text-center">
-                  <input type="checkbox" name={`t_${t.key}_email`} defaultChecked={p?.email ?? notifEmail} className={check} />
+    <form ref={formRef} className="flex flex-col">
+      <div
+        className="grid items-center"
+        style={{ gridTemplateColumns: 'minmax(0,1fr) 44px 44px 44px', columnGap: 4 }}
+      >
+        <span />
+        {CH.map((c) => (
+          <span key={c.id} title={c.label} aria-label={c.label} className="flex flex-col items-center pb-2">
+            <span
+              className={`grid h-[34px] w-[34px] place-items-center rounded-sm ${
+                c.live
+                  ? 'border border-line-card bg-cream-sunk text-ink-700'
+                  : 'border border-dashed border-line-input text-ink-300'
+              }`}
+            >
+              <Icon name={c.icon} size={14} />
+            </span>
+          </span>
+        ))}
+
+        {NOTIF_TOPICS.map((t, i) => (
+          <Fragment key={t.key}>
+            <span
+              className={`pr-1.5 text-[13.5px] leading-snug text-ink-700 ${i ? 'border-t border-line-divider pt-1.5' : ''} pb-1.5`}
+            >
+              {t.label}
+            </span>
+            {CH.map((c) => {
+              const on = !!rows[t.key]?.[c.id] && c.live
+              return (
+                <span
+                  key={c.id}
+                  className={`grid h-11 place-items-center ${i ? 'border-t border-line-divider' : ''} ${
+                    c.live ? '' : 'bg-cream-sunk'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={on}
+                    aria-label={`${t.label} · ${c.label}`}
+                    disabled={!c.live}
+                    onClick={() => flip(t.key, c.id)}
+                    className="grid h-11 w-11 place-items-center disabled:cursor-not-allowed"
+                  >
+                    <span
+                      className={`grid h-[22px] w-[22px] place-items-center rounded-[7px] border-[1.5px] ${
+                        on
+                          ? 'border-honey-700 bg-honey-500 text-charcoal'
+                          : c.live
+                            ? 'border-line-input bg-paper'
+                            : 'border-line-divider bg-paper opacity-50'
+                      }`}
+                    >
+                      {on && <Icon name="check" size={11} />}
+                    </span>
+                  </button>
                 </span>
-                <span className="text-center">
-                  <input type="checkbox" name={`t_${t.key}_whatsapp`} defaultChecked={p?.whatsapp ?? notifWhatsapp} className={check} />
-                </span>
-              </Fragment>
-            )
-          })}
-        </div>
-        <p className="text-xs text-ink-300">
-          Hive no tiene bandeja propia. Todo llega a donde ya estás: correo o WhatsApp. Para recibir por WhatsApp agrega tu número arriba, en &quot;Cómo entras&quot;.
+              )
+            })}
+          </Fragment>
+        ))}
+      </div>
+
+      {/* The asymmetry, stated. Two of these reach a person and one reaches a
+          handset, and nothing else on the page says so. */}
+      <div className="mt-3 flex flex-wrap gap-x-3.5 gap-y-1.5">
+        {CH.map((c) => (
+          <span
+            key={c.id}
+            className={`inline-flex items-center gap-1.5 whitespace-nowrap text-xs ${
+              c.live ? 'text-ink-700' : 'text-ink-500'
+            }`}
+          >
+            <Icon name={c.icon} size={11} />
+            {c.label} <span className="text-ink-500">· {c.scope}</span>
+          </span>
+        ))}
+      </div>
+
+      {!hasWhatsapp && (
+        <p className="mt-2 text-xs leading-relaxed text-ink-300">
+          Agrega tu número de WhatsApp arriba para encender esa columna.
         </p>
-        {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
-        {saving && <p className="text-xs text-ink-300">Guardando…</p>}
-      </form>
-    </section>
+      )}
+
+      {!push.live && push.reason && (
+        <p className="mt-2.5 flex items-start gap-2 rounded-md border border-line-card bg-cream-sunk px-3 py-2.5 text-[12.5px] leading-relaxed text-ink-700">
+          <span className="mt-0.5 flex-shrink-0">
+            <Icon name="bell-slash" size={13} className="text-ink-500" />
+          </span>
+          <span>
+            {push.reason} Lo que elijas aquí se guarda y empieza a aplicar en cuanto se encienda.
+          </span>
+        </p>
+      )}
+
+      {error && <p className="mt-2.5 rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
+      {saving && <p className="mt-2 text-xs text-ink-300">Guardando…</p>}
+    </form>
   )
 }

@@ -23,9 +23,15 @@ export type EventRow = {
   // goes back to being a label people read.
   lat: number | null
   lng: number | null
+  // The street line, reverse-geocoded from the pin. On the day this leads and
+  // the venue name drops beneath it.
+  area: string | null
   status: 'draft' | 'scheduling' | 'scheduled' | 'done' | 'cancelled'
   organizer_user_id: string
   allow_guests: boolean
+  // How many people each member may bring, 1 to 5. Null means none. A boolean
+  // could only ever say "one", which is not what people do.
+  max_guests_per_member: number | null
   join_policy: 'club_members_only' | 'anyone_with_link' | 'invite_only'
   capacity: number | null
   waitlist_enabled: boolean

@@ -5,7 +5,6 @@ import { savePaymentMethods } from '@/app/actions'
 import { useToast } from '@/components/ui/Toast'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
-import { SectionHeader } from '@/components/ui/SectionHeader'
 import { PAYMENT_METHOD_OPTIONS } from '@/lib/payment-method-labels'
 import { Icon } from '@/components/ui/Icon'
 
@@ -72,7 +71,6 @@ export default function PaymentMethodsForm({ methods }: { methods: PaymentMethod
 
   return (
     <section className="mt-2.5">
-      <SectionHeader>Cómo te pagan</SectionHeader>
       <form className="flex flex-col gap-2.5">
         {rows.map((row) => (
           <div key={row.key} className="flex items-start gap-2">

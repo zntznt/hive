@@ -24,7 +24,16 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'not signed in' }, { status: 401 })
 
-  const q = new URL(request.url).searchParams.get('q')?.trim()
+  const params = new URL(request.url).searchParams
+  // Reverse: a pin in, a street line out. The forward direction gets a place
+  // near where you typed; this one names where the pin actually landed, which
+  // is what the day-of header prints and what the forward answer cannot give
+  // you once somebody has dragged it.
+  const lat = params.get('lat')
+  const lng = params.get('lng')
+  if (lat && lng) return reverse(Number(lat), Number(lng))
+
+  const q = params.get('q')?.trim()
   if (!q || q.length < 3) return NextResponse.json({ results: [] })
 
   const url = new URL('https://nominatim.openstreetmap.org/search')
@@ -58,5 +67,39 @@ export async function GET(request: Request) {
     // The geocoder being down is not an error the member can do anything
     // about, and the pin is still draggable without it.
     return NextResponse.json({ results: [] })
+  }
+}
+
+// The street line for a point. Assembled from the parts rather than taking
+// Nominatim's display_name, which trails the country, the postcode and the
+// state and would put "México" on a card read only by people in Mexico.
+async function reverse(lat: number, lng: number) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return NextResponse.json({ area: null })
+  const url = new URL('https://nominatim.openstreetmap.org/reverse')
+  url.searchParams.set('lat', String(lat))
+  url.searchParams.set('lon', String(lng))
+  url.searchParams.set('format', 'jsonv2')
+  url.searchParams.set('accept-language', 'es')
+  url.searchParams.set('zoom', '18')
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Hive/1.0 (club event coordination; https://hive.zntznt.com)',
+        Accept: 'application/json',
+      },
+      signal: AbortSignal.timeout(6000),
+    })
+    if (!res.ok) return NextResponse.json({ area: null })
+    const json = (await res.json()) as { address?: Record<string, string> }
+    const a = json.address ?? {}
+    const street = [a.road, a.house_number].filter(Boolean).join(' ')
+    const neighbourhood = a.neighbourhood ?? a.suburb ?? a.quarter ?? null
+    const city = a.city ?? a.town ?? a.village ?? a.state ?? null
+    const area = [street || null, neighbourhood, city].filter(Boolean).join(', ')
+    return NextResponse.json({ area: area || null })
+  } catch {
+    // A missing street line is a card that falls back to the venue name, which
+    // is what it did before this existed. Not worth an error.
+    return NextResponse.json({ area: null })
   }
 }

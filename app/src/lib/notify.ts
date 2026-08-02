@@ -58,7 +58,7 @@ export const TOPIC_OF: Partial<Record<TemplateKey, NotifTopic>> = {
   join_request_declined: 'approvals',
 }
 
-type PrefsMatrix = Partial<Record<NotifTopic, { email?: boolean; whatsapp?: boolean }>>
+type PrefsMatrix = Partial<Record<NotifTopic, { email?: boolean; whatsapp?: boolean; push?: boolean }>>
 
 export function renderTemplate(tpl: string, vars: Record<string, string>) {
   return tpl.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? '')
@@ -93,12 +93,20 @@ export async function queueNotification(
   const pref = topic ? ((user?.notif_prefs ?? {}) as PrefsMatrix)[topic] : undefined
   const emailOn = pref?.email ?? user?.notif_email ?? true
   const whatsappOn = pref?.whatsapp ?? user?.notif_whatsapp ?? false
-  if (!emailOn && !whatsappOn) return
+  // Push has its own column in the matrix now, so it has its own answer here.
+  // Defaulting it on matches what the app did before the column existed: a
+  // subscription was the whole consent, and nobody who has one should stop
+  // hearing from us because a new checkbox appeared unticked.
+  const pushOn = pref?.push ?? true
+  if (!emailOn && !whatsappOn && !pushOn) return
 
   const channels: ('email' | 'whatsapp' | 'push')[] = []
   if (emailOn && user?.email) channels.push('email')
   if (whatsappOn && user?.phone_whatsapp) channels.push('whatsapp')
-  if (!channels.length) {
+  // The fallback is for people with no addressed channel left on, and it must
+  // not fire just because push is carrying this one: pushing to a phone is not
+  // a reason to also mail somebody who asked not to be mailed.
+  if (!channels.length && !pushOn) {
     if (user?.email) channels.push('email')
     else if (user?.phone_whatsapp) channels.push('whatsapp')
   }
@@ -115,7 +123,7 @@ export async function queueNotification(
     db.from('push_subscriptions').select('id', { count: 'exact', head: true }).eq('user_id', userId),
     db.from('notification_templates').select('key').eq('channel', 'push').eq('key', template).maybeSingle(),
   ])
-  if (subCount && pushTpl) channels.push('push')
+  if (pushOn && subCount && pushTpl) channels.push('push')
 
   if (!channels.length) return
 

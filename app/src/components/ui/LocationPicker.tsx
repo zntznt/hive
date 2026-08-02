@@ -27,6 +27,7 @@ export function LocationPicker({
   label,
   defaultValue = '',
   defaultPoint = null,
+  defaultArea = null,
   saved = [],
   recent = [],
   onChange,
@@ -35,6 +36,7 @@ export function LocationPicker({
   label?: string
   defaultValue?: string
   defaultPoint?: Point | null
+  defaultArea?: string | null
   saved?: Place[]
   recent?: Place[]
   // for callers that need to know before submit, like the saved-places form
@@ -53,6 +55,11 @@ export function LocationPicker({
   )
   const [open, setOpen] = useState(false)
   const [locating, setLocating] = useState(false)
+  // The street the pin is standing on, resolved from the pin rather than
+  // asked for. It is what the day-of header prints, and asking somebody to
+  // type it under a pin they just dragged onto the right door is asking the
+  // same question twice.
+  const [area, setArea] = useState<string | null>(defaultArea)
   const ref = useRef<HTMLDivElement>(null)
 
   const onChangeRef = useRef(onChange)
@@ -123,10 +130,39 @@ export function LocationPicker({
     setPoint(p)
   }
 
+  // Whenever the pin settles, ask what street it is on. Debounced, because a
+  // drag emits a point per frame and Nominatim is somebody else's service.
+  useEffect(() => {
+    let cancelled = false
+    if (!point) {
+      // Clearing the pin clears the street with it, in a callback rather than
+      // in the effect body, so this does not cascade a render on every mount.
+      const clear = setTimeout(() => !cancelled && setArea(null), 0)
+      return () => {
+        cancelled = true
+        clearTimeout(clear)
+      }
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/geocode?lat=${point.lat}&lng=${point.lng}`)
+        const json = (await res.json()) as { area: string | null }
+        if (!cancelled) setArea(json.area)
+      } catch {
+        // keep whatever we had; a missing street falls back to the name
+      }
+    }, 600)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [point])
+
   const hidden = (
     <>
       <input type="hidden" name={`${name}_lat`} value={point ? String(point.lat) : ''} />
       <input type="hidden" name={`${name}_lng`} value={point ? String(point.lng) : ''} />
+      <input type="hidden" name={`${name}_area`} value={area ?? ''} />
     </>
   )
 
@@ -134,9 +170,16 @@ export function LocationPicker({
   // whether there is a pin at all, which is the difference between "the map
   // will take you here" and "the map will guess".
   const pinNote = point ? (
-    <span className="flex items-center gap-1.5 text-[11.5px] text-ink-300">
-      <Icon name="location-dot" size={10} />
-      Arrastra el pin o toca el mapa para moverlo. Aquí es a donde llega quien venga.
+    <span className="flex flex-col gap-0.5 text-[11.5px] text-ink-300">
+      {/* The street the pin landed on, shown so it can be checked before it is
+          saved: this is the line the event page prints on the day. */}
+      {area && (
+        <span className="flex items-center gap-1.5 text-ink-500">
+          <Icon name="location-dot" size={10} />
+          {area}
+        </span>
+      )}
+      <span>Arrastra el pin o toca el mapa para moverlo. Aquí es a donde llega quien venga.</span>
     </span>
   ) : (
     <span className="text-[11.5px] text-ink-300">

@@ -28,13 +28,60 @@ function toDatetimeLocal(iso: string | null) {
   return `${g('year')}-${g('month')}-${g('day')}T${g('hour')}:${g('minute')}`
 }
 
+// A panel is a flat 16px. `pad="sm"` was a third value between a row's
+// 12px 14px and a panel's 16px, and that difference is the whole signal that
+// tells you whether you are looking at a line in a list or an object in its
+// own right.
 function Fieldset({ legend, hint, children }: { legend: string; hint?: string; children: React.ReactNode }) {
   return (
-    <Card pad="sm">
+    <Card>
       <div className="eyebrow mb-1">{legend}</div>
       {hint && <div className="mb-3 text-xs text-ink-300">{hint}</div>}
       <div className={hint ? undefined : 'mt-3'}>{children}</div>
     </Card>
+  )
+}
+
+// How many each member may bring. A stepper because the answer is a number:
+// people bring a partner and two friends, and "+1" only ever described one of
+// those. The database counts guests per host and always has, so this is the
+// piece catching up with the rest of the stack rather than a new idea.
+//
+// Five is the ceiling. Past that it stops being "bring somebody" and becomes a
+// second invitation list, which belongs to the club and not to one evening.
+function GuestStepper({ defaultValue }: { defaultValue: number }) {
+  const [n, setN] = useState(Math.min(5, Math.max(1, defaultValue)))
+  return (
+    <div className="text-sm text-ink-700">
+      <input type="hidden" name="max_guests_per_member" value={String(n)} />
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span>cada miembro puede traer</span>
+        <span className="inline-flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setN((v) => Math.max(1, v - 1))}
+            disabled={n <= 1}
+            aria-label="uno menos"
+            className="grid h-11 w-11 place-items-center rounded-md border border-line-input bg-paper text-ink-700 disabled:opacity-40"
+          >
+            <Icon name="minus" size={12} />
+          </button>
+          <span aria-live="polite" className="min-w-[26px] text-center text-[15.5px] font-extrabold text-ink-900">
+            {n}
+          </span>
+          <button
+            type="button"
+            onClick={() => setN((v) => Math.min(5, v + 1))}
+            disabled={n >= 5}
+            aria-label="uno más"
+            className="grid h-11 w-11 place-items-center rounded-md border border-line-input bg-paper text-ink-700 disabled:opacity-40"
+          >
+            <Icon name="plus" size={12} />
+          </button>
+        </span>
+      </div>
+      <p className="mt-1.5 text-xs text-ink-300">Cada invitado ocupa un lugar del cupo, igual que un miembro.</p>
+    </div>
   )
 }
 
@@ -118,6 +165,7 @@ type Initial = {
   lat: number | null
   lng: number | null
   allow_guests: boolean
+  maxGuestsPerMember: number | null
   capacity: number | null
   waitlist_enabled: boolean
   confirm_deadline: string | null
@@ -200,7 +248,7 @@ export default function EventForm({
   const [deadline, setDeadline] = useState(edit)
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form action={formAction} className="flex flex-col gap-[18px]">
       <Input id="title" name="title" label="Título" required placeholder="Noche de juegos" value={title} onChange={(e) => setTitle(e.target.value)} />
 
       <div>
@@ -325,6 +373,10 @@ export default function EventForm({
             </label>
             <Checkbox name="waitlist_enabled" label="lista de espera" defaultChecked={initial?.waitlist_enabled} />
           </div>
+          {/* The reason these two controls are one block. Without it the
+              waitlist reads as an unrelated setting that happens to be
+              nearby. */}
+          <p className="mt-2 text-xs text-ink-300">Sin cupo el evento nunca se llena, y nadie espera.</p>
         </Extra>
 
         <Extra
@@ -335,12 +387,12 @@ export default function EventForm({
           onAdd={() => setGuests(true)}
           onRemove={() => setGuests(false)}
         >
-          <div className="text-sm text-ink-700">
-            <Checkbox name="allow_guests" label="Permitir invitados (+1)" defaultChecked={initial?.allow_guests} />
-            <p className="mt-1.5 text-xs text-ink-300">
-              Cada invitado ocupa un lugar del cupo, igual que un miembro.
-            </p>
-          </div>
+          {/* A stepper, not a checkbox. The row above promises "una pareja, un
+              par de amigos" - two different people - and a boolean permits
+              exactly one, so the control contradicted its own offer. The rest
+              of the stack already counted guests per host; this was the only
+              piece that thought the answer was yes or no. */}
+          <GuestStepper defaultValue={initial?.maxGuestsPerMember ?? 1} />
         </Extra>
 
         <Extra

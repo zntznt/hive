@@ -88,7 +88,7 @@ export function WhereCard({
 }) {
   if (!location) {
     return (
-      <div className="mb-5 flex items-center justify-between gap-2.5 px-0.5">
+      <div className="mb-[18px] flex items-center justify-between gap-2.5 px-0.5">
         <span className="text-sm text-ink-300">Sin lugar todavía</span>
         {canEdit && (
           <Link href={editHref} className="tap text-[12.5px] font-bold text-honey-700">
@@ -140,7 +140,7 @@ export function WhereCard({
 
   if (today) {
     return (
-      <div className="mb-5 overflow-hidden rounded-lg border-[1.5px] border-honey-500 bg-paper shadow-raised">
+      <div className="mb-[18px] overflow-hidden rounded-lg border-[1.5px] border-honey-500 bg-paper shadow-raised">
         {/* The street leads: the only question left is how to get there. */}
         <div className="flex items-start gap-3 bg-charcoal px-3.5 py-3">
           <span className="mt-0.5 flex-shrink-0">
@@ -164,7 +164,7 @@ export function WhereCard({
   }
 
   return (
-    <div className="mb-5 overflow-hidden rounded-lg border border-line-card bg-paper shadow-raised">
+    <div className="mb-[18px] overflow-hidden rounded-lg border border-line-card bg-paper shadow-raised">
       {/* The name leads: a week out the question is whether you want to be
           there on a Thursday, not how to get to a street. */}
       <div className="flex items-start justify-between gap-2.5 px-3.5 pt-3">

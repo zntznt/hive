@@ -25,6 +25,7 @@ import { InstallPwa } from '@/components/ui/InstallPwa'
 import { timeAgo } from '@/lib/relative-time'
 import { WhenPill } from '@/components/ui/WhenPill'
 import { FaceStack } from '@/components/ui/FaceStack'
+import { clubFooter, quietSince, type CardEvent, type ClubFooter } from '@/lib/club-card'
 import { type AvatarUser } from '@/components/ui/Avatar'
 
 type UpcomingEvent = {
@@ -34,7 +35,9 @@ type UpcomingEvent = {
   club_id: string | null
   status: string
   chosen_start: string | null
+  chosen_end: string | null
   location: string | null
+  area: string | null
 }
 
 function peso(cents: number) {
@@ -119,7 +122,7 @@ export default async function Home() {
     clubIds.length
       ? supabase
           .from('events')
-          .select('id, slug, title, club_id, status, chosen_start, location')
+          .select('id, slug, title, club_id, status, chosen_start, chosen_end, location, area')
           .in('club_id', clubIds)
           .in('status', ['scheduling', 'scheduled'])
           .is('deleted_at', null)
@@ -137,12 +140,33 @@ export default async function Home() {
 
   const total = plateCount(board)
   const away = await getAwayItems(supabase, profile.id)
-  const shownPlate = [...board.toAnswer, ...board.toPay, ...board.toConfirm, ...board.tasks, ...board.bringing].slice(0, 4)
+  // Three, then the link. Four rows plus a link is five things under a header
+  // whose whole job is to be a preview, at which point the reader is doing
+  // Plate's work on the wrong screen.
+  const shownPlate = [...board.toAnswer, ...board.toPay, ...board.toConfirm, ...board.tasks, ...board.bringing].slice(0, 3)
   const payMethodTargets = [...new Set(shownPlate.filter((i) => i.kind === 'pay').map((i) => i.toUserId))]
   const { data: payMethodRows } = payMethodTargets.length
     ? await supabase.from('payment_methods').select('user_id, kind, value').in('user_id', payMethodTargets).order('sort')
     : { data: [] as { user_id: string; kind: string; value: string }[] }
   const payMethodsFor = (uid: string) => (payMethodRows ?? []).filter((m) => m.user_id === uid)
+
+  // When each club last actually did something, for the quiet footer's
+  // "Tranquilo desde abril." The upcoming query cannot answer it: a club is
+  // quiet precisely when it has nothing upcoming.
+  const { data: pastRows } = clubIds.length
+    ? await supabase
+        .from('events')
+        .select('club_id, chosen_start')
+        .in('club_id', clubIds)
+        .not('chosen_start', 'is', null)
+        .lt('chosen_start', new Date().toISOString())
+        .is('deleted_at', null)
+        .order('chosen_start', { ascending: false })
+    : { data: [] as { club_id: string; chosen_start: string }[] }
+  const lastActivityByClub = new Map<string, string>()
+  for (const r of (pastRows ?? []) as { club_id: string; chosen_start: string }[]) {
+    if (!lastActivityByClub.has(r.club_id)) lastActivityByClub.set(r.club_id, r.chosen_start)
+  }
 
   const allUpcoming = (allUpcomingResult.data ?? []) as UpcomingEvent[]
   const eventIds = allUpcoming.map((e) => e.id)
@@ -167,10 +191,18 @@ export default async function Home() {
     memberCountByClub.set(row.club_id, (memberCountByClub.get(row.club_id) ?? 0) + 1)
     if (row.users) facesByClub.set(row.club_id, [...(facesByClub.get(row.club_id) ?? []), row.users])
   }
-  // The soonest thing each club is doing, which is the reason to tap it.
-  const nextByClub = new Map<string, UpcomingEvent>()
-  for (const e of allUpcoming) {
-    if (e.club_id && !nextByClub.has(e.club_id)) nextByClub.set(e.club_id, e)
+  // What each club is doing next, from the one function that decides it.
+  //
+  // This used to take the first row of a query ordered by chosen_start and
+  // call it the next event, which has none of clubNext()'s tie-break chain and
+  // no notion of today. So Home and the Clubs tab could name different next
+  // events for the same club, and Home would disagree first whenever two
+  // events shared a start time. club-card.ts exists to stop exactly this, and
+  // its header says so.
+  const footerByClub = new Map<string, ClubFooter>()
+  for (const c of clubs) {
+    const mine = allUpcoming.filter((e) => e.club_id === c.id) as unknown as CardEvent[]
+    footerByClub.set(c.id, clubFooter(mine, lastActivityByClub.get(c.id) ?? null))
   }
 
   return (
@@ -182,11 +214,14 @@ export default async function Home() {
        * bold and underlined under your own name. Signing out lives in Tú with
        * the rest of the account, where the reference puts it; the avatar is
        * redundant beside a greeting that already names you. */}
-      <header className="mb-4 flex items-center justify-between gap-3">
+      {/* The greeting is the page's own display line, not a status readout.
+          Set at 13px and right-aligned against the wordmark it read as a
+          system bar, and it is the first thing on the first screen. */}
+      <header className="mb-[18px]">
         <BrandMark size="sm" />
-        <span className="text-[13px] text-ink-500">
-          hola, <span className="font-bold text-ink-900">{profile.display_name}</span>
-        </span>
+        <h1 className="mt-2.5 font-display text-[22px] font-extrabold leading-tight text-ink-900">
+          hola, {profile.display_name}
+        </h1>
       </header>
 
       {/* Search sits directly under the header, above everything. It is the
@@ -320,7 +355,10 @@ export default async function Home() {
                 <Link
                   key={e.id}
                   href={`/e/${e.slug}`}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-line-card bg-paper p-4 shadow-card"
+                  // A row is 12px 14px. A flat 16px is a panel, and the
+                  // difference is what tells you whether this is a line in a
+                  // list or a thing in its own right.
+                  className="flex items-center justify-between gap-3 rounded-lg border border-line-card bg-paper px-3.5 py-3 shadow-card"
                 >
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-bold text-ink-900">{e.title}</span>
@@ -351,12 +389,15 @@ export default async function Home() {
         ) : (
           <div className="flex flex-col gap-2">
             {clubs.map((c) => {
-              const next = nextByClub.get(c.id)
+              const footer = footerByClub.get(c.id)
+              const today = footer?.kind === 'today'
               return (
                 <Link
                   key={c.slug}
-                  href={`/club/${c.slug}`}
-                  className="flex items-center gap-3 rounded-lg border border-line-card bg-paper p-4 shadow-card"
+                  href={today ? `/e/${footer.event.slug}` : `/club/${c.slug}`}
+                  className={`flex items-center gap-3 rounded-lg bg-paper px-3.5 py-3 shadow-card ${
+                    today ? 'border-[1.5px] border-honey-500' : 'border border-line-card'
+                  }`}
                 >
                   <HexAvatar name={c.name} size={34} />
                   <span className="min-w-0 flex-1">
@@ -368,12 +409,25 @@ export default async function Home() {
                         size={20}
                         max={4}
                       />
+                      {/* Rule 9: what the club is doing next, by name, from
+                          clubFooter. On the day that is the address, because
+                          by then the name is not the open question. */}
                       <span className="min-w-0 truncate text-[12.5px] text-ink-500">
-                        {next ? next.title : 'sin nada planeado'}
+                        {footer?.kind === 'today'
+                          ? (footer.event.area ?? footer.event.location ?? footer.event.title)
+                          : footer?.kind === 'next'
+                            ? footer.event.title
+                            : quietSince(footer?.since ?? null)}
                       </span>
                     </span>
                   </span>
-                  {next && <WhenPill at={next.chosen_start} status={next.status} />}
+                  {footer?.kind === 'today' ? (
+                    <span className="flex-shrink-0 rounded-pill bg-honey-500 px-2.5 py-[3px] text-[11px] font-extrabold text-charcoal">
+                      {footer.window}
+                    </span>
+                  ) : footer?.kind === 'next' ? (
+                    <WhenPill at={footer.event.chosen_start} status={footer.event.status} />
+                  ) : null}
                 </Link>
               )
             })}
@@ -393,13 +447,6 @@ export default async function Home() {
           actually install, and never again once dismissed. */}
       <InstallPwa />
 
-      {profile.is_app_admin && (
-        <div className="mt-8 border-t border-line-card pt-5">
-          <Link href="/admin" className="inline-flex items-center gap-1 tap text-sm font-bold text-honey-700">
-            Panel de administración <Icon name="chevron-right" size={10} />
-          </Link>
-        </div>
-      )}
     </Page>
   )
 }

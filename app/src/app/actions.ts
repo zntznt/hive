@@ -837,7 +837,10 @@ export async function createEvent(
     status: 'scheduling',
     organizer_user_id: user.id,
     join_policy: String(formData.get('join_policy') ?? 'club_members_only'),
-    allow_guests: formData.get('allow_guests') === 'on',
+    // The stepper's number is the answer; allow_guests stays in step with it
+    // so nothing reading the old boolean starts letting guests in.
+    allow_guests: !!readGuestCap(formData),
+    max_guests_per_member: readGuestCap(formData),
     capacity: capacityRaw ? Number(capacityRaw) : null,
     waitlist_enabled: formData.get('waitlist_enabled') === 'on' && !!capacityRaw,
     confirm_deadline: deadlineRaw ? new Date(mexicoLocalToIso(deadlineRaw)).toISOString() : null,
@@ -887,7 +890,10 @@ export async function updateEvent(eventId: string, slug: string, _prev: string |
     location: String(formData.get('location') ?? '').trim() || null,
     ...readPoint(formData, 'location'),
     join_policy: String(formData.get('join_policy') ?? 'club_members_only'),
-    allow_guests: formData.get('allow_guests') === 'on',
+    // The stepper's number is the answer; allow_guests stays in step with it
+    // so nothing reading the old boolean starts letting guests in.
+    allow_guests: !!readGuestCap(formData),
+    max_guests_per_member: readGuestCap(formData),
     capacity: capacityRaw ? Number(capacityRaw) : null,
     waitlist_enabled: formData.get('waitlist_enabled') === 'on' && !!capacityRaw,
     confirm_deadline: deadlineRaw ? new Date(mexicoLocalToIso(deadlineRaw)).toISOString() : null,
@@ -1313,13 +1319,14 @@ export async function updateNotifPrefs(formData: FormData) {
   } = await supabase.auth.getUser()
   if (!user) throw new Error('not signed in')
   const { NOTIF_TOPICS } = await import('@/lib/notif-topics')
-  const prefs: Record<string, { email: boolean; whatsapp: boolean }> = {}
+  const prefs: Record<string, { email: boolean; whatsapp: boolean; push: boolean }> = {}
   let anyEmail = false
   let anyWhatsapp = false
   for (const t of NOTIF_TOPICS) {
     const email = formData.get(`t_${t.key}_email`) === 'on'
     const whatsapp = formData.get(`t_${t.key}_whatsapp`) === 'on'
-    prefs[t.key] = { email, whatsapp }
+    const push = formData.get(`t_${t.key}_push`) === 'on'
+    prefs[t.key] = { email, whatsapp, push }
     anyEmail = anyEmail || email
     anyWhatsapp = anyWhatsapp || whatsapp
   }
@@ -1460,11 +1467,24 @@ function readPlace(formData: FormData) {
 // The pin the organizer dropped, read off the LocationPicker's two hidden
 // fields. Both or neither, which is what the check constraint on the table
 // says too: one of the two alone puts a marker on the equator.
+// How many each member may bring. Absent means the organizer never opened
+// that block, which is "none" and not "one".
+function readGuestCap(formData: FormData): number | null {
+  const raw = formData.get('max_guests_per_member')
+  if (raw == null || raw === '') return null
+  const n = Number(raw)
+  return Number.isFinite(n) && n >= 1 ? Math.min(5, Math.round(n)) : null
+}
+
 function readPoint(formData: FormData, field: string) {
   const lat = Number(formData.get(`${field}_lat`))
   const lng = Number(formData.get(`${field}_lng`))
   const ok = Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)
-  return { lat: ok ? lat : null, lng: ok ? lng : null }
+  // The street the pin landed on, resolved in the picker so it is saved with
+  // the point that produced it. Without the point it is meaningless, so it
+  // travels with it or not at all.
+  const area = String(formData.get(`${field}_area`) ?? '').trim()
+  return { lat: ok ? lat : null, lng: ok ? lng : null, area: ok && area ? area : null }
 }
 
 export async function addSavedPlace(formData: FormData) {
@@ -1596,6 +1616,7 @@ export async function duplicateEvent(eventId: string, extraWeeks = 0) {
       organizer_user_id: user.id,
       join_policy: src.join_policy,
       allow_guests: src.allow_guests,
+      max_guests_per_member: src.max_guests_per_member,
       capacity: src.capacity,
       waitlist_enabled: src.waitlist_enabled,
       // deadlines belong to a specific date, so the copy starts without one
@@ -1971,4 +1992,19 @@ export async function sendTestPush(endpoint: string) {
     return { ok: false as const, error: 'Este navegador ya no acepta avisos. Vuelve a activarlos.' }
   }
   return { ok: false as const, error: result.error }
+}
+
+// The language override from Tú. Null means follow the phone, which is what
+// most people should stay on: the app reads Accept-Language on the server and
+// navigator.language in the browser, and both land in the same place.
+export async function setLanguage(lang: 'es' | 'en' | null) {
+  const supabase = await supabaseServer()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('not signed in')
+  const { error } = await supabase.from('users').update({ lang }).eq('id', user.id)
+  if (error) throw new Error(error.message)
+  // Every screen renders in this language, so every screen is stale.
+  revalidatePath('/', 'layout')
 }
