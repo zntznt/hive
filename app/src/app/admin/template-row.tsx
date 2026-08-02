@@ -57,7 +57,20 @@ export function TemplateSyncBar() {
   )
 }
 
-export function TemplateRow({ tplKey, email, whatsapp }: { tplKey: string; email?: Tpl; whatsapp?: Tpl }) {
+export function TemplateRow({
+  tplKey,
+  email,
+  emailEn,
+  whatsapp,
+}: {
+  tplKey: string
+  email?: Tpl
+  // The English copy of the same email. A separate form rather than a toggle,
+  // because an admin needs to see that both exist: a language you have to go
+  // looking for is one nobody remembers to update.
+  emailEn?: Tpl
+  whatsapp?: Tpl
+}) {
   const tr = useT()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -88,7 +101,7 @@ export function TemplateRow({ tplKey, email, whatsapp }: { tplKey: string; email
       {open && (
         <div className="grid grid-cols-1 gap-3 px-3.5 pb-3.5 pl-[31px] sm:grid-cols-2">
           {email && (
-            <form action={updateNotificationTemplate.bind(null, 'email', tplKey)} className="flex flex-col gap-1.5">
+            <form action={updateNotificationTemplate.bind(null, 'email', tplKey, 'es')} className="flex flex-col gap-1.5">
               <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-ink-300">{tr('notif.email')}</span>
               <input
                 name="subject"
@@ -100,9 +113,24 @@ export function TemplateRow({ tplKey, email, whatsapp }: { tplKey: string; email
               <button className="tap self-start text-xs font-bold text-honey-700">{tr('common.save')}</button>
             </form>
           )}
+          {emailEn && (
+            <form action={updateNotificationTemplate.bind(null, 'email', tplKey, 'en')} className="flex flex-col gap-1.5">
+              <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-ink-300">
+                {tr('notif.email')} · EN
+              </span>
+              <input
+                name="subject"
+                defaultValue={emailEn.subject ?? ''}
+                className="rounded-sm border border-line-input bg-paper p-1.5 text-xs text-ink-900"
+              />
+              <textarea name="body" defaultValue={emailEn.body} rows={4} className="rounded-sm border border-line-input bg-paper p-1.5 text-xs text-ink-900" />
+              <button className="tap self-start text-xs font-bold text-honey-700">{tr('common.save')}</button>
+            </form>
+          )}
+
           {whatsapp && (
             <div className="flex flex-col gap-1.5">
-              <form action={updateNotificationTemplate.bind(null, 'whatsapp', tplKey)} className="flex flex-col gap-1.5">
+              <form action={updateNotificationTemplate.bind(null, 'whatsapp', tplKey, 'es')} className="flex flex-col gap-1.5">
                 <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-ink-300">{tr('notif.whatsapp')}</span>
                 <textarea name="body" defaultValue={whatsapp.body} rows={4} className="rounded-sm border border-line-input bg-paper p-1.5 text-xs text-ink-900" />
                 <button className="tap self-start text-xs font-bold text-honey-700">{tr('common.save')}</button>

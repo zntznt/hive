@@ -100,6 +100,7 @@ export default async function AdminPage() {
   const templates = (tplRows ?? []) as {
     channel: string
     key: string
+    lang: string
     subject: string | null
     body: string
     wa_status?: string | null
@@ -272,8 +273,9 @@ export default async function AdminPage() {
                 <TemplateRow
                   key={key}
                   tplKey={key}
-                  email={templates.find((t) => t.key === key && t.channel === 'email')}
-                  whatsapp={templates.find((t) => t.key === key && t.channel === 'whatsapp')}
+                  email={templates.find((t) => t.key === key && t.channel === 'email' && t.lang === 'es')}
+                  emailEn={templates.find((t) => t.key === key && t.channel === 'email' && t.lang === 'en')}
+                  whatsapp={templates.find((t) => t.key === key && t.channel === 'whatsapp' && t.lang === 'es')}
                 />
               ))}
             </div>

@@ -268,6 +268,8 @@ export const ES = {
   'form.join.link': 'cualquiera con el enlace',
   'form.join.invite': 'solo con invitación',
   'form.create': 'Crear evento',
+  'form.createAndAsk': 'Crear y pedir horarios',
+  'form.extras.hint': 'La mayoría de los eventos no necesitan ninguna. La lista de lo que hay que traer y las encuestas se agregan en el evento, una vez que existe y la gente ya puede apartar cosas.',
   'form.saveChanges': 'Guardar cambios',
 
   // -- club page ------------------------------------------------------------
@@ -1063,6 +1065,8 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'form.join.link': 'anyone with the link',
   'form.join.invite': 'invite only',
   'form.create': 'Create event',
+  'form.createAndAsk': 'Create and ask for times',
+  'form.extras.hint': 'Most events need none of these. The bring list and the polls are added on the event itself, once it exists and people can actually claim things.',
   'form.saveChanges': 'Save changes',
 
   // -- club page ------------------------------------------------------------
