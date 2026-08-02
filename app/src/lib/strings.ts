@@ -401,6 +401,10 @@ export const ES = {
   'account.wa.ph': '+52 55 1234 5678',
   'account.wa.change': 'Cambiar número',
   'account.wa.remove': '¿Quitar tu WhatsApp?',
+  'account.wa.codeHint': 'Te mandamos un código para confirmar que el número es tuyo. Con él también puedes entrar a Hive.',
+  'account.wa.removeHint': 'Dejas de recibir avisos por WhatsApp y ya no podrás entrar con tu número. Seguirás entrando con tu correo.',
+  'account.wa.updated': 'WhatsApp actualizado',
+  'account.wa.removed': 'WhatsApp quitado',
 
   // -- event extras ---------------------------------------------------------
   'event.rollcall.who': '¿Quién vino?',
@@ -664,6 +668,14 @@ export const ES = {
   'ui.emoji.hint': 'Usa el emoji de tu teclado',
   'ui.code.label': 'Código de 6 dígitos',
   'ui.code.expired': 'Ya venció. Pide uno nuevo.',
+  'ui.code.entering': 'Entrando…',
+  // {to} is bolded by splitting the rendered sentence on its slot, so the
+  // whole sentence stays here and a translator can move the address.
+  'ui.code.sentTo': 'Te mandamos 6 dígitos a {to}. Escríbelos aquí.',
+  'ui.code.sent': 'Te mandamos 6 dígitos. Escríbelos aquí.',
+  'ui.code.accepted': 'Código aceptado',
+  'ui.code.expiresIn': 'Vence en {left}.',
+  'ui.code.resend': 'Mandar otro código',
   'ui.crop.hint': 'Arrastra para mover, desliza para acercar',
   'app.description': 'Eventos de club sin caos: fecha, confirmaciones, quién trae qué, gastos.',
   'plate.snooze': 'Vuelve mañana',
@@ -853,6 +865,40 @@ export const ES = {
   'signin.codeSent': 'Te mandamos un código de 6 dígitos.',
   'signin.resend': 'Reenviar',
   'signin.resendLong': '¿No te llegó? Pídelo de nuevo',
+
+  // -- what goes wrong on the way in ----------------------------------------
+  //
+  // These are returned by lib/signin-code.ts and lib/phone-verify.ts, which
+  // run on the server and have no hook to reach for, so they resolve the
+  // language themselves through getT(). They used to be Spanish literals
+  // returned from a lib, which is how an English phone got an English sign-in
+  // screen that answered a mistyped code in Spanish.
+  'auth.notConfigured': 'El inicio de sesión no está configurado.',
+  'auth.codeFailed': 'No pudimos generar el código. Intenta de nuevo.',
+  'auth.logFailed': 'No pudimos registrar el envío. Intenta con tu correo.',
+  'auth.badCode': 'Ese código no es correcto o ya venció. Pide uno nuevo.',
+  'auth.sessionFailed': 'No pudimos abrir tu sesión. Intenta con tu correo.',
+  'auth.phoneIncomplete': 'Ese número no se ve completo. Incluye la clave, por ejemplo +52 55 1234 5678.',
+  'auth.phoneIncompleteShort': 'Ese número no se ve completo.',
+  'phone.notConfigured': 'La verificación por WhatsApp no está configurada.',
+  'phone.taken': 'Ese número ya está registrado en otra cuenta.',
+  'phone.tooSoon': 'Ya mandamos un código a ese número hace poco. Espera un minuto.',
+  'phone.saveFailed': 'No pudimos guardar el número. Intenta de nuevo.',
+
+  // The join request's refusals. The RPC raises them in English for whoever
+  // is reading a log; a member should never see that text.
+  'club.join.signInFirst': 'Entra a Hive antes de pedir unirte.',
+  'club.join.gone': 'Ese enlace ya no sirve.',
+  'club.join.closed': 'Este club no está aceptando solicitudes.',
+  'club.join.already': 'Ya eres miembro de este club.',
+  'club.join.failed': 'No pudimos mandar tu solicitud. Intenta de nuevo.',
+
+  // The sign-in code email. Every other message goes through
+  // notification_templates; this one is rendered here because it is sent
+  // before there is anything to queue, so it needs its own copy.
+  'mail.signin.subject': 'Tu código para entrar a Hive: {code}',
+  'mail.signin.lead': 'Tu código para entrar a Hive:',
+  'mail.signin.foot': 'Vence en 10 minutos y solo sirve una vez. Si no lo pediste, ignora este correo y no pasa nada.',
   'signin.sending': 'Enviando…',
   // The line under the field, which changes as they type. For a number it
   // carries the normalized form, so the +52 nobody typed is visible before the
@@ -1251,6 +1297,10 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'account.wa.ph': '+52 55 1234 5678',
   'account.wa.change': 'Change number',
   'account.wa.remove': 'Remove your WhatsApp?',
+  'account.wa.codeHint': 'We sent you a code to confirm the number is yours. It also gets you into Hive.',
+  'account.wa.removeHint': 'You stop getting notices on WhatsApp and can no longer sign in with your number. You will still get in with your email.',
+  'account.wa.updated': 'WhatsApp updated',
+  'account.wa.removed': 'WhatsApp removed',
 
   // -- event extras ---------------------------------------------------------
   'event.rollcall.who': 'Who came?',
@@ -1502,6 +1552,12 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'ui.emoji.hint': 'Use the emoji on your keyboard',
   'ui.code.label': '6 digit code',
   'ui.code.expired': 'It expired. Ask for a new one.',
+  'ui.code.entering': 'Signing you in…',
+  'ui.code.sentTo': 'We sent 6 digits to {to}. Type them here.',
+  'ui.code.sent': 'We sent you 6 digits. Type them here.',
+  'ui.code.accepted': 'Code accepted',
+  'ui.code.expiresIn': 'Expires in {left}.',
+  'ui.code.resend': 'Send another code',
   'ui.crop.hint': 'Drag to move, slide to zoom',
   'app.description': 'Club events without the chaos: the date, the RSVPs, who brings what, the money.',
   'plate.snooze': 'Come back tomorrow',
@@ -1691,6 +1747,28 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'signin.codeSent': 'We sent you a 6 digit code.',
   'signin.resend': 'Resend',
   'signin.resendLong': "Didn't arrive? Ask for another",
+
+  'auth.notConfigured': 'Signing in is not set up.',
+  'auth.codeFailed': "We couldn't generate the code. Try again.",
+  'auth.logFailed': "We couldn't record the send. Try your email.",
+  'auth.badCode': 'That code is wrong or has expired. Ask for a new one.',
+  'auth.sessionFailed': "We couldn't open your session. Try your email.",
+  'auth.phoneIncomplete': "That number doesn't look complete. Include the country code, for example +52 55 1234 5678.",
+  'auth.phoneIncompleteShort': "That number doesn't look complete.",
+  'phone.notConfigured': 'WhatsApp verification is not set up.',
+  'phone.taken': 'That number is already registered to another account.',
+  'phone.tooSoon': 'We already sent a code to that number a moment ago. Wait a minute.',
+  'phone.saveFailed': "We couldn't save the number. Try again.",
+
+  'club.join.signInFirst': 'Sign in to Hive before asking to join.',
+  'club.join.gone': 'That link no longer works.',
+  'club.join.closed': 'This club is not taking requests.',
+  'club.join.already': 'You are already a member of this club.',
+  'club.join.failed': "We couldn't send your request. Try again.",
+
+  'mail.signin.subject': 'Your code to get into Hive: {code}',
+  'mail.signin.lead': 'Your code to get into Hive:',
+  'mail.signin.foot': 'It expires in 10 minutes and works once. If you did not ask for it, ignore this email and nothing happens.',
   'signin.sending': 'Sending…',
   'signin.helper.email': 'We will send a 6 digit code to that email.',
   'signin.helper.phone': 'We will send a 6 digit code to {display} on WhatsApp.',

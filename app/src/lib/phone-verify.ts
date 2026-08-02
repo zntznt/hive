@@ -2,6 +2,7 @@ import { createHash, randomInt } from 'crypto'
 import { after } from 'next/server'
 import { supabaseService } from './supabase/service'
 import { sendWhatsapp } from './whatsapp'
+import { getT } from './current-lang'
 
 // Proving a WhatsApp number belongs to the person adding it.
 //
@@ -23,8 +24,10 @@ export type StartResult = { ok: true } | { ok: false; error: string }
 // Sends a code to the candidate number. Nothing is written to the account
 // until confirmPhoneChange succeeds.
 export async function startPhoneChange(userId: string, phone: string): Promise<StartResult> {
+  // Server side, no hook to reach for, and getT() is cached per request.
+  const { t } = await getT()
   const db = supabaseService()
-  if (!db) return { ok: false, error: 'La verificación por WhatsApp no está configurada.' }
+  if (!db) return { ok: false, error: t('phone.notConfigured') }
 
   // Checked before sending rather than after, so a number already spoken for
   // does not cost someone a message. The unique index is still the authority.
@@ -34,7 +37,7 @@ export async function startPhoneChange(userId: string, phone: string): Promise<S
     .eq('phone_whatsapp', phone)
     .neq('id', userId)
     .maybeSingle()
-  if (taken) return { ok: false, error: 'Ese número ya está registrado en otra cuenta.' }
+  if (taken) return { ok: false, error: t('phone.taken') }
 
   // This path had no throttle whatsoever, while the sign-in one at least had
   // sixty seconds. Any signed-in account could loop it against ANY number on
@@ -44,7 +47,7 @@ export async function startPhoneChange(userId: string, phone: string): Promise<S
   // is asking, because the person being bothered is the one to protect.
   const { data: gate } = await db.rpc('signin_throttle_take', { p_contact: phone })
   if ((gate as { allowed?: boolean } | null)?.allowed !== true) {
-    return { ok: false, error: 'Ya mandamos un código a ese número hace poco. Espera un minuto.' }
+    return { ok: false, error: t('phone.tooSoon') }
   }
 
   const code = String(randomInt(0, 1_000_000)).padStart(6, '0')
@@ -56,7 +59,7 @@ export async function startPhoneChange(userId: string, phone: string): Promise<S
     attempts: 0,
     created_at: new Date().toISOString(),
   })
-  if (saveErr) return { ok: false, error: 'No pudimos generar el código. Intenta de nuevo.' }
+  if (saveErr) return { ok: false, error: t('auth.codeFailed') }
 
   // Written before the send, so a delivery that dies still leaves a trace.
   const { data: logged } = await db
@@ -115,10 +118,11 @@ export async function startPhoneChange(userId: string, phone: string): Promise<S
 export type ConfirmResult = { ok: true; phone: string; enabledWhatsapp: boolean } | { ok: false; error: string }
 
 export async function confirmPhoneChange(userId: string, code: string): Promise<ConfirmResult> {
+  const { t } = await getT()
   const db = supabaseService()
-  if (!db) return { ok: false, error: 'La verificación por WhatsApp no está configurada.' }
+  if (!db) return { ok: false, error: t('phone.notConfigured') }
 
-  const wrong = { ok: false as const, error: 'Ese código no es correcto o ya venció. Pide uno nuevo.' }
+  const wrong = { ok: false as const, error: t('auth.badCode') }
 
   const { data: row } = await db
     .from('phone_verifications')
@@ -160,8 +164,8 @@ export async function confirmPhoneChange(userId: string, code: string): Promise<
     })
     .eq('id', userId)
   if (updErr) {
-    if (updErr.code === '23505') return { ok: false, error: 'Ese número ya está registrado en otra cuenta.' }
-    return { ok: false, error: 'No pudimos guardar el número. Intenta de nuevo.' }
+    if (updErr.code === '23505') return { ok: false, error: t('phone.taken') }
+    return { ok: false, error: t('phone.saveFailed') }
   }
 
   await db.from('phone_verifications').delete().eq('user_id', userId)

@@ -8,10 +8,11 @@ import type { RsvpStatus } from '@/lib/types'
 import { queueNotification, dispatchAfterResponse, sendTemplatedEmail, sendTemplatedWhatsapp } from '@/lib/notify'
 import { siteUrl } from '@/lib/site-url'
 import { normalizePhone } from '@/lib/phone'
-import { sendWhatsappMagicLink } from '@/lib/magic-link'
 import { requestSigninCode, verifySigninCode } from '@/lib/signin-code'
 import { startPhoneChange, confirmPhoneChange } from '@/lib/phone-verify'
 import { nudgeNonResponders, nudgeMissingAvailability } from '@/lib/nudge'
+import { getT } from '@/lib/current-lang'
+import type { StringKey } from '@/lib/lang'
 
 type Supabase = Awaited<ReturnType<typeof supabaseServer>>
 
@@ -622,10 +623,31 @@ export async function deleteClub(clubId: string) {
   redirect('/')
 }
 
+// The RPC raises in English, for whoever is reading a log: 'sign in first',
+// 'invitation not found', 'this club is not open for join requests', 'already
+// a member'. Returning error.message put those words on the member's screen
+// verbatim, in a language the app had not chosen and a register nobody writes
+// UI in. This is the one place that reads them, and anything unrecognised
+// becomes the generic refusal rather than leaking whatever the database said
+// next: the worst case is a vaguer message, never raw SQL.
+//
+// The literals below are the RPC's own, in supabase/migrations/0031. If one is
+// reworded there, the mapping falls through to the default and this comment is
+// where to look.
+const JOIN_REFUSALS: Record<string, StringKey> = {
+  'sign in first': 'club.join.signInFirst',
+  'invitation not found': 'club.join.gone',
+  'this club is not open for join requests': 'club.join.closed',
+  'already a member': 'club.join.already',
+}
+
 export async function requestJoinClub(joinToken: string, _prev: string | null): Promise<string> {
   const supabase = await supabaseServer()
   const { error } = await supabase.rpc('request_join_club', { jtoken: joinToken })
-  if (error) return error.message
+  if (error) {
+    const { t } = await getT()
+    return t(JOIN_REFUSALS[error.message.trim().toLowerCase()] ?? 'club.join.failed')
+  }
   return 'ok'
 }
 
@@ -1537,15 +1559,6 @@ export async function removeSavedPlace(id: string) {
   revalidatePath('/account')
 }
 
-// Sign-in link over WhatsApp. Unauthenticated by design (nobody has a session
-// yet), so it takes a phone number and nothing else, normalizes it here rather
-// than trusting the client, and never reports whether the number is known.
-export async function requestWhatsappLink(rawPhone: string, next?: string | null) {
-  const phone = normalizePhone(rawPhone)
-  if (!phone) return { ok: false as const, error: 'Ese número no se ve completo. Incluye la clave, por ejemplo +52 55 1234 5678.' }
-  return sendWhatsappMagicLink(phone, next)
-}
-
 // Post-event roll call. Writes through mark_attendance (SECURITY DEFINER)
 // rather than a widened RLS policy, so an organizer can record who came
 // without gaining the ability to rewrite what people answered.
@@ -1762,7 +1775,10 @@ export async function requestSigninCodeFor(raw: string) {
   const value = raw.trim()
   if (value.includes('@')) return requestSigninCode(value.toLowerCase())
   const phone = normalizePhone(value)
-  if (!phone) return { ok: false as const, error: 'Ese número no se ve completo. Incluye la clave, por ejemplo +52 55 1234 5678.' }
+  if (!phone) {
+    const { t } = await getT()
+    return { ok: false as const, error: t('auth.phoneIncomplete') }
+  }
   return requestSigninCode(phone)
 }
 
@@ -1773,7 +1789,10 @@ export async function verifySigninCodeFor(raw: string, code: string, next?: stri
   const value = raw.trim()
   if (value.includes('@')) return verifySigninCode(value.toLowerCase(), code, next)
   const phone = normalizePhone(value)
-  if (!phone) return { ok: false as const, error: 'Ese número no se ve completo.' }
+  if (!phone) {
+    const { t } = await getT()
+    return { ok: false as const, error: t('auth.phoneIncompleteShort') }
+  }
   return verifySigninCode(phone, code, next)
 }
 
