@@ -12,7 +12,7 @@ import { requestSigninCode, verifySigninCode } from '@/lib/signin-code'
 import { startPhoneChange, confirmPhoneChange } from '@/lib/phone-verify'
 import { nudgeNonResponders, nudgeMissingAvailability } from '@/lib/nudge'
 import { getT } from '@/lib/current-lang'
-import type { StringKey } from '@/lib/lang'
+import { t as translate, type Lang, type StringKey } from '@/lib/lang'
 
 type Supabase = Awaited<ReturnType<typeof supabaseServer>>
 
@@ -26,13 +26,21 @@ async function clubPermission(supabase: Supabase, userId: string, clubId: string
   return { isAdmin, isOrganizer, isManager: isAdmin || isOrganizer }
 }
 
-const CHANGE_REQUEST_SUMMARY: Record<string, string> = {
-  about: 'la descripción del club',
-  category_add: 'una nueva categoría',
-  category_edit: 'editar una categoría',
-  category_delete: 'eliminar una categoría',
-  banner: 'la portada del club',
-  member_removal: 'quitar a un miembro',
+// A label stored as data is a bug: this map held six Spanish sentences at
+// module scope, and they were spliced into the notification the member gets
+// when their proposal is decided. So an English member got an English email
+// with "la descripción del club" in the middle of it, and the copy froze at
+// whichever language loaded the module first.
+//
+// Keys now, resolved at send time in the language of whoever is READING it,
+// which is not the admin who clicked approve. They are two different people.
+const CHANGE_REQUEST_SUMMARY: Record<string, StringKey> = {
+  about: 'cr.about',
+  category_add: 'cr.category_add',
+  category_edit: 'cr.category_edit',
+  category_delete: 'cr.category_delete',
+  banner: 'cr.banner',
+  member_removal: 'cr.member_removal',
 }
 
 // Storage uploads run server-side: the browser Supabase client depends on
@@ -52,14 +60,14 @@ async function uploadToBucket(bucket: string, path: string, file: File) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) throw new Error('Tu sesión expiró. Vuelve a entrar.')
+  if (!user) throw new Error('not signed in')
 
   const contentType = IMAGE_TYPES.includes(file.type) ? file.type : 'image/jpeg'
   if (file.type && !IMAGE_TYPES.includes(file.type)) {
-    throw new Error('Solo aceptamos imágenes JPG, PNG o WebP.')
+    throw new Error('unsupported image type')
   }
   if (file.size > MAX_UPLOAD_BYTES) {
-    throw new Error('Esa imagen pesa más de 2 MB. Recórtala o usa una más ligera.')
+    throw new Error('image over the size limit')
   }
 
   const bytes = new Uint8Array(await file.arrayBuffer())
@@ -83,25 +91,25 @@ function ourStorageUrl(url: string | null, bucket: 'avatars' | 'banners') {
   const ok = new RegExp(
     `^https://[a-z0-9-]+\\.supabase\\.co/storage/v1/object/public/${bucket}/[A-Za-z0-9/._-]+$`
   ).test(url)
-  if (!ok) throw new Error('Esa imagen no viene de Hive. Súbela desde aquí.')
+  if (!ok) throw new Error('image is not in a Hive bucket')
   return url
 }
 
 export async function uploadAvatarPhotoAction(formData: FormData): Promise<string> {
   const file = formData.get('file')
-  if (!(file instanceof File)) throw new Error('Falta la imagen.')
+  if (!(file instanceof File)) throw new Error('no image in the form')
   const supabase = await supabaseServer()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) throw new Error('Tu sesión expiró. Vuelve a entrar.')
+  if (!user) throw new Error('not signed in')
   const { path } = await uploadToBucket('avatars', `${user.id}/${Date.now()}.jpg`, file)
   return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl
 }
 
 export async function uploadBannerAction(clubId: string, formData: FormData): Promise<string> {
   const file = formData.get('file')
-  if (!(file instanceof File)) throw new Error('Falta la imagen.')
+  if (!(file instanceof File)) throw new Error('no image in the form')
   const { path } = await uploadToBucket('banners', `${clubId}/${Date.now()}.jpg`, file)
   const supabase = await supabaseServer()
   return supabase.storage.from('banners').getPublicUrl(path).data.publicUrl
@@ -111,12 +119,12 @@ export async function uploadBannerAction(clubId: string, formData: FormData): Pr
 // where the proof is displayed
 export async function uploadPaymentProofAction(formData: FormData): Promise<string> {
   const file = formData.get('file')
-  if (!(file instanceof File)) throw new Error('Falta la imagen.')
+  if (!(file instanceof File)) throw new Error('no image in the form')
   const supabase = await supabaseServer()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) throw new Error('Tu sesión expiró. Vuelve a entrar.')
+  if (!user) throw new Error('not signed in')
   const { path } = await uploadToBucket('payment-proofs', `${user.id}/${Date.now()}.jpg`, file)
   return path
 }
@@ -361,13 +369,14 @@ export async function proposeOrEditCategory(
 // still goes through the proposal queue and gets told so, rather than seeing
 // their category silently not appear.
 export async function createCategoryInline(clubId: string, clubSlug: string, name: string) {
+  const { t } = await getT()
   const supabase = await supabaseServer()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) throw new Error('not signed in')
   const clean = name.trim()
-  if (!clean) return { ok: false as const, error: 'Ponle nombre.' }
+  if (!clean) return { ok: false as const, error: t('err.name.missing') }
   const perm = await clubPermission(supabase, user.id, clubId)
 
   if (perm.isAdmin) {
@@ -381,7 +390,7 @@ export async function createCategoryInline(clubId: string, clubSlug: string, nam
     if (error) {
       return {
         ok: false as const,
-        error: error.code === '23505' ? 'Ya existe una categoría con ese nombre.' : 'No se pudo crear la categoría.',
+        error: error.code === '23505' ? t('err.category.dupe') : t('err.category.create'),
       }
     }
     revalidatePath(`/club/${clubSlug}`)
@@ -397,7 +406,7 @@ export async function createCategoryInline(clubId: string, clubSlug: string, nam
     .eq('club_id', clubId)
     .ilike('name', clean)
     .maybeSingle()
-  if (dupe) return { ok: false as const, error: 'Ya existe una categoría con ese nombre.' }
+  if (dupe) return { ok: false as const, error: t('err.category.dupe') }
 
   const { error } = await supabase.from('change_requests').insert({
     club_id: clubId,
@@ -405,7 +414,7 @@ export async function createCategoryInline(clubId: string, clubSlug: string, nam
     payload: { name: clean, emoji: null },
     requested_by: user.id,
   })
-  if (error) return { ok: false as const, error: 'No se pudo mandar la propuesta.' }
+  if (error) return { ok: false as const, error: t('err.proposal.send') }
   revalidatePath(`/club/${clubSlug}`)
   return { ok: true as const, proposed: true as const }
 }
@@ -712,10 +721,17 @@ export async function decideChangeRequest(reqId: string, clubSlug: string, appro
     .single()
   if (req) {
     const clubName = (req.clubs as unknown as { name: string } | null)?.name ?? 'tu club'
+    // The summary is read by the member, not by the admin who just clicked
+    // approve, so it resolves in THEIR language. notify.ts already picks the
+    // template that way; this variable had to be given the same treatment or
+    // an English member got an English email with a Spanish clause inside it.
+    const { data: reader } = await supabase.from('users').select('lang').eq('id', req.requested_by).maybeSingle()
+    const readerLang = (reader?.lang as Lang | null) === 'en' ? 'en' : 'es'
+    const key = CHANGE_REQUEST_SUMMARY[req.kind]
     await queueNotification(supabase, {
       userId: req.requested_by,
       template: approve ? 'change_request_approved' : 'change_request_declined',
-      vars: { club: clubName, summary: CHANGE_REQUEST_SUMMARY[req.kind] ?? req.kind },
+      vars: { club: clubName, summary: key ? translate(readerLang, key) : req.kind },
     })
     dispatchAfterResponse(supabase)
   }
@@ -739,7 +755,7 @@ export async function updateNotificationTemplate(channel: 'email' | 'whatsapp', 
   } = await supabase.auth.getUser()
   const subject = String(formData.get('subject') ?? '').trim() || null
   const body = String(formData.get('body') ?? '').trim()
-  if (!body) throw new Error('El cuerpo no puede quedar vacío.')
+  if (!body) throw new Error('empty body')
   const { error } = await supabase
     .from('notification_templates')
     .update({ subject, body, updated_at: new Date().toISOString(), updated_by: user?.id ?? null })
@@ -841,17 +857,18 @@ export async function createEvent(
   _prev: string | null,
   formData: FormData
 ): Promise<string | null> {
+  const { t } = await getT()
   const supabase = await supabaseServer()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return 'Tu sesión expiró. Vuelve a entrar.'
+  if (!user) return t('err.session')
 
   const title = String(formData.get('title') ?? '').trim()
   const startDate = String(formData.get('sched_start_date') ?? '')
   const endDate = String(formData.get('sched_end_date') ?? '')
-  if (!title || !startDate || !endDate) return 'Faltan campos obligatorios.'
-  if (endDate < startDate) return 'La fecha final no puede ser antes de la inicial.'
+  if (!title || !startDate || !endDate) return t('err.fields.missing')
+  if (endDate < startDate) return t('err.dates.backwards')
 
   const capacityRaw = String(formData.get('capacity') ?? '').trim()
   const deadlineRaw = String(formData.get('confirm_deadline') ?? '').trim()
@@ -883,7 +900,7 @@ export async function createEvent(
     sched_time_max: Number(formData.get('time_max') ?? 1380),
     sched_slot_minutes: Number(formData.get('slot_minutes') ?? 60),
   })
-  if (error) return 'No se pudo crear el evento. Inténtalo de nuevo.'
+  if (error) return t('err.event.create')
 
   // "nuevos eventos en tus clubs" notification (Account matrix topic
   // new_event): every other club member hears about it per their prefs.
@@ -909,9 +926,10 @@ export async function createEvent(
 // hasn't been picked yet - see event-form.tsx, which hides those fields
 // once the event is scheduled.
 export async function updateEvent(eventId: string, slug: string, _prev: string | null, formData: FormData): Promise<string | null> {
+  const { t } = await getT()
   const supabase = await supabaseServer()
   const title = String(formData.get('title') ?? '').trim()
-  if (!title) return 'Falta el título.'
+  if (!title) return t('err.title.missing')
 
   const capacityRaw = String(formData.get('capacity') ?? '').trim()
   const deadlineRaw = String(formData.get('confirm_deadline') ?? '').trim()
@@ -935,8 +953,8 @@ export async function updateEvent(eventId: string, slug: string, _prev: string |
   if (formData.has('sched_start_date')) {
     const startDate = String(formData.get('sched_start_date') ?? '')
     const endDate = String(formData.get('sched_end_date') ?? '')
-    if (!startDate || !endDate) return 'Faltan las fechas de búsqueda.'
-    if (endDate < startDate) return 'La fecha final no puede ser antes de la inicial.'
+    if (!startDate || !endDate) return t('err.dates.missing')
+    if (endDate < startDate) return t('err.dates.backwards')
     patch.sched_start_date = startDate
     patch.sched_end_date = endDate
     patch.sched_time_min = Number(formData.get('time_min') ?? 1140)
@@ -945,7 +963,7 @@ export async function updateEvent(eventId: string, slug: string, _prev: string |
   }
 
   const { error } = await supabase.from('events').update(patch).eq('id', eventId)
-  if (error) return 'No se pudo guardar. Inténtalo de nuevo.'
+  if (error) return t('err.save')
   revalidatePath(`/e/${slug}`)
   redirect(`/e/${slug}`)
 }
@@ -1031,7 +1049,7 @@ export async function addExpense(eventId: string, slug: string, formData: FormDa
   const supabase = await supabaseServer()
   const { parseMoneyToCents } = await import('@/lib/money')
   const cents = parseMoneyToCents(String(formData.get('amount') ?? ''))
-  if (!cents) throw new Error('La cantidad no es válida.')
+  if (!cents) throw new Error('invalid amount')
   const participants = formData.getAll('participant').map(String)
   const user_ids = participants.filter((p) => p.startsWith('u:')).map((p) => p.slice(2))
   const guest_ids = participants.filter((p) => p.startsWith('g:')).map((p) => p.slice(2))
@@ -1054,7 +1072,7 @@ export async function updateExpense(id: string, slug: string, formData: FormData
   const { parseMoneyToCents } = await import('@/lib/money')
   const note = String(formData.get('note') ?? '').trim()
   const cents = parseMoneyToCents(String(formData.get('amount') ?? ''))
-  if (!note || !cents) throw new Error('Pon una nota y una cantidad válida.')
+  if (!note || !cents) throw new Error('note or amount missing')
   const { error } = await supabase.from('expenses').update({ note, amount_cents: cents }).eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath(`/e/${slug}`)
@@ -1067,9 +1085,10 @@ export async function updateExpense(id: string, slug: string, formData: FormData
 // Deleting one that has already been settled would rewrite history someone
 // paid against, so that is refused rather than done quietly.
 export async function removeExpense(id: string, slug: string) {
+  const { t } = await getT()
   const supabase = await supabaseServer()
   const { data: exp } = await supabase.from('expenses').select('event_id').eq('id', id).maybeSingle()
-  if (!exp) return { ok: false as const, error: 'Ese gasto ya no existe.' }
+  if (!exp) return { ok: false as const, error: t('err.expense.gone') }
 
   const { count } = await supabase
     .from('settlements')
@@ -1079,12 +1098,12 @@ export async function removeExpense(id: string, slug: string) {
   if (count && count > 0) {
     return {
       ok: false as const,
-      error: 'Ya hay pagos confirmados en este evento. Corrige la cantidad en vez de borrarlo.',
+      error: t('err.expense.paid'),
     }
   }
 
   const { error } = await supabase.from('expenses').delete().eq('id', id)
-  if (error) return { ok: false as const, error: 'No se pudo borrar el gasto.' }
+  if (error) return { ok: false as const, error: t('err.expense.delete') }
   revalidatePath(`/e/${slug}`)
   return { ok: true as const }
 }
@@ -1098,6 +1117,7 @@ export async function recordSettlement(
   method: string | null = null,
   proofPath: string | null = null
 ) {
+  const { t } = await getT()
   const supabase = await supabaseServer()
 
   // The amount and both parties arrived from the browser. RLS proves the
@@ -1115,16 +1135,16 @@ export async function recordSettlement(
       .eq('event_id', eventId)
       .eq('confirmed', false),
   ])
-  if (balErr) return { ok: false as const, error: 'No se pudieron leer los saldos.' }
+  if (balErr) return { ok: false as const, error: t('err.balances.read') }
 
   const owed = suggestTransfers(netOfPending(bal ?? [], pend ?? [])).find(
     (tr) => tr.from.user_id === fromUser && tr.to.user_id === toUser
   )
   if (!owed) {
-    return { ok: false as const, error: 'Ese pago ya no hace falta. Vuelve a abrir el evento para ver los saldos.' }
+    return { ok: false as const, error: t('err.payment.settled') }
   }
   if (!Number.isInteger(amountCents) || amountCents <= 0 || amountCents > owed.amount_cents) {
-    return { ok: false as const, error: 'Esa cantidad no coincide con lo que falta por pagar.' }
+    return { ok: false as const, error: t('err.payment.mismatch') }
   }
 
   // from_user comes from the suggested transfer (the debtor), NOT the caller -
@@ -1141,9 +1161,9 @@ export async function recordSettlement(
   // a second identical pending claim is the same payment submitted twice, and
   // the recipient could confirm both, crediting it twice over
   if (error?.code === '23505') {
-    return { ok: false as const, error: 'Ese pago ya estaba registrado, esperando confirmación.' }
+    return { ok: false as const, error: t('err.payment.dupe') }
   }
-  if (error) return { ok: false as const, error: 'No se pudo registrar el pago.' }
+  if (error) return { ok: false as const, error: t('err.payment.record') }
 
   // "te pagaron" notification: the recipient hears a payment was claimed and
   // needs their confirmation (Account matrix topic: payments).
@@ -1325,7 +1345,7 @@ export async function updateProfile(formData: FormData) {
   } = await supabase.auth.getUser()
   if (!user) throw new Error('not signed in')
   const display_name = String(formData.get('display_name') ?? '').trim()
-  if (!display_name) throw new Error('El nombre no puede quedar vacío.')
+  if (!display_name) throw new Error('empty name')
   const avatar_kind = formData.get('avatar_kind') === 'photo' ? 'photo' : 'bug'
   const avatar_bug = String(formData.get('avatar_bug') ?? 'bug')
   const avatar_color = String(formData.get('avatar_color') ?? '').trim() || null
@@ -1375,6 +1395,7 @@ export async function updateNotifPrefs(formData: FormData) {
 // Sign-in stays email-only, so this is purely a delivery address; it is
 // stored normalized to E.164 because that is what the provider expects.
 export async function startWhatsappVerification(formData: FormData) {
+  const { t } = await getT()
   const supabase = await supabaseServer()
   const {
     data: { user },
@@ -1382,7 +1403,7 @@ export async function startWhatsappVerification(formData: FormData) {
   if (!user) throw new Error('not signed in')
 
   const phone = normalizePhone(String(formData.get('phone') ?? '').trim())
-  if (!phone) return { ok: false as const, error: 'Ese número no parece válido. Usa 10 dígitos, por ejemplo 55 1234 5678.' }
+  if (!phone) return { ok: false as const, error: t('err.phone.tenDigits') }
   return startPhoneChange(user.id, phone)
 }
 
@@ -1418,6 +1439,7 @@ export async function removeWhatsappPhone() {
 }
 
 export async function savePaymentMethods(formData: FormData) {
+  const { t } = await getT()
   const supabase = await supabaseServer()
   const {
     data: { user },
@@ -1440,8 +1462,8 @@ export async function savePaymentMethods(formData: FormData) {
       ok: false as const,
       error:
         error.code === '23514'
-          ? 'Alguna forma de pago tiene un tipo que no reconocemos.'
-          : 'No se pudieron guardar tus formas de pago.',
+          ? t('err.pay.unknownKind')
+          : t('err.pay.save'),
     }
   }
   revalidatePath('/account')
@@ -1466,7 +1488,7 @@ export async function requestAccountDeletion(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) throw new Error('Tu sesión expiró. Vuelve a entrar.')
+  if (!user) throw new Error('not signed in')
 
   const { error } = await supabase.rpc('request_account_deletion')
   if (error) throw new Error(error.message)
@@ -1521,13 +1543,14 @@ function readPoint(formData: FormData, field: string) {
 }
 
 export async function addSavedPlace(formData: FormData) {
+  const { t } = await getT()
   const supabase = await supabaseServer()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) throw new Error('not signed in')
   const { ok, row } = readPlace(formData)
-  if (!ok) return { ok: false as const, error: 'Ponle nombre y dirección: los dos hacen falta para guardarlo.' }
+  if (!ok) return { ok: false as const, error: t('err.place.incomplete') }
   const { error } = await supabase.from('saved_places').insert({ user_id: user.id, ...row })
   if (error) throw new Error(error.message)
   revalidatePath('/account')
@@ -1538,13 +1561,14 @@ export async function addSavedPlace(formData: FormData) {
 // it is wrong: the pin is a street off, or the name changed when the club
 // started calling it something else.
 export async function updateSavedPlace(id: string, formData: FormData) {
+  const { t } = await getT()
   const supabase = await supabaseServer()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) throw new Error('not signed in')
   const { ok, row } = readPlace(formData)
-  if (!ok) return { ok: false as const, error: 'Ponle nombre y dirección: los dos hacen falta para guardarlo.' }
+  if (!ok) return { ok: false as const, error: t('err.place.incomplete') }
   // RLS already scopes this to the owner; the filter says so out loud.
   const { error } = await supabase.from('saved_places').update(row).eq('id', id).eq('user_id', user.id)
   if (error) throw new Error(error.message)
@@ -1653,7 +1677,7 @@ export async function duplicateEvent(eventId: string, extraWeeks = 0) {
     })
     .select('id')
     .single()
-  if (error || !created) throw new Error('No se pudo duplicar el evento.')
+  if (error || !created) throw new Error('duplicate failed')
 
   const { data: items } = await supabase
     .from('contributions')
@@ -1676,7 +1700,7 @@ export async function duplicateEvent(eventId: string, extraWeeks = 0) {
     // copy, so the result is either the whole thing or nothing at all.
     if (itemsError) {
       await supabase.from('events').delete().eq('id', created.id)
-      throw new Error('No se pudo copiar la lista de aportaciones. No se creó el evento.')
+      throw new Error('bring-list copy failed, event not created')
     }
   }
 
@@ -1711,6 +1735,7 @@ export async function duplicateEvent(eventId: string, extraWeeks = 0) {
 // account. Only the email channel resends: a WhatsApp-only invitation has
 // nothing to send to until Meta approves an invitation template.
 export async function resendInvitation(invitationId: string, path: string) {
+  const { t } = await getT()
   const supabase = await supabaseServer()
   const {
     data: { user },
@@ -1722,11 +1747,11 @@ export async function resendInvitation(invitationId: string, path: string) {
     .select('token, email, phone, club_id, event_id, claimed_by_user_id, declined_at')
     .eq('id', invitationId)
     .maybeSingle()
-  if (!inv) throw new Error('No encontramos esa invitación.')
-  if (inv.claimed_by_user_id) return { ok: false as const, error: 'Esa invitación ya se usó.' }
+  if (!inv) throw new Error('invitation not found')
+  if (inv.claimed_by_user_id) return { ok: false as const, error: t('err.invite.used') }
   // they answered. Resending would be asking the same question again.
-  if (inv.declined_at) return { ok: false as const, error: 'Esa persona ya dijo que no puede.' }
-  if (!inv.email && !inv.phone) return { ok: false as const, error: 'Esa invitación no tiene a dónde llegar.' }
+  if (inv.declined_at) return { ok: false as const, error: t('err.invite.declined') }
+  if (!inv.email && !inv.phone) return { ok: false as const, error: t('err.invite.noDestination') }
 
   const [{ data: inviter }, { data: club }, { data: event }] = await Promise.all([
     supabase.from('users').select('display_name').eq('id', user.id).single(),
@@ -1758,7 +1783,7 @@ export async function resendInvitation(invitationId: string, path: string) {
   }
 
   revalidatePath(path)
-  if (!result.ok) return { ok: false as const, error: result.error ?? 'No se pudo reenviar.' }
+  if (!result.ok) return { ok: false as const, error: result.error ?? t('err.invite.resend') }
   return { ok: true as const }
 }
 
@@ -1857,7 +1882,7 @@ export async function requestEventDeletion(eventId: string, slug: string, restor
   } = await supabase.auth.getUser()
   if (!user) throw new Error('not signed in')
   const { data: ev } = await supabase.from('events').select('club_id, title').eq('id', eventId).maybeSingle()
-  if (!ev?.club_id) throw new Error('Ese evento no pertenece a un club.')
+  if (!ev?.club_id) throw new Error('event has no club')
   const { error } = await supabase.from('change_requests').insert({
     club_id: ev.club_id,
     kind: restore ? 'event_restore' : 'event_delete',
@@ -1922,12 +1947,12 @@ export async function rotateClubCalendarToken(clubId: string, clubSlug: string) 
 // photo or be filtered by RLS the way the rest of the app is.
 export async function addEventPhoto(eventId: string, slug: string, formData: FormData) {
   const file = formData.get('file')
-  if (!(file instanceof File)) throw new Error('Falta la imagen.')
+  if (!(file instanceof File)) throw new Error('no image in the form')
   const supabase = await supabaseServer()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) throw new Error('Tu sesión expiró. Vuelve a entrar.')
+  if (!user) throw new Error('not signed in')
 
   const { path } = await uploadToBucket('event-photos', `${eventId}/${user.id}/${Date.now()}.jpg`, file)
   const { error } = await supabase
@@ -1968,7 +1993,7 @@ export async function savePushSubscription(sub: {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) throw new Error('Tu sesión expiró. Vuelve a entrar.')
+  if (!user) throw new Error('not signed in')
   const { error } = await supabase.from('push_subscriptions').upsert(
     {
       user_id: user.id,
@@ -1997,29 +2022,30 @@ export async function removePushSubscription(endpoint: string) {
 // "Send one to this device", from the account screen. The only way to answer
 // "is this actually working" without waiting for somebody to create an event.
 export async function sendTestPush(endpoint: string) {
+  const { t } = await getT()
   const supabase = await supabaseServer()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) throw new Error('Tu sesión expiró. Vuelve a entrar.')
+  if (!user) throw new Error('not signed in')
   const { data: sub } = await supabase
     .from('push_subscriptions')
     .select('endpoint, p256dh, auth')
     .eq('endpoint', endpoint)
     .maybeSingle()
-  if (!sub) return { ok: false as const, error: 'Este dispositivo ya no está registrado.' }
+  if (!sub) return { ok: false as const, error: t('err.push.unregistered') }
 
   const { sendPush } = await import('@/lib/push')
   const result = await sendPush(sub, {
     title: 'Hive',
-    body: 'Listo, así se van a ver los avisos en este dispositivo.',
+    body: t('push.test.body'),
     url: '/account',
     tag: 'test',
   })
   if (result.ok) return { ok: true as const }
   if (result.gone) {
     await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint)
-    return { ok: false as const, error: 'Este navegador ya no acepta avisos. Vuelve a activarlos.' }
+    return { ok: false as const, error: t('err.push.blocked') }
   }
   return { ok: false as const, error: result.error }
 }

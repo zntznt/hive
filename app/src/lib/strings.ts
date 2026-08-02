@@ -406,6 +406,53 @@ export const ES = {
   'account.wa.updated': 'WhatsApp actualizado',
   'account.wa.removed': 'WhatsApp quitado',
 
+  // -- what a server action says when it refuses -----------------------------
+  //
+  // These are RETURNED, never thrown. A thrown message does not survive a
+  // production build: Next replaces it with "An error occurred in the Server
+  // Components render...", so copy written for a member and thrown at them is
+  // copy nobody reads. See the note above the throws in app/actions.ts.
+  'err.session': 'Tu sesión expiró. Vuelve a entrar.',
+  'err.save': 'No se pudo guardar. Inténtalo de nuevo.',
+  'err.name.missing': 'Ponle nombre.',
+  'err.title.missing': 'Falta el título.',
+  'err.fields.missing': 'Faltan campos obligatorios.',
+  'err.dates.missing': 'Faltan las fechas de búsqueda.',
+  'err.dates.backwards': 'La fecha final no puede ser antes de la inicial.',
+  'err.category.dupe': 'Ya existe una categoría con ese nombre.',
+  'err.category.create': 'No se pudo crear la categoría.',
+  'err.proposal.send': 'No se pudo mandar la propuesta.',
+  'err.event.create': 'No se pudo crear el evento. Inténtalo de nuevo.',
+  'err.expense.gone': 'Ese gasto ya no existe.',
+  'err.expense.paid': 'Ya hay pagos confirmados en este evento. Corrige la cantidad en vez de borrarlo.',
+  'err.expense.delete': 'No se pudo borrar el gasto.',
+  'err.balances.read': 'No se pudieron leer los saldos.',
+  'err.payment.settled': 'Ese pago ya no hace falta. Vuelve a abrir el evento para ver los saldos.',
+  'err.payment.mismatch': 'Esa cantidad no coincide con lo que falta por pagar.',
+  'err.payment.dupe': 'Ese pago ya estaba registrado, esperando confirmación.',
+  'err.payment.record': 'No se pudo registrar el pago.',
+  'err.pay.unknownKind': 'Alguna forma de pago tiene un tipo que no reconocemos.',
+  'err.pay.save': 'No se pudieron guardar tus formas de pago.',
+  'err.phone.tenDigits': 'Ese número no parece válido. Usa 10 dígitos, por ejemplo 55 1234 5678.',
+  'err.place.incomplete': 'Ponle nombre y dirección: los dos hacen falta para guardarlo.',
+  'err.invite.used': 'Esa invitación ya se usó.',
+  'err.invite.declined': 'Esa persona ya dijo que no puede.',
+  'err.invite.noDestination': 'Esa invitación no tiene a dónde llegar.',
+  'err.invite.resend': 'No se pudo reenviar.',
+  'err.push.unregistered': 'Este dispositivo ya no está registrado.',
+  'err.push.blocked': 'Este navegador ya no acepta avisos. Vuelve a activarlos.',
+  'push.test.body': 'Listo, así se van a ver los avisos en este dispositivo.',
+
+  // What an admin approved or turned down, spliced into the notification the
+  // member gets. Resolved in the MEMBER's language, not the admin's: they are
+  // different people and this sentence is being read by one of them.
+  'cr.about': 'la descripción del club',
+  'cr.category_add': 'una nueva categoría',
+  'cr.category_edit': 'editar una categoría',
+  'cr.category_delete': 'eliminar una categoría',
+  'cr.banner': 'la portada del club',
+  'cr.member_removal': 'quitar a un miembro',
+
   // -- event extras ---------------------------------------------------------
   'event.rollcall.who': '¿Quién vino?',
   'event.rollcall.tap': 'Toca a quien no llegó.',
@@ -1301,6 +1348,44 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'account.wa.removeHint': 'You stop getting notices on WhatsApp and can no longer sign in with your number. You will still get in with your email.',
   'account.wa.updated': 'WhatsApp updated',
   'account.wa.removed': 'WhatsApp removed',
+
+  'err.session': 'Your session expired. Sign in again.',
+  'err.save': "We couldn't save that. Try again.",
+  'err.name.missing': 'Give it a name.',
+  'err.title.missing': 'The title is missing.',
+  'err.fields.missing': 'Some required fields are missing.',
+  'err.dates.missing': 'The dates to search are missing.',
+  'err.dates.backwards': 'The end date cannot be before the start.',
+  'err.category.dupe': 'A category with that name already exists.',
+  'err.category.create': "We couldn't create the category.",
+  'err.proposal.send': "We couldn't send the proposal.",
+  'err.event.create': "We couldn't create the event. Try again.",
+  'err.expense.gone': 'That expense no longer exists.',
+  'err.expense.paid': 'There are confirmed payments on this event. Correct the amount instead of deleting it.',
+  'err.expense.delete': "We couldn't delete the expense.",
+  'err.balances.read': "We couldn't read the balances.",
+  'err.payment.settled': 'That payment is no longer needed. Open the event again to see the balances.',
+  'err.payment.mismatch': "That amount doesn't match what is left to pay.",
+  'err.payment.dupe': 'That payment was already recorded and is waiting to be confirmed.',
+  'err.payment.record': "We couldn't record the payment.",
+  'err.pay.unknownKind': "One of your payment methods has a type we don't recognise.",
+  'err.pay.save': "We couldn't save your payment methods.",
+  'err.phone.tenDigits': "That number doesn't look right. Use 10 digits, for example 55 1234 5678.",
+  'err.place.incomplete': 'Give it a name and an address: it needs both to be saved.',
+  'err.invite.used': 'That invitation has already been used.',
+  'err.invite.declined': 'That person already said they cannot make it.',
+  'err.invite.noDestination': 'That invitation has nowhere to go.',
+  'err.invite.resend': "We couldn't send it again.",
+  'err.push.unregistered': 'This device is no longer registered.',
+  'err.push.blocked': 'This browser no longer accepts alerts. Turn them back on.',
+  'push.test.body': 'Done, this is how alerts will look on this device.',
+
+  'cr.about': "the club's description",
+  'cr.category_add': 'a new category',
+  'cr.category_edit': 'editing a category',
+  'cr.category_delete': 'deleting a category',
+  'cr.banner': "the club's cover",
+  'cr.member_removal': 'removing a member',
 
   // -- event extras ---------------------------------------------------------
   'event.rollcall.who': 'Who came?',
