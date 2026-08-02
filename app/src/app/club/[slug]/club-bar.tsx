@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { AppBar, type MenuItem } from '@/components/ui/AppBar'
 import { InviteModal } from './invite-modal'
 import { DangerZone } from './danger-zone'
+import { useT, useTf } from '@/components/ui/LangProvider'
 
 // The club's top bar.
 //
@@ -36,29 +37,31 @@ export function ClubBar({
   isLastAdmin: boolean
   pastCount: number
 }) {
+  const tr = useT()
+  const tf = useTf()
   const [inviting, setInviting] = useState(false)
   const [danger, setDanger] = useState<'leave' | 'delete' | null>(null)
 
   const menu: (MenuItem | false)[] = [
-    isManager && { label: 'Nuevo evento', icon: 'plus' as const, href: `/club/${slug}/new-event` },
-    { label: 'Miembros', icon: 'users' as const, href: `/club/${slug}/members` },
+    isManager && { label: tr('clubs.newEvent'), icon: 'plus' as const, href: `/club/${slug}/new-event` },
+    { label: tr('club.members'), icon: 'users' as const, href: `/club/${slug}/members` },
     pastCount > 0 && {
-      label: 'Historial completo',
+      label: tr('club.bar.history'),
       icon: 'clock-rotate-left' as const,
       href: `/events?club=${clubId}&when=past`,
     },
-    { label: 'Salir del club', icon: 'arrow-right-from-bracket' as const, onClick: () => setDanger('leave') },
-    isAdmin && { label: 'Eliminar club', icon: 'trash' as const, danger: true, onClick: () => setDanger('delete') },
+    { label: tr('club.bar.leave'), icon: 'arrow-right-from-bracket' as const, onClick: () => setDanger('leave') },
+    isAdmin && { label: tr('club.bar.delete'), icon: 'trash' as const, danger: true, onClick: () => setDanger('delete') },
   ]
 
   return (
     <>
       <AppBar
         title={clubName}
-        subtitle={`${memberCount} ${memberCount === 1 ? 'miembro' : 'miembros'}`}
+        subtitle={tf(memberCount === 1 ? 'club.members1' : 'club.membersN', { n: memberCount })}
         subtitleHref={`/club/${slug}/members`}
         backHref="/clubs"
-        action={isManager ? { label: 'Invitar', icon: 'user-plus', onClick: () => setInviting(true) } : undefined}
+        action={isManager ? { label: tr('event.invite'), icon: 'user-plus', onClick: () => setInviting(true) } : undefined}
         menu={menu}
       />
       {inviting && (

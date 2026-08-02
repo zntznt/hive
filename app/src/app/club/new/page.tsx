@@ -14,7 +14,7 @@ export default async function NewClubPage() {
       <header className="mb-6 flex items-baseline justify-between">
         <h1 className="font-display text-xl font-bold text-ink-900">{tr('club.new')}</h1>
         <Link href="/" className="tap inline-flex items-center text-sm text-ink-500 underline">
-          inicio
+          {tr('nav.home.lower')}
         </Link>
       </header>
       <Card>
@@ -22,8 +22,7 @@ export default async function NewClubPage() {
           <Input id="name" name="name" label={tr('club.name')} required placeholder={tr('club.name.ph')} />
           <Button block>{tr('club.create')}</Button>
           <p className="text-xs text-ink-500">
-            Serás admin del club. Después podrás crear categorías (juegos, cine…), eventos e
-            invitar gente.
+            {tr('club.new.note')}
           </p>
         </form>
       </Card>

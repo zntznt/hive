@@ -63,7 +63,7 @@ export function RsvpRow({
         {note && <span className="font-normal text-ink-500"> · {note}</span>}
       </span>
       <button onClick={() => setOpen(true)} className="tap flex-shrink-0 text-[12.5px] font-bold text-honey-700">
-        cambiar
+        {tr('common.change.lower')}
       </button>
     </div>
   )

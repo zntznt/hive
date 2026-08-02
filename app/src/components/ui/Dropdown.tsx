@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDownIcon, CheckIcon } from './Icon'
+import { useT } from './LangProvider'
 
 export type DropdownOption = { value: string; label: string }
 
@@ -15,7 +16,7 @@ export function Dropdown({
   value,
   onChange,
   options,
-  placeholder = 'Elige…',
+  placeholder,
   disabled = false,
 }: {
   name?: string
@@ -26,6 +27,7 @@ export function Dropdown({
   placeholder?: string
   disabled?: boolean
 }) {
+  const tr = useT()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -51,7 +53,7 @@ export function Dropdown({
           open ? 'border-honey-500' : 'border-line-input'
         } ${cur && cur.value !== '' ? 'text-ink-900' : 'text-ink-300'} ${disabled ? 'opacity-60' : 'cursor-pointer'}`}
       >
-        <span className="truncate">{cur ? cur.label : placeholder}</span>
+        <span className="truncate">{cur ? cur.label : (placeholder ?? tr('ui.choose'))}</span>
         <ChevronDownIcon className={`flex-shrink-0 text-ink-300 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (

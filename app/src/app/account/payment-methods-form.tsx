@@ -63,7 +63,7 @@ export default function PaymentMethodsForm({ methods }: { methods: PaymentMethod
       // the action returns a refusal rather than throwing, so a failed save
       // must not toast success at someone whose methods did not change
       if (res && !res.ok) setError(res.error)
-      else toast('Listo')
+      else toast(tr('common.saved'))
     } catch (e) {
       setError(e instanceof Error ? e.message : tr('common.notSaved'))
     } finally {
@@ -111,7 +111,7 @@ export default function PaymentMethodsForm({ methods }: { methods: PaymentMethod
           <Icon name="plus" size={10} /> {tr('pay.add')}
         </Button>
         {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
-        {saving && <p className="text-xs text-ink-300">Guardando…</p>}
+        {saving && <p className="text-xs text-ink-300">{tr('common.saving')}</p>}
       </form>
       <p className="mt-2.5 text-xs text-ink-300">
         {tr('pay.note')}

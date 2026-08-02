@@ -89,7 +89,7 @@ export function InstallPwa() {
         <div className="min-w-0 flex-1">
           <p className="font-display text-base font-bold leading-tight text-ink-900">{tr('pwa.title')}</p>
           <p className="mt-1 text-[13px] leading-relaxed text-ink-700">
-            Agrégalo a tu pantalla de inicio y se abre como cualquier otra app, sin buscar el enlace.
+            {tr('pwa.addHint')}
           </p>
         </div>
         <button
@@ -108,7 +108,7 @@ export function InstallPwa() {
           onClick={install}
           className="tap mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-pill bg-honey-500 px-4 text-[13.5px] font-extrabold text-charcoal shadow-lip"
         >
-          Agregar a la pantalla de inicio
+          {tr('pwa.addButton')}
         </button>
       ) : (
         // No button on purpose: iOS has no install API, so the only true thing
@@ -118,13 +118,13 @@ export function InstallPwa() {
             <span className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-sm bg-cream-sunk text-ink-500">
               <Icon name="arrow-up-from-bracket" size={11} />
             </span>
-            Toca Compartir, abajo en Safari.
+            {tr('pwa.step1')}
           </li>
           <li className="flex items-center gap-2.5">
             <span className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-sm bg-cream-sunk text-ink-500">
               <Icon name="square-plus" size={11} />
             </span>
-            Elige &quot;Agregar a inicio&quot;.
+            {tr('pwa.step2')}
           </li>
           <li className="flex items-center gap-2.5">
             {/* The mark, because this step is "look for this on your home
@@ -134,7 +134,7 @@ export function InstallPwa() {
             <span className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-sm bg-cream-sunk text-ink-500">
               <BrandMark size={12} tone="inherit" showWordmark={false} />
             </span>
-            Ábrelo desde ahí y ya está.
+            {tr('pwa.step3')}
           </li>
         </ol>
       )}

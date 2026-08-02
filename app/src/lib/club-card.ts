@@ -55,13 +55,18 @@ export function clubNext(events: CardEvent[], now: Date = new Date()): CardEvent
 }
 
 // The footer, and with it the whole card's weight.
-export function clubFooter(events: CardEvent[], lastActivity: string | null, now: Date = new Date()): ClubFooter {
+export function clubFooter(
+  events: CardEvent[],
+  lastActivity: string | null,
+  now: Date = new Date(),
+  lang: Lang = 'es'
+): ClubFooter {
   const next = clubNext(events, now)
   if (!next) return { kind: 'quiet', since: lastActivity }
   if (next.chosen_start && sameDayInMexico(next.chosen_start, now)) {
     // On the day the address is the answer, so the time shrinks to a window
     // beside the category rather than taking a pill of its own.
-    return { kind: 'today', event: next, window: fmtSpan(next.chosen_start, next.chosen_end) }
+    return { kind: 'today', event: next, window: fmtSpan(next.chosen_start, next.chosen_end, lang) }
   }
   return { kind: 'next', event: next }
 }

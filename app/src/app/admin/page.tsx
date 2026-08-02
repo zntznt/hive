@@ -14,14 +14,17 @@ import { TemplateRow, TemplateSyncBar } from './template-row'
 import OutboxLog, { type OutboxRow } from './outbox-log'
 import { AppBar } from '@/components/ui/AppBar'
 import { getT } from '@/lib/current-lang'
+import type { StringKey } from '@/lib/lang'
 
 // The account states, in Spanish. The badge printed the database enum, so an
 // admin read "active" and "disabled" on a screen where everything else is
 // Spanish. The outbox log next to it already had exactly this map.
-const STATUS_LABEL: Record<string, string> = {
-  active: 'con acceso',
-  disabled: 'sin acceso',
-  pending: 'sin verificar',
+// Keys, not copy: a module-level const freezes whichever language loaded the
+// module first, which is trap three. Resolved at render below.
+const STATUS_LABEL: Record<string, StringKey> = {
+  active: 'admin.access.yes',
+  disabled: 'admin.access.no',
+  pending: 'account.wa.unverified',
 }
 
 // The platform panel: accounts and delivery, and nothing else.
@@ -93,7 +96,7 @@ export default async function AdminPage() {
         row.destination ??
         (row.channel === 'push' ? u?.display_name : row.channel === 'whatsapp' ? u?.phone_whatsapp : u?.email) ??
         u?.display_name ??
-        'sin destinatario',
+        tr('admin.noRecipient'),
     }
   }) as OutboxRow[]
 
@@ -134,10 +137,10 @@ export default async function AdminPage() {
         {loudUser ? (
           <div className="mb-[26px]">
             <Loud
-              title={`${loudUser.display_name} espera verificación`}
+              title={tf('admin.awaitingVerification', { name: loudUser.display_name })}
               body={
                 <>
-                  Se registró {timeAgo(loudUser.created_at ?? '', lang)} como {loudUser.email ?? loudUser.phone_whatsapp}.{' '}
+                  {tf('admin.signedUpAs', { ago: timeAgo(loudUser.created_at ?? '', lang), contact: loudUser.email ?? loudUser.phone_whatsapp ?? '' })}{' '}
                   {(loudClubs ?? []).length === 0 ? tr('admin.noClubYet') : tr('admin.alreadyClub')}
                 </>
               }
@@ -146,7 +149,7 @@ export default async function AdminPage() {
               <div className="grid grid-cols-2 gap-2">
                 <form action={setUserStatus.bind(null, loudUser.id, 'active')}>
                   <Button block display>
-                    Verificar
+                    {tr('common.verify')}
                   </Button>
                 </form>
                 {/* Declining disables the account rather than deleting it: the
@@ -155,7 +158,7 @@ export default async function AdminPage() {
                     not. */}
                 <form action={setUserStatus.bind(null, loudUser.id, 'disabled')}>
                   <Button block variant="secondary">
-                    Rechazar
+                    {tr('settle.reject')}
                   </Button>
                 </form>
               </div>
@@ -182,7 +185,7 @@ export default async function AdminPage() {
                 <FaceStack people={restUsers.slice(0, 4) as unknown as AvatarUser[]} size={20} max={4} />
                 <span className="text-[12.5px] text-ink-300">
                   {users.length}
-                  {disabled > 0 && ` · ${disabled} sin acceso`}
+                  {disabled > 0 && tf('admin.noAccessN', { n: disabled })}
                 </span>
               </span>
             }
@@ -205,7 +208,7 @@ export default async function AdminPage() {
                     {u.display_name}
                     <span className="text-ink-300">{u.email ?? u.phone_whatsapp}</span>
                     <Badge tone={u.status === 'active' ? 'active' : 'disabled'}>
-                      {STATUS_LABEL[u.status] ?? u.status}
+                      {STATUS_LABEL[u.status] ? tr(STATUS_LABEL[u.status]) : u.status}
                     </Badge>
                     {u.is_app_admin && <Badge tone="admin">admin</Badge>}
                   </span>
@@ -222,7 +225,7 @@ export default async function AdminPage() {
                       )}
                       <form action={toggleAppAdmin.bind(null, u.id, !u.is_app_admin)}>
                         <button className="tap text-xs font-bold text-ink-500">
-                          {u.is_app_admin ? 'quitar admin' : 'hacer admin'}
+                          {u.is_app_admin ? tr('admin.removeAdmin') : tr('admin.makeAdmin')}
                         </button>
                       </form>
                     </span>
@@ -240,17 +243,17 @@ export default async function AdminPage() {
             tone={counts.failed > 0 ? 'hot' : undefined}
             summary={
               <span className={`text-[12.5px] ${counts.failed > 0 ? 'font-bold text-danger' : 'text-ink-300'}`}>
-                {counts.queued} en cola, {counts.failed} {counts.failed === 1 ? 'fallo' : 'fallos'}
+                {tf(counts.failed === 1 ? 'admin.queued1' : 'admin.queuedN', { n: counts.queued, f: counts.failed })}
               </span>
             }
           >
             <p className="text-sm text-ink-700">
-              en cola {counts.queued} · esperando confirmación {counts.pending} · enviados {counts.sent} · registrados{' '}
-              {counts.logged} ·{' '}
-              <span className={counts.failed ? 'font-bold text-danger' : ''}>fallos {counts.failed}</span>
+              {tf('admin.outboxQueued', { n: counts.queued })} · {tf('admin.outboxPending', { n: counts.pending })} ·{' '}
+              {tf('admin.outboxSent', { n: counts.sent })} · {tf('admin.outboxLogged', { n: counts.logged })} ·{' '}
+              <span className={counts.failed ? 'font-bold text-danger' : ''}>{tf('admin.outboxFailed', { n: counts.failed })}</span>
             </p>
             <p className="mb-2 text-[11.5px] text-ink-300">
-              Los totales son de toda la bandeja. Abajo, los 40 más recientes.
+              {tr('admin.totalsNote')}
             </p>
             <OutboxLog rows={outboxRows} />
           </CollapsibleSection>
@@ -262,7 +265,7 @@ export default async function AdminPage() {
             summary={
               <span className={`text-[12.5px] ${rejected > 0 ? 'font-bold text-danger' : 'text-ink-300'}`}>
                 {rejected > 0
-                  ? `${rejected} ${rejected === 1 ? 'rechazada' : 'rechazadas'} en Meta`
+                  ? tf(rejected === 1 ? 'admin.rejected1' : 'admin.rejectedN', { n: rejected })
                   : `${templateKeys.length}`}
               </span>
             }

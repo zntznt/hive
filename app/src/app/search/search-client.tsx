@@ -7,7 +7,7 @@ import { HexAvatar } from '@/components/ui/HexAvatar'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Icon } from '@/components/ui/Icon'
-import { useT } from '@/components/ui/LangProvider'
+import { useT, useTf } from '@/components/ui/LangProvider'
 
 export type SearchClub = { slug: string; name: string; members: number; upcoming: number }
 export type SearchEvent = { slug: string; title: string; club: string; when: string; place: string | null }
@@ -29,6 +29,7 @@ export default function SearchClient({
   people: SearchPerson[]
 }) {
   const tr = useT()
+  const tf = useTf()
   const [q, setQ] = useState('')
   const ref = useRef<HTMLInputElement>(null)
   const router = useRouter()
@@ -87,7 +88,7 @@ export default function SearchClient({
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Busca eventos, clubs, personas"
+            placeholder={tr('common.search')}
             className="flex-1 border-none bg-transparent text-sm text-ink-900 outline-none"
           />
           {q && (
@@ -109,19 +110,19 @@ export default function SearchClient({
           onClick={() => router.back()}
           className="inline-flex min-h-11 items-center px-1 text-[13.5px] font-bold text-ink-700"
         >
-          Cancelar
+          {tr('common.cancel')}
         </button>
       </div>
 
       {!term && (
         <>
-          <SectionHeader>Ir a</SectionHeader>
+          <SectionHeader>{tr('search.goTo')}</SectionHeader>
           <div className="mb-[26px] flex flex-wrap gap-2">
             {[
-              ['Dinero pendiente', '/events?owed=true'],
-              ['Tu historial', `/events?person=${myId}&when=past`],
-              ['Esta semana', '/events?when=upcoming'],
-              ['Eventos pasados', '/events?when=past'],
+              [tr('search.owed'), '/events?owed=true'],
+              [tr('search.history'), `/events?person=${myId}&when=past`],
+              [tr('search.thisWeek'), '/events?when=upcoming'],
+              [tr('search.past'), '/events?when=past'],
             ].map(([label, href]) => (
               <Link
                 key={label}
@@ -145,7 +146,7 @@ export default function SearchClient({
                 href={`/club/${c.slug}`}
                 avatar={<HexAvatar name={c.name} size={32} />}
                 title={c.name}
-                sub={`${c.members} ${c.members === 1 ? 'miembro' : 'miembros'} · ${c.upcoming} ${
+                sub={`${tf(c.members === 1 ? 'club.members1' : 'club.membersN', { n: c.members })} · ${c.upcoming} ${
                   c.upcoming === 1 ? tr('search.upcomingCountOne') : tr('search.upcomingCount')
                 }`}
               />
@@ -156,7 +157,7 @@ export default function SearchClient({
 
       {found.events.length > 0 && (
         <>
-          <SectionHeader>Eventos · {found.events.length}</SectionHeader>
+          <SectionHeader>{tf('search.eventsN', { n: found.events.length })}</SectionHeader>
           <div className="mb-[26px] flex flex-col gap-2">
             {found.events.map((e) => (
               <Row
@@ -173,7 +174,7 @@ export default function SearchClient({
 
       {found.people.length > 0 && (
         <>
-          <SectionHeader>Personas · {found.people.length}</SectionHeader>
+          <SectionHeader>{tf('search.peopleN', { n: found.people.length })}</SectionHeader>
           <div className="mb-[26px] flex flex-col gap-2">
             {found.people.map((p) => (
               <Row
@@ -181,7 +182,7 @@ export default function SearchClient({
                 href={`/events?person=${p.id}`}
                 avatar={<UserAvatar user={p.user} size={32} />}
                 title={p.name}
-                sub={`${p.shared} ${p.shared === 1 ? 'evento juntos' : 'eventos juntos'}`}
+                sub={tf(p.shared === 1 ? 'search.together1' : 'search.togetherN', { n: p.shared })}
               />
             ))}
           </div>
@@ -190,7 +191,7 @@ export default function SearchClient({
 
       {nothing && (
         <p className="rounded-lg bg-cream-sunk px-[18px] py-[22px] text-center text-[13.5px] text-ink-500">
-          Nada con «{q.trim()}».
+          {tf('search.nothingFor', { q: q.trim() })}
         </p>
       )}
     </main>

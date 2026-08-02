@@ -68,9 +68,10 @@ export function DuplicatePrompt({
   weeks: string[]
 }) {
   const tr = useT()
+  const tf = useTf()
   const [confirming, setConfirming] = useState(false)
 
-  const keeps = [place, items > 0 ? `${items} ${items === 1 ? 'cosa que traer' : 'cosas que traer'}` : null]
+  const keeps = [place, items > 0 ? tf(items === 1 ? 'event.bringThings1' : 'event.bringThingsN', { n: items }) : null]
     .filter(Boolean)
     .join(' · ')
 
@@ -85,8 +86,7 @@ export function DuplicatePrompt({
       <div className="min-w-0 flex-1">
         <h2 className="font-display text-lg font-bold leading-tight text-ink-900">{tr('event.again')}</h2>
         <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-700">
-          La misma noche, una semana después.{keeps ? ` Se queda con ${keeps}.` : ''} Vas a ver exactamente qué se
-          lleva antes de que se cree nada.
+          {tf('event.againNote', { keeps: keeps ? ` ${tf('event.keeps', { what: keeps })}` : '' })}
         </p>
         {/* Opens the contract rather than creating anything. The button that
             tells an entire club about a new event is not a button you press by

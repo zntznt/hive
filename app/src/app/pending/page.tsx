@@ -6,9 +6,10 @@ import { BugAvatar } from '@/components/ui/BugAvatar'
 import { BeeLoader } from '@/components/ui/BeeLoader'
 import NudgeAdmins from './nudge-admins'
 import { getT } from '@/lib/current-lang'
+import { nameList } from '@/lib/event-line'
 
 export default async function PendingPage() {
-  const { t: tr } = await getT()
+  const { t: tr, tf, lang } = await getT()
   const supabase = await supabaseServer()
   const { data: claimsData } = await supabase.auth.getClaims()
   const uid = claimsData?.claims?.sub
@@ -61,13 +62,15 @@ export default async function PendingPage() {
           <>
             <p className="mt-2 text-sm text-ink-500">
               {names.length === 1
-                ? `${names[0]} revisa las cuentas nuevas.`
+                ? tf('pending.reviewer1', { name: names[0] })
                 : names.length > 1
-                  ? `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]} revisan las cuentas nuevas.`
-                  : 'Quien administra revisa las cuentas nuevas.'}
+                  ? tf('pending.reviewers', { names: nameList(names, names.length, lang) })
+                  : tr('pending.reviewerAny')}{' '}
               {ahead != null && ahead > 0
-                ? ` Hay ${ahead} ${ahead === 1 ? 'persona' : 'personas'} antes que tú.`
-                : ' Eres quien sigue.'}
+                ? ahead === 1
+                  ? tr('pending.ahead1')
+                  : tf('pending.aheadN', { n: ahead })
+                : tr('pending.youreNext')}
             </p>
             <div className="mb-5.5 mt-5">
               <BeeLoader label={tr('pending.buzz')} />

@@ -1,3 +1,5 @@
+import { t, type Lang } from './lang'
+import { fmtDateTime } from './time'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { queueNotification } from './notify'
 import { siteUrl } from './site-url'
@@ -13,17 +15,17 @@ import { siteUrl } from './site-url'
 // answered "quizás" is deliberately left alone: they engaged, and nagging a
 // maybe is how a useful nudge turns into noise people mute.
 
-function whenText(iso: string | null) {
-  if (!iso) return 'pronto'
-  return new Intl.DateTimeFormat('es-MX', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-    timeZone: 'America/Mexico_City',
-  }).format(new Date(iso))
+// `fmtDateTime`'s job, not a third copy of it: this built its own formatter
+// with 'es-MX' and the timezone written out again.
+//
+// The language stays Spanish here rather than following a reader, and that is
+// the same open problem as the `?? 'tu club'` fallbacks: this string becomes a
+// {when} variable in a nudge that fans out to every member at once, so a value
+// computed once at queue time cannot be right for all of them. The fix belongs
+// in notify.ts, resolving variables per recipient.
+function whenText(iso: string | null, lang: Lang = 'es') {
+  if (!iso) return t(lang, 'nudge.soon')
+  return fmtDateTime(iso, lang)
 }
 
 // Returns how many members were queued. Safe to call repeatedly: one nudge per

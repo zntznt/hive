@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { Modal } from '@/components/ui/Modal'
-import { useT } from '@/components/ui/LangProvider'
+import { useT, useTf } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { duplicateEvent } from '@/app/actions'
@@ -81,6 +81,7 @@ export function DuplicateModal({
   onClose: () => void
 }) {
   const tr = useT()
+  const tf = useTf()
   const [extraWeeks, setExtraWeeks] = useState(0)
   const [picking, setPicking] = useState(false)
   const [pending, startTransition] = useTransition()
@@ -91,8 +92,8 @@ export function DuplicateModal({
     { icon: 'minus', text: tr('dup.availability') },
     { icon: 'minus', text: tr('dup.contribs') },
     { icon: 'minus', text: tr('dup.guests') },
-    { icon: 'minus', text: 'Gastos y balances' },
-    { icon: 'minus', text: 'Las encuestas' },
+    { icon: 'minus', text: tr('dup.expenses') },
+    { icon: 'minus', text: tr('dup.polls') },
   ]
 
   function create() {
@@ -120,7 +121,7 @@ export function DuplicateModal({
             {tr('common.cancel')}
           </Button>
           <Button disabled={pending} onClick={create}>
-            {pending ? 'Creando…' : 'Crearlo'}
+            {pending ? tr('club.creating') : tr('dup.createIt')}
           </Button>
         </>
       }
@@ -131,8 +132,7 @@ export function DuplicateModal({
             <p className="mb-1 text-[11.5px] font-extrabold uppercase tracking-[.06em] text-honey-800">{tr('event.dup.newDate')}</p>
             <div className="flex items-start justify-between gap-2.5">
               <p className="min-w-0 text-sm leading-relaxed text-ink-700">
-                Va a buscar fecha la semana del{' '}
-                <b className="text-ink-900">{weekLabel(weeks[extraWeeks] ?? weeks[0])}</b>, a la misma hora.
+                {tf('dup.weekOf', { date: weekLabel(weeks[extraWeeks] ?? weeks[0]) })}
               </p>
               {weeks.length > 1 && (
                 <button
@@ -142,7 +142,7 @@ export function DuplicateModal({
                   aria-expanded={picking}
                   className="tap -my-2.5 -mx-1 inline-flex min-h-11 flex-shrink-0 items-center px-1 text-[12.5px] font-bold text-honey-700"
                 >
-                  {picking ? 'Listo' : 'Cambiar'}
+                  {tr(picking ? 'common.done' : 'common.changeIt')}
                 </button>
               )}
             </div>
@@ -191,7 +191,6 @@ export function DuplicateModal({
           </span>
           <span>
             {tr('dup.notice')}
-            aviso no se puede retirar.
           </span>
         </div>
 

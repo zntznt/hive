@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from './Button'
 import { Icon } from './Icon'
-import { useT } from '@/components/ui/LangProvider'
+import { useT, useTf } from '@/components/ui/LangProvider'
 
 // The app's ONE 6-digit code input.
 //
@@ -58,7 +58,7 @@ export function CodeEntryStep({
   surface = 'dark',
   compact = false,
   onBack,
-  backLabel = 'Cambiar',
+  backLabel,
   onResend,
 }: {
   value: string
@@ -77,6 +77,7 @@ export function CodeEntryStep({
   onResend?: () => void
 }) {
   const tr = useT()
+  const tf = useTf()
   const c = SKIN[surface]
   const digits = value.slice(0, 6).split('')
   const focusAt = digits.length
@@ -105,6 +106,7 @@ export function CodeEntryStep({
     return () => clearInterval(id)
   }, [sentAt, done])
   const expiry = left == null ? null : `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`
+  const sentTo = tr('ui.code.sentTo').split('{to}')
 
   const boxH = compact ? 'h-11' : 'h-14'
   const digitSize = compact ? 'text-xl' : 'text-2xl'
@@ -123,17 +125,21 @@ export function CodeEntryStep({
 
       <p className={`text-[13.5px] leading-relaxed ${c.mute}`}>
         {done ? (
-          'Entrando…'
-        ) : (
+          tr('ui.code.entering')
+        ) : to ? (
           <>
-            Te mandamos 6 dígitos{to ? <> a <b className={c.text}>{to}</b></> : null}. Escríbelos aquí.
+            {sentTo[0]}
+            <b className={c.text}>{to}</b>
+            {sentTo[1]}
           </>
+        ) : (
+          tr('ui.code.sent')
         )}
       </p>
 
       {done ? (
         <div className="mt-4 flex items-center gap-2.5 text-sm font-bold text-honey-500">
-          <Icon name="circle-check" size={20} /> Código aceptado
+          <Icon name="circle-check" size={20} /> {tr('ui.code.accepted')}
         </div>
       ) : (
         <div className={`relative ${compact ? 'mt-3' : 'mt-4'}`}>
@@ -189,7 +195,7 @@ export function CodeEntryStep({
             <span className={`mt-0.5 ${c.mute}`}>
               <Icon name="clock" size={12} />
             </span>
-            <span className={c.mute}>{left === 0 ? tr('ui.code.expired') : `Vence en ${expiry}.`}</span>
+            <span className={c.mute}>{left === 0 ? tr('ui.code.expired') : tf('ui.code.expiresIn', { left: expiry })}</span>
           </>
         ) : null}
       </div>
@@ -198,7 +204,7 @@ export function CodeEntryStep({
       {onResend && !done && (
         <div className="mt-3">
           <Button block display={!compact} size={compact ? 'md' : 'lg'} variant="secondary" onClick={onResend}>
-            Mandar otro código
+            {tr('ui.code.resend')}
           </Button>
         </div>
       )}

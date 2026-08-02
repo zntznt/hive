@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
-import { useT } from '@/components/ui/LangProvider'
+import { useT, useTf } from '@/components/ui/LangProvider'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { useToast } from '@/components/ui/Toast'
 import { addCoOrganizer } from '@/app/actions'
@@ -13,6 +13,7 @@ type Candidate = { user_id: string; user: AvatarUser }
 
 export function CoOrganizerButton({ eventId, slug, candidates }: { eventId: string; slug: string; candidates: Candidate[] }) {
   const tr = useT()
+  const tf = useTf()
   const [open, setOpen] = useState(false)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
@@ -22,7 +23,7 @@ export function CoOrganizerButton({ eventId, slug, candidates }: { eventId: stri
     startTransition(async () => {
       await addCoOrganizer(eventId, slug, userId)
       setOpen(false)
-      toast(`${name} ya puede co-organizar. Le avisamos por correo.`)
+      toast(tf('event.coorgAdded', { name }))
       router.refresh()
     })
   }
@@ -30,7 +31,7 @@ export function CoOrganizerButton({ eventId, slug, candidates }: { eventId: stri
   return (
     <>
       <button onClick={() => setOpen(true)} className="tap text-[12.5px] font-bold text-honey-700">
-        <Icon name="plus" size={10} /> Co-organizador
+        <Icon name="plus" size={10} /> {tr('event.coorganizer')}
       </button>
       {open && (
         <Modal open onClose={() => setOpen(false)} title={tr('event.coorg.add')} subtitle={tr('event.coorg.can')}>

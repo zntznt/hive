@@ -47,7 +47,7 @@ export default function DangerZone() {
         footer={
           <>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-              Mantener mi cuenta
+              {tr('account.keep')}
             </Button>
             <Button
               type="submit"
@@ -61,9 +61,7 @@ export default function DangerZone() {
         }
       >
         <p className="text-sm leading-relaxed text-ink-700">
-          Vas a cerrar sesión y no vas a poder volver a entrar. Tu nombre va a aparecer como
-          &quot;cuenta eliminada&quot; en eventos pasados, y cualquier dinero que debas o te deban
-          no se salda solo, liquídalo antes.
+          {tr('account.deleteWarn')}
         </p>
         <form id="delete-account-form" action={requestAccountDeletion} className="mt-3.5">
           <Input

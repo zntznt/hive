@@ -4,6 +4,7 @@ import { supabaseService } from './supabase/service'
 import { supabaseServer } from './supabase/server'
 import { sendWhatsapp } from './whatsapp'
 import { sendEmail } from './email'
+import { getT } from './current-lang'
 
 // Sign in with a code, on either channel.
 //
@@ -32,12 +33,19 @@ const isEmail = (v: string) => v.includes('@')
 // Deliberately plain. A sign-in code is read in two seconds from a
 // notification shade, so the only job here is to make the digits the largest
 // thing in the message and let the rest get out of the way.
-function signinEmailHtml(code: string) {
+//
+// This is the one message the app renders itself rather than reading out of
+// notification_templates, because it is sent before there is anything to
+// queue. It followed neither table until now: an English member got an
+// English screen, typed their address, and was sent a Spanish email about it.
+// Migration 0053 added an English `signin_code` template that this path never
+// reads, so the row is the record and these three keys are the copy.
+function signinEmailHtml(code: string, lead: string, foot: string) {
   return `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:420px;margin:0 auto;padding:24px;color:#231a12">
-  <p style="font-size:15px;line-height:1.5;margin:0 0 18px">Tu código para entrar a Hive:</p>
+  <p style="font-size:15px;line-height:1.5;margin:0 0 18px">${lead}</p>
   <p style="font-size:34px;font-weight:800;letter-spacing:.22em;margin:0 0 18px;color:#231a12">${code}</p>
   <p style="font-size:13.5px;line-height:1.6;color:#6b5b4b;margin:0">
-    Vence en 10 minutos y solo sirve una vez. Si no lo pediste, ignora este correo y no pasa nada.
+    ${foot}
   </p>
 </div>`
 }
@@ -63,8 +71,15 @@ export type CodeRequest = { ok: true } | { ok: false; error: string }
 // unauthenticated, so a distinguishable answer turns it into a way to test
 // which phone numbers hold an account.
 export async function requestSigninCode(contact: string): Promise<CodeRequest> {
+  // Resolved here rather than taken as a parameter: this runs inside a server
+  // action, getT() is cached for the request, and every caller would otherwise
+  // have to thread a language it does not care about. The message answers
+  // something somebody just did in a browser, so it follows THAT browser
+  // rather than the account's stored preference: a Spanish screen and an
+  // English code email is the same half-noticing this set out to fix.
+  const { t, tf } = await getT()
   const db = supabaseService()
-  if (!db) return { ok: false, error: 'El inicio de sesión no está configurado.' }
+  if (!db) return { ok: false, error: t('auth.notConfigured') }
   const email = isEmail(contact)
 
   // The throttle is taken BEFORE the account lookup, and keyed by number
@@ -100,7 +115,7 @@ export async function requestSigninCode(contact: string): Promise<CodeRequest> {
     attempts: 0,
     created_at: new Date().toISOString(),
   })
-  if (saveErr) return { ok: false, error: 'No pudimos generar el código. Intenta de nuevo.' }
+  if (saveErr) return { ok: false, error: t('auth.codeFailed') }
 
   // Record the attempt before trying to deliver it. Twice now a send has
   // vanished leaving nothing behind, because the row was only written after
@@ -125,7 +140,7 @@ export async function requestSigninCode(contact: string): Promise<CodeRequest> {
   // errors is worth failing loudly for.
   if (logErr) {
     await db.from('signin_codes').delete().eq('user_id', user.id)
-    return { ok: false, error: 'No pudimos registrar el envío. Intenta con tu correo.' }
+    return { ok: false, error: t('auth.logFailed') }
   }
 
   // Delivery is three sequential calls to Zernio, seconds each, and putting
@@ -133,6 +148,14 @@ export async function requestSigninCode(contact: string): Promise<CodeRequest> {
   // someone else's outage. The code is already saved, so the form can move to
   // the entry step now and the message can catch up. Whether it arrived is
   // answered by the outbox, not by how long we made them wait.
+  // Resolved before `after`, because the request's headers are gone by the
+  // time this runs and getT() would fall back to Spanish for everybody.
+  const mail = {
+    subject: tf('mail.signin.subject', { code }),
+    lead: t('mail.signin.lead'),
+    foot: t('mail.signin.foot'),
+  }
+
   after(async () => {
     try {
     const sent = email
@@ -141,8 +164,8 @@ export async function requestSigninCode(contact: string): Promise<CodeRequest> {
           // The code is in the subject as well as the body, so it is readable
           // from the notification without opening anything, which is the one
           // thing the magic link could never do.
-          subject: `Tu código para entrar a Hive: ${code}`,
-          html: signinEmailHtml(code),
+          subject: mail.subject,
+          html: signinEmailHtml(code, mail.lead, mail.foot),
         })
       : await sendWhatsapp({
           to: contact,
@@ -180,7 +203,7 @@ export async function requestSigninCode(contact: string): Promise<CodeRequest> {
     } catch (e) {
       // Nothing is listening by now, so an uncaught throw here is how the
       // last two attempts disappeared. Leave the reason on the row instead.
-      const reason = e instanceof Error ? e.message : 'error desconocido al enviar'
+      const reason = e instanceof Error ? e.message : 'unknown send error'
       if (logged) {
         await db.from('notification_outbox').update({ status: 'failed', error: reason }).eq('id', logged.id)
       }
@@ -197,8 +220,9 @@ export type CodeVerify = { ok: true; next: string } | { ok: false; error: string
 // burn an attempt so a six digit code cannot be guessed at leisure, and the
 // row is deleted the moment it succeeds so a code is usable exactly once.
 export async function verifySigninCode(contact: string, code: string, next?: string | null): Promise<CodeVerify> {
+  const { t } = await getT()
   const db = supabaseService()
-  if (!db) return { ok: false, error: 'El inicio de sesión no está configurado.' }
+  if (!db) return { ok: false, error: t('auth.notConfigured') }
 
   const { data: user } = await db
     .from('users')
@@ -208,7 +232,7 @@ export async function verifySigninCode(contact: string, code: string, next?: str
     .maybeSingle()
   // Same wording for "no account", "no code" and "wrong code": a distinct
   // message for each would let someone map which numbers are registered.
-  const wrong = { ok: false as const, error: 'Ese código no es correcto o ya venció. Pide uno nuevo.' }
+  const wrong = { ok: false as const, error: t('auth.badCode') }
   if (!user?.email) return wrong
 
   const { data: row } = await db
@@ -246,11 +270,11 @@ export async function verifySigninCode(contact: string, code: string, next?: str
     email: user.email,
   })
   const tokenHash = link?.properties?.hashed_token
-  if (linkErr || !tokenHash) return { ok: false, error: 'No pudimos abrir tu sesión. Intenta con tu correo.' }
+  if (linkErr || !tokenHash) return { ok: false, error: t('auth.sessionFailed') }
 
   const supabase = await supabaseServer()
   const { error: otpErr } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'magiclink' })
-  if (otpErr) return { ok: false, error: 'No pudimos abrir tu sesión. Intenta con tu correo.' }
+  if (otpErr) return { ok: false, error: t('auth.sessionFailed') }
 
   return { ok: true, next: safeNext(next) ?? '/' }
 }

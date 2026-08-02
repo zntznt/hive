@@ -3,7 +3,7 @@ export async function sendEmail({ to, subject, html }: { to: string; subject: st
   const apiKey = process.env.RESEND_API_KEY
   const from = process.env.EMAIL_FROM || 'Hive <hola@hive.app>'
   if (!apiKey) {
-    return { ok: false as const, skipped: true as const, error: 'RESEND_API_KEY no está configurado' }
+    return { ok: false as const, skipped: true as const, error: 'RESEND_API_KEY is not configured' }
   }
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',

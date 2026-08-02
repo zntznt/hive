@@ -53,11 +53,11 @@ export function AppBar({
     >
       <div className="mx-auto box-border flex w-full max-w-[460px] items-center gap-1 px-1.5 py-1">
         {backHref ? (
-          <Link href={backHref} aria-label="Volver" className={hit}>
+          <Link href={backHref} aria-label={tr('common.back')} className={hit}>
             <Icon name="chevron-left" size={17} />
           </Link>
         ) : (
-          <button type="button" onClick={() => router.back()} aria-label="Volver" className={hit}>
+          <button type="button" onClick={() => router.back()} aria-label={tr('common.back')} className={hit}>
             <Icon name="chevron-left" size={17} />
           </button>
         )}

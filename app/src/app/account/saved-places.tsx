@@ -105,7 +105,7 @@ export function SavedPlaces({ places }: { places: Place[] }) {
                   onClick={() => startEdit(p)}
                   className="tap text-[12.5px] font-bold text-honey-700"
                 >
-                  Editar
+                  {tr('common.edit')}
                 </button>
                 <form action={removeSavedPlace.bind(null, p.id)}>
                   <button className="tap text-[12.5px] font-bold text-ink-500">{tr('common.remove')}</button>
@@ -143,7 +143,7 @@ export function SavedPlaces({ places }: { places: Place[] }) {
           </Button>
           {target && (
             <button type="button" onClick={reset} className="tap text-[12.5px] font-bold text-ink-500">
-              Cancelar
+              {tr('common.cancel')}
             </button>
           )}
           {!complete && !pending && (

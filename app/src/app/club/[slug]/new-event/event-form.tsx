@@ -122,6 +122,7 @@ function Extra({
   onRemove: () => void
   children: React.ReactNode
 }) {
+  const t = useT()
   if (!added) {
     return (
       <button
@@ -144,7 +145,7 @@ function Extra({
         <Icon name={icon} size={15} className="flex-shrink-0 text-honey-700" />
         <span className="min-w-0 flex-1 text-[13.5px] font-bold text-ink-900">{title}</span>
         <button type="button" onClick={onRemove} className="tap flex-shrink-0 text-[12.5px] font-bold text-ink-500">
-          Quitar
+          {t('common.remove')}
         </button>
       </div>
       {children}
@@ -287,7 +288,7 @@ export default function EventForm({
               disabled={addingCat || !newName.trim()}
               onClick={addCategory}
             >
-              {addingCat ? 'Creando…' : 'Crear'}
+              {t(addingCat ? 'club.creating' : 'common.create')}
             </Button>
           </div>
         )}
@@ -342,8 +343,8 @@ export default function EventForm({
               label={t('form.grain')}
               defaultValue={initial?.sched_slot_minutes ?? 60}
               options={[
-                { value: 30, label: 'Cada 30 min', note: t('form.grain.fine') },
-                { value: 60, label: 'Cada hora', note: t('form.grain.hint') },
+                { value: 30, label: t('form.every30'), note: t('form.grain.fine') },
+                { value: 60, label: t('form.everyHour'), note: t('form.grain.hint') },
               ]}
             />
           </div>
@@ -416,7 +417,7 @@ export default function EventForm({
             defaultValue={toDatetimeLocal(initial?.confirm_deadline ?? null)}
           />
           <p className="mt-1.5 text-xs text-ink-300">
-            Un recordatorio, uno solo. Nadie pierde su lugar ni se cierra nada.
+            {t('form.reminderNote')}
           </p>
         </Extra>
 
@@ -438,12 +439,12 @@ export default function EventForm({
           club, and t('form.create') was hiding that. */}
       <Button block display size="lg" disabled={pending || !title.trim()}>
         {pending
-          ? 'Guardando…'
+          ? t('common.saving')
           : edit
-            ? 'Guardar cambios'
+            ? t('form.saveChanges')
             : showSchedWindow
               ? t('form.createAndAsk')
-              : 'Crear evento'}
+              : t('form.create')}
       </Button>
       {!title.trim() && <p className="-mt-2 text-center text-xs text-ink-300">{t('form.title.missing')}</p>}
     </form>

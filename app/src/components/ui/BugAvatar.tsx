@@ -82,7 +82,7 @@ export function BugAvatarPicker({
               key={b}
               type="button"
               onClick={() => onChange({ bug: b, color })}
-              aria-label={`bicho ${b}`}
+              aria-label={`bug ${b}`}
               aria-pressed={on}
               className={`grid aspect-square min-w-0 place-items-center rounded-md p-1.5 ${
                 on ? 'border-[1.5px] border-honey-500 bg-honey-100' : 'border-[1.5px] border-transparent bg-cream-sunk'
@@ -105,7 +105,7 @@ export function BugAvatarPicker({
               key={c}
               type="button"
               onClick={() => onChange({ bug, color: c })}
-              aria-label={`color ${c}`}
+              aria-label={`colour ${c}`}
               aria-pressed={on}
               className="grid h-11 w-full min-w-0 place-items-center rounded-full p-0"
             >

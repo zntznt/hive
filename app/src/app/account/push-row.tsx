@@ -196,7 +196,7 @@ export function PushRow({
     if (!endpoint) return
     startTransition(async () => {
       const res = await sendTestPush(endpoint)
-      if (res.ok) toast('Va en camino.')
+      if (res.ok) toast(tr('push.onTheWay'))
       else setError(res.error)
     })
   }
@@ -245,10 +245,10 @@ export function PushRow({
         {state === 'granted' ? (
           <span className="flex flex-shrink-0 gap-2">
             <button type="button" onClick={test} disabled={pending} className={pill}>
-              {pending ? 'Enviando…' : 'Probar'}
+              {pending ? tr('common.sending') : 'Probar'}
             </button>
             <button type="button" onClick={disable} disabled={busy} className={pill}>
-              Apagar
+              {tr('common.off')}
             </button>
           </span>
         ) : state === 'default' ? (
@@ -265,8 +265,7 @@ export function PushRow({
           <>{tr('push.what')}</>
         ) : state === 'install' ? (
           <>
-            En iPhone hay que agregar Hive a la pantalla de inicio antes de poder activar los avisos. Toca Compartir y
-            luego &quot;Agregar a inicio&quot;.
+            {tr('push.iosHint')}
           </>
         ) : state === 'denied' ? (
           <>{tr('push.blocked.help')}</>
@@ -295,7 +294,7 @@ export function PushRow({
 
       {otherDevices.length > 0 && (
         <p className="mt-2 text-[11.5px] text-ink-300">
-          También activado en: {otherDevices.map((d) => d.label ?? 'otro dispositivo').join(', ')}.
+          También activado en: {otherDevices.map((d) => d.label ?? tr('account.device.other')).join(', ')}.
         </p>
       )}
 

@@ -106,7 +106,7 @@ export default async function ClubMembersPage({ params }: { params: Promise<{ sl
                 <span className="flex min-w-0 items-center gap-2.5">
                   <HexAvatar name={inv.email ?? inv.phone ?? '?'} size={28} />
                   <span className="min-w-0 truncate text-ink-500">{inv.email ?? inv.phone}</span>
-                  {inv.declined_at ? <Badge tone="disabled">{tr('club.join.no')}</Badge> : <Badge>invitado</Badge>}
+                  {inv.declined_at ? <Badge tone="disabled">{tr('club.join.no')}</Badge> : <Badge>{tr('role.guest')}</Badge>}
                 </span>
                 <form action={revokeInvitation.bind(null, inv.id, `/club/${slug}/members`)} className="flex-shrink-0">
                   <button className="tap text-[12.5px] font-bold text-ink-500">{tr('club.revoke')}</button>
@@ -127,7 +127,7 @@ export default async function ClubMembersPage({ params }: { params: Promise<{ sl
               className="mt-2.5 flex flex-wrap items-center gap-2 text-sm"
             >
               <label htmlFor="join_mode" className="text-ink-700">
-                Quién puede pedir entrar con el enlace
+                {tr('club.members.whoCanAsk')}
               </label>
               <select
                 id="join_mode"

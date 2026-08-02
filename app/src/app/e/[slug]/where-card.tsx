@@ -97,7 +97,7 @@ export function WhereCard({
         <span className="text-sm text-ink-300">{tr('event.noPlaceYet2')}</span>
         {canEdit && (
           <Link href={editHref} className="tap text-[12.5px] font-bold text-honey-700">
-            Poner un lugar
+            {tr('where.setPlace')}
           </Link>
         )}
       </div>
@@ -159,7 +159,7 @@ export function WhereCard({
                 exists to remove. */}
             <span className="text-[15px] font-bold text-on-dark">{area ?? location}</span>
             <span className="text-xs text-on-dark-mute">
-              {area ? `${location}${span ? ` · hoy ${span}` : ''}` : span ? `hoy ${span}` : ''}
+              {area ? `${location}${span ? ` · ${tf('where.today', { span })}` : ''}` : span ? tf('where.today', { span }) : ''}
             </span>
           </span>
         </div>

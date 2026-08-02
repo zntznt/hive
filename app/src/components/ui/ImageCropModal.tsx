@@ -24,7 +24,7 @@ export function ImageCropModal({
   src,
   aspect = 1,
   shape = 'rect',
-  title = 'Encuadra tu foto',
+  title,
   subtitle,
   outWidth = 640,
   onCancel,
@@ -33,7 +33,7 @@ export function ImageCropModal({
   src: string | null
   aspect?: number
   shape?: 'rect' | 'hex'
-  title?: string
+  title: string
   subtitle?: string
   outWidth?: number
   onCancel: () => void
@@ -177,10 +177,10 @@ export function ImageCropModal({
       footer={
         <>
           <Button variant="ghost" onClick={onCancel}>
-            Cancelar
+            {tr('common.cancel')}
           </Button>
           <Button disabled={!img} onClick={apply}>
-            Usar foto
+            {tr('crop.usePhoto')}
           </Button>
         </>
       }

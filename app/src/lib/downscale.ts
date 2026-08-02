@@ -1,3 +1,4 @@
+import type { StringKey } from './lang'
 // Shrink a picked image before it is uploaded.
 //
 // Avatars and banners go through ImageCropModal, which redraws the picture on
@@ -37,11 +38,13 @@ function approxBytes(dataUrl: string) {
   return Math.floor((body.length * 3) / 4) - padding
 }
 
-export async function downscaleToDataUrl(file: File): Promise<string> {
+// Takes the translator: this runs in the browser and throws messages the
+// caller shows, and a plain function cannot call a hook.
+export async function downscaleToDataUrl(file: File, t: (k: StringKey) => string): Promise<string> {
   const raw = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => resolve(reader.result as string)
-    reader.onerror = () => reject(new Error('No pudimos leer esa imagen.'))
+    reader.onerror = () => reject(new Error(t('err.image.read')))
     reader.readAsDataURL(file)
   })
 
@@ -50,7 +53,7 @@ export async function downscaleToDataUrl(file: File): Promise<string> {
     el.onload = () => resolve(el)
     // A format the browser cannot decode (HEIC on desktop, mostly) lands here.
     // Saying so beats uploading it and letting storage answer in English.
-    el.onerror = () => reject(new Error('No pudimos abrir esa imagen. Prueba con una captura JPG o PNG.'))
+    el.onerror = () => reject(new Error(t('err.image.open')))
     el.src = raw
   })
 

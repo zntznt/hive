@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
-import { useT } from '@/components/ui/LangProvider'
+import { useT, useTf } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
 import { Input, Checkbox } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
@@ -12,6 +12,7 @@ import { Icon } from '@/components/ui/Icon'
 
 export function AddPollButton({ eventId, slug }: { eventId: string; slug: string }) {
   const tr = useT()
+  const tf = useTf()
   const [open, setOpen] = useState(false)
   const [question, setQuestion] = useState('')
   const [options, setOptions] = useState(['', '', '', ''])
@@ -70,7 +71,7 @@ export function AddPollButton({ eventId, slug }: { eventId: string; slug: string
                   key={i}
                   value={o}
                   onChange={(e) => setOptions((os) => os.map((x, j) => (j === i ? e.target.value : x)))}
-                  placeholder={`Opción ${i + 1}${i >= 2 ? ' (opcional)' : ''}`}
+                  placeholder={`${tf('poll.optionN', { n: i + 1 })}${i >= 2 ? tr('poll.optional') : ''}`}
                 />
               ))}
             </div>

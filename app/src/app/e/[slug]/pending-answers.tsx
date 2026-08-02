@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { FaceStack } from '@/components/ui/FaceStack'
 import { Button } from '@/components/ui/Button'
-import { useT } from '@/components/ui/LangProvider'
+import { useT, useTf } from '@/components/ui/LangProvider'
 import { remindNonResponders } from '@/app/actions'
 
 // The people who have not answered, by name, with the one move that helps.
@@ -30,6 +30,7 @@ export function PendingAnswers({
   canRemind: boolean
 }) {
   const tr = useT()
+  const tf = useTf()
   const [sent, setSent] = useState(false)
   const [pending, startTransition] = useTransition()
 
@@ -37,11 +38,11 @@ export function PendingAnswers({
 
   return (
     <section className="mb-[26px]">
-      <p className="eyebrow mb-2.5">Falta que respondan</p>
+      <p className="eyebrow mb-2.5">{tr('event.pendingAnswers')}</p>
       <div className="flex flex-col gap-2.5 rounded-lg border border-line-card bg-paper p-3.5">
         <div className="flex items-center gap-2.5">
           <span className="min-w-0 flex-1 font-display text-[17px] font-bold text-ink-900">
-            {people.length === 1 ? '1 no ha contestado' : `${people.length} no han contestado`}
+            {people.length === 1 ? tr('event.notAnswered1') : tf('event.notAnsweredN', { n: people.length })}
           </span>
           <FaceStack people={people.map((p) => p.user)} total={people.length} size={25} max={5} />
         </div>
@@ -77,7 +78,7 @@ export function PendingAnswers({
                 })
               }
             >
-              {pending ? 'Mandando…' : 'Recordarles'}
+              {tr(pending ? 'grid.sending' : 'grid.remindAll')}
             </Button>
           ))}
       </div>

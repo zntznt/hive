@@ -54,7 +54,7 @@ export function AboutEditor({
     startTransition(async () => {
       await updateClubAbout(clubId, slug, fd)
       setOpen(false)
-      toast(isAdmin ? 'Acerca de actualizado.' : tr('club.about.sent'))
+      toast(isAdmin ? tr('club.aboutUpdated') : tr('club.about.sent'))
       router.refresh()
     })
   }
@@ -73,10 +73,10 @@ export function AboutEditor({
           footer={
             <>
               <Button variant="ghost" onClick={() => setOpen(false)}>
-                Cancelar
+                {tr('common.cancel')}
               </Button>
               <Button disabled={pending} onClick={submit}>
-                {isAdmin ? 'Guardar' : tr('club.about.submit')}
+                {tr(isAdmin ? 'common.save' : 'club.about.submit')}
               </Button>
             </>
           }
@@ -102,7 +102,7 @@ export function AboutEditor({
                 ))}
                 {rows.length < 4 && (
                   <button onClick={addLink} className="tap self-start text-[12.5px] font-bold text-honey-700">
-                    <Icon name="plus" size={10} /> Añadir enlace
+                    <Icon name="plus" size={10} /> {tr('club.addLink')}
                   </button>
                 )}
               </div>

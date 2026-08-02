@@ -18,9 +18,9 @@ import { MarkDoneButton } from './mark-done-modal'
 import SnoozeButton from './snooze-button'
 
 export default async function PlatePage() {
-  const { t: tr } = await getT()
+  const { t: tr, tf, lang } = await getT()
   const { supabase, profile } = await requireProfile()
-  const { t, tf } = await getT()
+  const t = tr
   const board = await getPlateItems(supabase, profile.id)
   const total = plateCount(board)
 
@@ -93,7 +93,7 @@ export default async function PlatePage() {
                   <p className="mt-0.5 truncate text-[12.5px] text-ink-500">
                     {loudDebt.eventTitle}
                     {' · '}
-                    <span className="font-bold text-danger">{ageLabel(ageInDays(loudDebt.heldAt))}</span>
+                    <span className="font-bold text-danger">{ageLabel(ageInDays(loudDebt.heldAt), lang)}</span>
                   </p>
                 </div>
               </div>
@@ -128,17 +128,18 @@ export default async function PlatePage() {
                     ? tr('event.markAvailability')
                     : loudest.asks === 'rsvp'
                       ? tr('plate.rsvp')
-                      : (loudest.pollLabel ?? 'Falta tu voto')
+                      : (loudest.pollLabel ?? tr('plate.voteMissing'))
                 }
                 body={
                   <>
-                    {loudest.eventTitle}
-                    {loudest.clubName ? `, con ${loudest.clubName}` : ''}.{' '}
+                    {loudest.clubName
+                      ? tf('plate.withClub', { event: loudest.eventTitle, club: loudest.clubName })
+                      : tf('plate.atEvent', { event: loudest.eventTitle })}{' '}
                     {loudest.asks === 'availability'
                       ? tr('plate.needsAll')
                       : loudest.asks === 'rsvp'
                         ? tr('plate.rsvpWhy')
-                        : 'La encuesta sigue abierta.'}
+                        : tr('plate.pollOpen')}
                   </>
                 }
               >
@@ -153,7 +154,7 @@ export default async function PlatePage() {
                   ) : (
                     <Link href={`/e/${loudest.eventSlug}`} className="block flex-1">
                       <Button block display>
-                        {loudest.asks === 'availability' ? 'Marcar mi disponibilidad' : 'Responder'}
+                        {tr(loudest.asks === 'availability' ? 'event.markAvailability' : 'plate.answer')}
                       </Button>
                     </Link>
                   )}
@@ -191,7 +192,7 @@ export default async function PlatePage() {
                         ? tr('plate.markWhen')
                         : item.asks === 'rsvp'
                           ? tr('plate.rsvp')
-                          : (item.pollLabel ?? 'Falta tu voto')
+                          : (item.pollLabel ?? tr('plate.voteMissing'))
                     }
                     eventTitle={item.eventTitle}
                     eventHref={`/e/${item.eventSlug}`}
@@ -228,7 +229,7 @@ export default async function PlatePage() {
                     title={tf('plate.put', { name: item.toName, amount: fmtMoney(item.amountCents) })}
                     eventTitle={item.eventTitle}
                     eventHref={`/e/${item.eventSlug}`}
-                    note={ageLabel(ageInDays(item.heldAt)) ?? item.clubName ?? undefined}
+                    note={ageLabel(ageInDays(item.heldAt), lang) ?? item.clubName ?? undefined}
                     action={
                       <SettleUpFlow
                         eventId={item.eventId}
@@ -239,7 +240,7 @@ export default async function PlatePage() {
                         amountCents={item.amountCents}
                         toPaymentMethods={methodsFor(item.toUserId)}
                       >
-                        Pagar
+                        {tr('plate.payAction')}
                       </SettleUpFlow>
                     }
                   />
@@ -320,7 +321,7 @@ export default async function PlatePage() {
           <SectionHeader
             action={<span className="text-[12.5px] text-ink-300">{board.toConfirm.length + owedToMe.length}</span>}
           >
-            Te deben
+            {tr('plate.owedToYou')}
           </SectionHeader>
           <div className="flex flex-col gap-2">
             {board.toConfirm.map((item) => (
@@ -328,7 +329,7 @@ export default async function PlatePage() {
                 key={item.settlementId}
                 icon="receipt"
                 tone="honey"
-                title={`${item.fromName} te pagó ${fmtMoney(item.amountCents)}`}
+                title={tf('plate.paidYou', { name: item.fromName, amount: fmtMoney(item.amountCents) })}
                 eventTitle={item.eventTitle}
                 eventHref={`/e/${item.eventSlug}`}
                 note={item.clubName ?? undefined}
@@ -357,10 +358,10 @@ export default async function PlatePage() {
                 >
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-bold text-ink-900">
-                      {s.name} te debe {fmtMoney(s.netCents)}
+                      {tf('plate.owesYou', { name: s.name, amount: fmtMoney(s.netCents) })}
                     </span>
                     <span className="text-[12px] text-ink-300">
-                      {s.events} {s.events === 1 ? 'evento' : 'eventos'}
+                      {tf(s.events === 1 ? 'plate.events1' : 'plate.eventsN', { n: s.events })}
                     </span>
                   </span>
                   <Icon name="chevron-right" size={10} className="flex-shrink-0 text-ink-300" />

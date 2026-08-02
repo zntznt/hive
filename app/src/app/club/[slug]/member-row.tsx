@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
-import { useT, useLang } from '@/components/ui/LangProvider'
+import { useLang, useT, useTf } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
 import { updateMemberRole, removeMember, requestMemberRemoval } from '@/app/actions'
 import { timeAgo } from '@/lib/relative-time'
@@ -47,6 +47,7 @@ export function MemberRow({
 }) {
   const lang = useLang()
   const tr = useT()
+  const tf = useTf()
   const name = user.display_name
   const [pending, startTransition] = useTransition()
   const [confirmRemove, setConfirmRemove] = useState(false)
@@ -95,7 +96,7 @@ export function MemberRow({
                 <button
                   type="button"
                   onClick={() => setExplaining((v) => !v)}
-                  aria-label={`${eventsAttended} ev. · cómo se cuenta`}
+                  aria-label={tf('club.member.attended', { n: eventsAttended })}
                   aria-expanded={explaining}
                   className="-my-[13px] inline-flex min-h-11 items-center px-1 font-inherit text-inherit"
                 >
@@ -121,18 +122,18 @@ export function MemberRow({
           {isAdmin ? (
             <>
               <select
-                aria-label={`Rol de ${name}`}
+                aria-label={tf('club.member.role', { name })}
                 value={role}
                 disabled={pending}
                 onChange={(e) => changeRole(e.target.value as Role)}
                 className="rounded-md border-[1.5px] border-line-input bg-paper px-1.5 py-1 text-xs font-bold text-ink-700"
               >
-                <option value="member">miembro</option>
-                <option value="organizer">organizador</option>
+                <option value="member">{tr('role.member')}</option>
+                <option value="organizer">{tr('role.organizer')}</option>
                 <option value="admin">admin</option>
               </select>
               <button onClick={() => setConfirmRemove(true)} className="tap text-[12.5px] font-bold text-danger">
-                Quitar
+                {tr('common.remove')}
               </button>
             </>
           ) : /* only plain members: approve_change_request refuses a removal
@@ -149,7 +150,7 @@ export function MemberRow({
               }
               className="tap text-[12.5px] font-bold text-ink-500 disabled:opacity-50"
             >
-              {requestedRemoval ? 'Solicitud enviada' : tr('club.roster.remove')}
+              {requestedRemoval ? tr('club.requestSent') : tr('club.roster.remove')}
             </button>
           ) : null}
         </span>
@@ -158,11 +159,11 @@ export function MemberRow({
         <Modal
           open
           onClose={() => setConfirmRemove(false)}
-          title={`¿Quitar a ${name}?`}
+          title={tf('club.member.remove?', { name })}
           footer={
             <>
               <Button variant="ghost" onClick={() => setConfirmRemove(false)}>
-                Cancelar
+                {tr('common.cancel')}
               </Button>
               <Button
                 variant="danger"
@@ -174,13 +175,13 @@ export function MemberRow({
                   })
                 }
               >
-                Quitar
+                {tr('common.remove')}
               </Button>
             </>
           }
         >
           <p className="text-sm leading-relaxed text-ink-700">
-            Pierde acceso al club y a sus eventos. Su historial de asistencia y gastos se queda en el registro.
+            {tr('club.member.removeNote')}
           </p>
         </Modal>
       )}

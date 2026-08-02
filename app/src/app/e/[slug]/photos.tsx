@@ -8,7 +8,7 @@ import { dataUrlToBlob } from '@/lib/upload'
 import { useToast } from '@/components/ui/Toast'
 import { Icon } from '@/components/ui/Icon'
 import { Modal } from '@/components/ui/Modal'
-import { useT, useLang } from '@/components/ui/LangProvider'
+import { useLang, useT, useTf } from '@/components/ui/LangProvider'
 import { UserAvatar, type AvatarUser } from '@/components/ui/Avatar'
 import { timeAgo } from '@/lib/relative-time'
 
@@ -48,6 +48,7 @@ export default function Photos({
 }) {
   const lang = useLang()
   const tr = useT()
+  const tf = useTf()
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [open, setOpen] = useState<number | null>(null)
@@ -65,12 +66,12 @@ export default function Photos({
         for (const f of files) {
           // same treatment as the payment proof: a photo off a phone camera is
           // three to five megabytes and the bucket stops at two
-          const blob = await dataUrlToBlob(await downscaleToDataUrl(f))
+          const blob = await dataUrlToBlob(await downscaleToDataUrl(f, tr))
           const fd = new FormData()
           fd.set('file', new File([blob], 'foto.jpg', { type: 'image/jpeg' }))
           await addEventPhoto(eventId, slug, fd)
         }
-        toast(files.length === 1 ? 'Foto agregada.' : `${files.length} fotos agregadas.`)
+        toast(files.length === 1 ? tr('photos.added1') : tf('photos.addedN', { n: files.length }))
         router.refresh()
       } catch (err) {
         setError(err instanceof Error ? err.message : tr('photos.uploadFailed'))
@@ -83,7 +84,7 @@ export default function Photos({
       try {
         await removeEventPhoto(id, slug)
         setOpen(null)
-        toast('Foto quitada.')
+        toast(tr('photos.removed'))
         router.refresh()
       } catch (err) {
         setError(err instanceof Error ? err.message : tr('photos.removeFailed'))
@@ -122,10 +123,10 @@ export default function Photos({
             type="button"
             onClick={() => setOpen(i)}
             className="tap aspect-square overflow-hidden rounded-md border border-line-card bg-cream-sunk"
-            aria-label={`Foto de ${p.by}`}
+            aria-label={tf('photos.by', { name: p.by })}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p.url} alt={`Foto de ${p.by}`} className="h-full w-full object-cover" loading="lazy" />
+            <img src={p.url} alt={tf('photos.by', { name: p.by })} className="h-full w-full object-cover" loading="lazy" />
           </button>
         ))}
 
@@ -136,7 +137,7 @@ export default function Photos({
             className="tap flex aspect-square flex-col items-center justify-center gap-0.5 rounded-md border border-line-card bg-cream-sunk"
           >
             <span className="font-display text-[17px] font-bold text-ink-900">+{overflow}</span>
-            <span className="text-[11.5px] font-bold text-ink-500">Ver todas</span>
+            <span className="text-[11.5px] font-bold text-ink-500">{tr('common.seeAllF')}</span>
           </button>
         )}
       </div>
@@ -162,7 +163,7 @@ export default function Photos({
                   <button
                     type="button"
                     onClick={() => setOpen((o) => ((o ?? 0) - 1 + photos.length) % photos.length)}
-                    aria-label="Anterior"
+                    aria-label={tr('event.prev')}
                     className="tap grid h-11 w-11 place-items-center rounded-pill border-[1.5px] border-line-card bg-paper text-ink-700"
                   >
                     <Icon name="chevron-left" size={12} />
@@ -170,7 +171,7 @@ export default function Photos({
                   <button
                     type="button"
                     onClick={() => setOpen((o) => ((o ?? 0) + 1) % photos.length)}
-                    aria-label="Siguiente"
+                    aria-label={tr('event.next')}
                     className="tap grid h-11 w-11 place-items-center rounded-pill border-[1.5px] border-line-card bg-paper text-ink-700"
                   >
                     <Icon name="chevron-right" size={12} />
@@ -185,7 +186,7 @@ export default function Photos({
                   onClick={() => remove(shown.id)}
                   className="tap inline-flex min-h-11 items-center rounded-pill border-[1.5px] border-danger-bg bg-paper px-4 text-[12.5px] font-bold text-danger"
                 >
-                  {pending ? 'Quitando…' : 'Quitar'}
+                  {tr(pending ? 'photos.removing' : 'common.remove')}
                 </button>
               )}
             </>
@@ -193,10 +194,10 @@ export default function Photos({
         >
           <div className="flex flex-col gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={shown.url} alt={`Foto de ${shown.by}`} className="max-h-[60vh] w-full rounded-md object-contain" />
+            <img src={shown.url} alt={tf('photos.by', { name: shown.by })} className="max-h-[60vh] w-full rounded-md object-contain" />
             <span className="flex items-center gap-2.5 text-[12.5px] text-ink-500">
               <UserAvatar user={shown.byUser} size={24} />
-              La subió {shown.by} · {timeAgo(shown.at, lang)}
+              {tf('photos.uploadedBy', { name: shown.by, ago: timeAgo(shown.at, lang) })}
             </span>
           </div>
         </Modal>

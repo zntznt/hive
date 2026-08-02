@@ -14,7 +14,7 @@ export default function ResendButton({ invitationId, path }: { invitationId: str
   const [sent, setSent] = useState(false)
   const [pending, startTransition] = useTransition()
 
-  if (sent) return <span className="flex-shrink-0 text-[12.5px] font-bold text-ink-300">reenviada</span>
+  if (sent) return <span className="flex-shrink-0 text-[12.5px] font-bold text-ink-300">{tr('inv.resentShort')}</span>
 
   return (
     <button
@@ -33,7 +33,7 @@ export default function ResendButton({ invitationId, path }: { invitationId: str
       }
       className="tap flex-shrink-0 rounded-md border-[1.5px] border-honey-500 px-2.5 py-1 text-xs font-bold text-honey-700 disabled:opacity-50"
     >
-      {pending ? 'Enviando…' : 'Reenviar'}
+      {pending ? tr('common.sending') : tr('signin.resend')}
     </button>
   )
 }

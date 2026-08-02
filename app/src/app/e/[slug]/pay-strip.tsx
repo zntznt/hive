@@ -4,7 +4,7 @@ import { useToast } from '@/components/ui/Toast'
 import { PAYMENT_METHOD_KEYS } from '@/lib/payment-method-labels'
 import { MyPaymentDetailsButton } from './my-payment-details'
 import type { PaymentMethod } from '@/app/account/payment-methods-form'
-import { useT } from '@/components/ui/LangProvider'
+import { useT, useTf } from '@/components/ui/LangProvider'
 
 // The sunk "how to actually pay them" strip under the settle list: the
 // recipient's first saved method with one-tap copy, plus a shortcut to edit
@@ -21,12 +21,13 @@ export function PayStrip({
   myMethods: PaymentMethod[]
 }) {
   const tr = useT()
+  const tf = useTf()
   const toast = useToast()
 
   return (
     <div className="mb-2 flex items-center justify-between gap-2 rounded-md bg-cream-sunk px-[13px] py-[11px] text-[12.5px]">
       <span className="min-w-0 truncate text-ink-500">
-        Págale a {toName} · <b className="text-ink-700">{(PAYMENT_METHOD_KEYS[methodKind] ? tr(PAYMENT_METHOD_KEYS[methodKind]) : methodKind)}</b> {methodValue}
+        {tf('pay.payTo', { name: toName })} <b className="text-ink-700">{(PAYMENT_METHOD_KEYS[methodKind] ? tr(PAYMENT_METHOD_KEYS[methodKind]) : methodKind)}</b> {methodValue}
       </span>
       <span className="flex flex-shrink-0 items-center gap-3">
         <button
@@ -34,11 +35,11 @@ export function PayStrip({
             try {
               navigator.clipboard.writeText(methodValue)
             } catch {}
-            toast('Datos de pago copiados')
+            toast(tr('pay.copied'))
           }}
           className="tap text-[12.5px] font-bold text-honey-700"
         >
-          copiar
+          {tr('common.copy.lower')}
         </button>
         <MyPaymentDetailsButton methods={myMethods} />
       </span>

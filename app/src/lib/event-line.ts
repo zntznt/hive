@@ -19,14 +19,15 @@ export type MyRsvp = 'in' | 'out' | 'maybe' | null
 // word that starts with an i sound, so it is "Ana e Inés", never "Ana y
 // Inés". Hi- counts (Hilda), but hie- does not (hierro keeps "y"), because
 // there the i is not the sound doing the work.
-export function nameList(names: string[], max = 3): string {
+export function nameList(names: string[], max = 3, lang: Lang = 'es'): string {
   const clean = names.filter(Boolean)
   if (clean.length === 0) return ''
   if (clean.length === 1) return clean[0]
 
   const shown = clean.length > max ? clean.slice(0, max) : clean.slice(0, -1)
-  const last = clean.length > max ? `${clean.length - max} más` : clean[clean.length - 1]
-  const conj = /^[iíIÍ]|^[hH][iíIÍ](?![eE])/.test(last) ? 'e' : 'y'
+  const last = clean.length > max ? format(lang, 'list.more', { n: clean.length - max }) : clean[clean.length - 1]
+  // The y/e alternation is Spanish grammar, so it only applies in Spanish.
+  const conj = lang === 'en' ? 'and' : /^[iíIÍ]|^[hH][iíIÍ](?![eE])/.test(last) ? 'e' : 'y'
   return `${shown.join(', ')} ${conj} ${last}`
 }
 

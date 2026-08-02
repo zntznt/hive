@@ -51,17 +51,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
   const { token } = await params
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !key) return new Response('No disponible', { status: 503 })
+  if (!url || !key) return new Response('Not available', { status: 503 })
 
   const anon = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
   const { data, error } = await anon.rpc('get_club_calendar', { cal_token: token })
-  if (error) return new Response('No encontrado', { status: 404 })
+  if (error) return new Response('Not found', { status: 404 })
 
   const rows = (data ?? []) as Row[]
   // An empty feed and a wrong token are the same 404 on purpose: a subscriber
   // holding a rotated link should be told the link is dead, not handed an
   // empty calendar that looks like the club stopped meeting.
-  if (rows.length === 0) return new Response('No encontrado', { status: 404 })
+  if (rows.length === 0) return new Response('Not found', { status: 404 })
 
   const clubName = rows[0].club_name
   const lines: (string | null)[] = [

@@ -44,7 +44,7 @@ export function CreateClubButton() {
           footer={
             <>
               <Button variant="ghost" onClick={() => setOpen(false)}>
-                Cancelar
+                {tr('common.cancel')}
               </Button>
               <Button disabled={pending || !name.trim()} onClick={submit}>
                 {pending ? tr('club.creating') : tr('club.create')}

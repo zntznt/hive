@@ -52,7 +52,7 @@ export default async function ClubPage({
   searchParams: Promise<{ cat?: string }>
 }) {
   const { supabase, profile } = await requireProfile()
-  const { t , lang } = await getT()
+  const { t, tf, lang } = await getT()
   const { slug } = await params
   const { cat } = await searchParams
 
@@ -262,7 +262,7 @@ export default async function ClubPage({
         <p className="mb-[26px]">
           <Link href={`/club/${slug}/new-event`} className="block">
             <Button display block size="lg" icon={<Icon name="plus" size={12} />}>
-              Nuevo evento
+              {t('clubs.newEvent')}
             </Button>
           </Link>
         </p>
@@ -270,10 +270,10 @@ export default async function ClubPage({
 
       <section className="mb-[26px]">
         <SectionHeader action={upcoming.length > 0 ? <span className="text-[12.5px] text-ink-300">{upcoming.length}</span> : null}>
-          Próximos
+          {t('events.filter.upcoming')}
         </SectionHeader>
         {upcoming.length === 0 ? (
-          <EmptyState icon="calendar-days" title={t('club.emptyCategory')} hint={isManager ? 'Empieza algo.' : 'Vuelve pronto.'} />
+          <EmptyState icon="calendar-days" title={t('club.emptyCategory')} hint={t(isManager ? 'club.startSomething' : 'club.comeBack')} />
         ) : (
           <div className="flex flex-col gap-2">
             {/* Rule 9. Today is a card; a week out is a row. Five upcoming
@@ -302,7 +302,7 @@ export default async function ClubPage({
         <>
           <SectionHeader
           >
-            Esperando a los admins · {(changeReqs ?? []).length}
+            {tf('club.waitingAdmins', { n: (changeReqs ?? []).length })}
           </SectionHeader>
           <div className="mb-6 flex flex-col gap-2">
             {(changeReqs ?? []).map((r) => {
@@ -326,7 +326,7 @@ export default async function ClubPage({
                     </span>
                     {isAdmin ? null : (
                       <span className="flex flex-shrink-0 items-center gap-1.5 rounded-pill bg-honey-100 px-[11px] py-[5px] text-[11px] font-bold text-honey-800">
-                        pendiente
+                        {t('status.pending')}
                       </span>
                     )}
                   </div>
@@ -355,7 +355,7 @@ export default async function ClubPage({
         <div className="mb-[26px]">
           <SummaryRow
             icon="clipboard"
-            label={`${(joinReqs ?? []).length} ${(joinReqs ?? []).length === 1 ? 'persona quiere entrar' : 'personas quieren entrar'}`}
+            label={tf((joinReqs ?? []).length === 1 ? 'club.wantIn1' : 'club.wantInN', { n: (joinReqs ?? []).length })}
             meta={t('club.underReview')}
             tone="hot"
             faces={(joinReqs ?? []).map((r) => (r.users as unknown as AvatarUser | null) ?? { display_name: '·' })}
@@ -368,7 +368,7 @@ export default async function ClubPage({
         <>
           <SectionHeader
           >
-            Solicitudes para unirse · {(joinReqs ?? []).length}
+            {tf('club.joinRequests', { n: (joinReqs ?? []).length })}
           </SectionHeader>
           <div className="mb-6 flex flex-col gap-2">
             {(joinReqs ?? []).map((r) => {
@@ -390,7 +390,7 @@ export default async function ClubPage({
                     </span>
                   ) : (
                     <span className="flex flex-shrink-0 items-center gap-1.5 rounded-pill bg-honey-100 px-[11px] py-[5px] text-[11px] font-bold text-honey-800">
-                      pendiente
+                      {t('status.pending')}
                     </span>
                   )}
                 </Card>
@@ -406,11 +406,11 @@ export default async function ClubPage({
           <SectionHeader
             action={
               <Link href={`/events?club=${club.id}&owed=true`} className="inline-flex items-center gap-1 tap text-[12.5px] font-bold text-honey-700">
-                Ver eventos <Icon name="chevron-right" size={10} />
+                {t('club.seeEvents')} <Icon name="chevron-right" size={10} />
               </Link>
             }
           >
-            Dinero pendiente
+            {t('search.owed')}
           </SectionHeader>
           <div className="overflow-hidden rounded-lg border border-line-card bg-paper">
             {owedByMember.map((o, i) => (
@@ -424,13 +424,13 @@ export default async function ClubPage({
                   <span className="text-sm text-ink-900">{o.user.display_name}</span>
                 </span>
                 <span className="text-[13px] font-extrabold text-danger">
-                  {fmtMoney(o.cents)} <span className="font-semibold text-ink-300">· {o.eventCount} evento{o.eventCount > 1 ? 's' : ''}</span>
+                  {fmtMoney(o.cents)} <span className="font-semibold text-ink-300">· {tf(o.eventCount === 1 ? 'club.eventCount1' : 'club.eventCountN', { n: o.eventCount })}</span>
                 </span>
               </Link>
             ))}
           </div>
           <p className="mt-2 text-xs text-ink-300">
-            Balances abiertos en los eventos de este club. Toca a alguien para ver en qué eventos sigue debiendo.
+            {t('club.balancesHint')}
           </p>
         </section>
       )}
@@ -466,11 +466,11 @@ export default async function ClubPage({
                 href={`/events?club=${club.id}&when=past`}
                 className="tap inline-flex items-center gap-1 text-[12.5px] font-bold text-honey-700"
               >
-                Historial completo <Icon name="chevron-right" size={10} />
+                {t('club.bar.history')} <Icon name="chevron-right" size={10} />
               </Link>
             }
           >
-            Historial
+            {t('club.history')}
           </SectionHeader>
           <div className="overflow-hidden rounded-lg border border-line-card bg-paper">
             {held.slice(0, 3).map((e, i) => {
@@ -484,11 +484,11 @@ export default async function ClubPage({
                   <span className="min-w-0 truncate text-[13.5px] font-bold text-ink-900">{e.title}</span>
                   {owed > 0 && (
                     <span className="flex-shrink-0 rounded-pill bg-honey-100 px-2 py-[3px] text-[11px] font-extrabold text-honey-800">
-                      sin saldar {fmtMoney(owed)}
+                      {tf('club.unsettled', { amount: fmtMoney(owed) })}
                     </span>
                   )}
                   <span className="ml-auto flex-shrink-0 text-[12px] text-ink-300">
-                    {e.chosen_start ? fmtDayMonth(e.chosen_start, lang) : 'sin fecha'}
+                    {e.chosen_start ? fmtDayMonth(e.chosen_start, lang) : t('event.noDate')}
                   </span>
                 </Link>
               )
@@ -635,7 +635,7 @@ function EvCard({
           // the day, because "Hoy 20:00" in one pill leaves nowhere to say
           // when it ends and you are about to need that.
           <span className="flex-shrink-0 rounded-pill bg-honey-200 px-2.5 py-[5px] text-[11.5px] font-extrabold text-honey-900">
-            {fmtSpan(e.chosen_start, e.chosen_end)}
+            {fmtSpan(e.chosen_start, e.chosen_end, lang)}
           </span>
         ) : (
           <WhenPill at={e.status === 'scheduling' ? null : e.chosen_start} status={e.status} />

@@ -1,3 +1,5 @@
+import { t, tf, type Lang } from './lang'
+
 // How old a debt is, and what that buys it.
 //
 // Money on this page sorts by age, not by amount and not by when the row
@@ -20,11 +22,11 @@ export function ageInDays(heldAt: string | null, now: Date = new Date()): number
 
 // "hace 55 días", "hoy", "ayer". The phrase carries the weight, so it is
 // written out rather than left as a date the reader has to subtract from.
-export function ageLabel(days: number | null): string | null {
+export function ageLabel(days: number | null, lang: Lang = 'es'): string | null {
   if (days == null) return null
-  if (days === 0) return 'hoy'
-  if (days === 1) return 'ayer'
-  return `hace ${days} días`
+  if (days === 0) return t(lang, 'age.today')
+  if (days === 1) return t(lang, 'age.yesterday')
+  return tf(lang, 'age.daysAgo', { n: days })
 }
 
 // Oldest first, and a debt with no date sorts last: it cannot be chased on an

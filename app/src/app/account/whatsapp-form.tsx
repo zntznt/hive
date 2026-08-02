@@ -53,7 +53,7 @@ export default function WhatsappForm({ phone, verifiedAt }: { phone: string | nu
         setCode('')
         return
       }
-      toast(res.enabledWhatsapp ? tr('account.wa.done') : 'WhatsApp actualizado')
+      toast(tr(res.enabledWhatsapp ? 'account.wa.done' : 'account.wa.updated'))
       close()
     })
   }
@@ -68,7 +68,7 @@ export default function WhatsappForm({ phone, verifiedAt }: { phone: string | nu
           {/* a number saved before verification existed keeps working, but
               nobody proved it, and the badge should not say otherwise */}
           {phone && (
-            <Badge tone={verifiedAt ? 'active' : 'neutral'}>{verifiedAt ? 'verificado' : 'sin verificar'}</Badge>
+            <Badge tone={verifiedAt ? 'active' : 'neutral'}>{tr(verifiedAt ? 'account.wa.verified' : 'account.wa.unverified')}</Badge>
           )}
           <button
             type="button"
@@ -90,7 +90,7 @@ export default function WhatsappForm({ phone, verifiedAt }: { phone: string | nu
             onChange={(e) => setValue(e.target.value)}
           />
           <p className="text-xs text-ink-300">
-            Te mandamos un código para confirmar que el número es tuyo. Con él también puedes entrar a Hive.
+            {tr('account.wa.codeHint')}
           </p>
           {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
           <div className="flex items-center gap-2">
@@ -135,7 +135,7 @@ export default function WhatsappForm({ phone, verifiedAt }: { phone: string | nu
           footer={
             <>
               <Button variant="ghost" onClick={() => setConfirmRemove(false)}>
-                Cancelar
+                {tr('common.cancel')}
               </Button>
               <Button
                 variant="danger"
@@ -144,7 +144,7 @@ export default function WhatsappForm({ phone, verifiedAt }: { phone: string | nu
                     await removeWhatsappPhone()
                     setConfirmRemove(false)
                     close()
-                    toast('WhatsApp quitado')
+                    toast(tr('account.wa.removed'))
                   })
                 }
               >
@@ -154,7 +154,7 @@ export default function WhatsappForm({ phone, verifiedAt }: { phone: string | nu
           }
         >
           <p className="text-sm leading-relaxed text-ink-700">
-            Dejas de recibir avisos por WhatsApp y ya no podrás entrar con tu número. Seguirás entrando con tu correo.
+            {tr('account.wa.removeHint')}
           </p>
         </Modal>
       )}

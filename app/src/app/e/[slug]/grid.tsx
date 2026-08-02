@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/Toast'
 import { Badge } from '@/components/ui/Badge'
 import { timeAgo } from '@/lib/relative-time'
 import { mexicoInstant, mexicoDay, fmtWeekdayDay, fmtTime } from '@/lib/time'
-import { useT, useLang } from '@/components/ui/LangProvider'
+import { useT, useLang, useTf } from '@/components/ui/LangProvider'
 
 type Props = {
   eventId: string
@@ -67,6 +67,7 @@ export default function Grid({
 }: Props) {
   const lang = useLang()
   const tr = useT()
+  const tf = useTf()
   // Who has still never been nudged. The button exists only for these.
   const unreached = waitingOn.filter((m) => !m.nudged)
 
@@ -265,7 +266,7 @@ export default function Grid({
           : tr('grid.holdDrag')}
       </p>
       <p className="mb-2 text-[11.5px] text-ink-300">
-        <Icon name="globe" size={10} /> Horario de Ciudad de México (GMT-6)
+        <Icon name="globe" size={10} /> {tr('grid.timezone')}
       </p>
 
       <div
@@ -324,7 +325,7 @@ export default function Grid({
           "guardando". Failure gets its own colour and its own sentence. */}
       {failed ? (
         <p className="mt-2.5 text-[11.5px] font-bold text-danger">
-          No se pudo guardar. Revisa tu conexión y vuelve a marcar.
+          {tr('grid.saveFailed')}
         </p>
       ) : (
         <p className="mt-2.5 text-[11.5px] text-ink-300">
@@ -332,12 +333,14 @@ export default function Grid({
             ? pick
               ? // days[] holds the raw yyyy-mm-dd, which is what this line was
                 // printing back at the organizer about to commit the date
-                `${fmtWeekdayDay(mexicoDay(days[pick.day]), lang)} · ${fmtTime(slotDate(pick.day, pick.a), lang)} a ${fmtTime(
-                  new Date(slotDate(pick.day, pick.b).getTime() + slotMinutes * 60_000)
-                )}`
+                tf('grid.timeRange', {
+                  day: fmtWeekdayDay(mexicoDay(days[pick.day]), lang),
+                  from: fmtTime(slotDate(pick.day, pick.a), lang),
+                  to: fmtTime(new Date(slotDate(pick.day, pick.b).getTime() + slotMinutes * 60_000), lang),
+                })
               : tr('grid.nothingPicked')
-            : `${marked} ${marked === 1 ? 'hueco marcado' : 'huecos marcados'}${
-                pending ? ' · guardando…' : saved ? ' · guardado' : ''
+            : `${tf(marked === 1 ? 'grid.slotMarked1' : 'grid.slotsMarkedN', { n: marked })}${
+                pending ? tr('grid.savingDots') : saved ? tr('grid.savedDots') : ''
               }`}
         </p>
       )}
@@ -371,7 +374,7 @@ export default function Grid({
         <div className="mt-5 rounded-lg border border-line-card bg-paper p-3.5">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[13.5px] font-bold text-ink-900">
-              Faltan {waitingOn.length} de {totalMembers}
+              {tf('grid.missingOf', { n: waitingOn.length, total: totalMembers })}
             </span>
             {unreached.length > 0 && (
               <button
@@ -380,7 +383,7 @@ export default function Grid({
                 onClick={() =>
                   startTransition(async () => {
                     const res = await remindMissingAvailability(eventId, slug)
-                    toast(res.queued > 0 ? `Les recordamos a ${res.queued}` : tr('grid.alreadyReminded'))
+                    toast(res.queued > 0 ? tf('grid.remindedN', { n: res.queued }) : tr('grid.alreadyReminded'))
                     router.refresh()
                   })
                 }
@@ -391,8 +394,8 @@ export default function Grid({
                     the automatic nudge went out, so exactly one person is
                     un-nudged and the action names them. */}
                 {nudgedAt && unreached.length === 1
-                  ? `Recordarle a ${unreached[0].user.display_name}`
-                  : 'Recordarles'}
+                  ? tf('grid.remindOne', { name: unreached[0].user.display_name })
+                  : tr('grid.remindAll')}
               </button>
             )}
           </div>
@@ -409,7 +412,7 @@ export default function Grid({
 
           <p className="mt-2.5 text-[11.5px] leading-relaxed text-ink-300">
             {unreached.length === 0
-              ? `Ya se les recordó${nudgedAt ? ` ${timeAgo(nudgedAt, lang)}` : ''}. Solo se manda una vez a cada quien, así que no vuelve a salir.`
+              ? tf('grid.remindedOnce', { when: nudgedAt ? ` ${timeAgo(nudgedAt, lang)}` : '' })
               : tr('grid.autoReminder')}
           </p>
         </div>

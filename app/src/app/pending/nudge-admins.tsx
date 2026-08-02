@@ -27,7 +27,7 @@ export default function NudgeAdmins({ alreadyNudged }: { alreadyNudged: boolean 
         startTransition(async () => {
           const res = await nudgeAdmins()
           setSent(true)
-          toast(res.already ? tr('pending.nudgedToday') : 'Les avisamos')
+          toast(res.already ? tr('pending.nudgedToday') : tr('pending.told'))
         })
       }
     >

@@ -47,7 +47,7 @@ export function MarkDoneButton({
   if (!open) {
     return (
       <button onClick={() => setOpen(true)} className="tap font-bold text-honey-700">
-        Hecho
+        {tr('plate.markDone')}
       </button>
     )
   }
@@ -76,7 +76,7 @@ export function MarkDoneButton({
       footer={
         <>
           <Button variant="ghost" onClick={() => setOpen(false)}>
-            Todavía no
+            {tr('plate.notYet')}
           </Button>
           <Button disabled={pending} onClick={confirm}>
             {isTask ? tr('plate.yesDone') : tr('plate.yesBring')}

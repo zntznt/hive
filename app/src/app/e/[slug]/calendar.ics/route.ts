@@ -40,7 +40,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     .eq('slug', slug)
     .maybeSingle()
 
-  if (!event?.chosen_start) return new Response('No encontrado', { status: 404 })
+  if (!event?.chosen_start) return new Response('Not found', { status: 404 })
 
   const club = (event.clubs as unknown as { name: string } | null)?.name
   const start = new Date(event.chosen_start as string)

@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
-import { useT } from '@/components/ui/LangProvider'
+import { useT, useTf } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { claimContribution, promoteNextWaitlisted } from '@/app/actions'
@@ -13,6 +13,7 @@ import { Icon } from '@/components/ui/Icon'
 // "the club is counting on you" confirmation guard is load-bearing here.
 export function ClaimContributionButton({ id, slug, title, eventTitle }: { id: string; slug: string; title: string; eventTitle: string }) {
   const tr = useT()
+  const tf = useTf()
   const [open, setOpen] = useState(false)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
@@ -67,6 +68,7 @@ export function ClaimContributionButton({ id, slug, title, eventTitle }: { id: s
 // line gets seated and notified.
 export function PromoteNextButton({ eventId, slug, nextName }: { eventId: string; slug: string; nextName: string }) {
   const tr = useT()
+  const tf = useTf()
   const [pending, startTransition] = useTransition()
   const router = useRouter()
   const toast = useToast()
@@ -79,7 +81,7 @@ export function PromoteNextButton({ eventId, slug, nextName }: { eventId: string
       onClick={() =>
         startTransition(async () => {
           await promoteNextWaitlisted(eventId, slug)
-          toast(`${nextName} ya tiene lugar. Le avisamos por correo.`)
+          toast(tf('event.claimedSpot', { name: nextName }))
           router.refresh()
         })
       }

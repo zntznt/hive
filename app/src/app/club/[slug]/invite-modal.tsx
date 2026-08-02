@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal'
-import { useT } from '@/components/ui/LangProvider'
+import { useT, useTf } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
@@ -29,6 +29,7 @@ export function InviteModal({
   onClose?: () => void
 }) {
   const tr = useT()
+  const tf = useTf()
   const [selfOpen, setSelfOpen] = useState(false)
   const controlled = openProp !== undefined
   const open = controlled ? openProp : selfOpen
@@ -52,7 +53,7 @@ export function InviteModal({
     startTransition(async () => {
       await createClubInvitation(clubId, slug, fd)
       setOpen(false)
-      toast(`Invitación enviada a ${email.trim() || phone.trim()}`)
+      toast(tf('club.inviteSentTo', { to: email.trim() || phone.trim() }))
       setEmail('')
       setPhone('')
       setRole('member')
@@ -64,22 +65,22 @@ export function InviteModal({
     <>
       {!controlled && (
         <button onClick={() => setOpen(true)} className="tap text-[12.5px] font-bold text-honey-700">
-          <Icon name="plus" size={10} /> Invitar
+          <Icon name="plus" size={10} /> {tr('event.invite')}
         </button>
       )}
       {open && (
         <Modal
           open
           onClose={() => setOpen(false)}
-          title={`Invitar a ${clubName}`}
+          title={tf('club.inviteTo', { club: clubName })}
           subtitle={tr('club.invite.auto')}
           footer={
             <>
               <Button variant="ghost" onClick={() => setOpen(false)}>
-                Cancelar
+                {tr('common.cancel')}
               </Button>
               <Button disabled={pending || (!email.trim() && !phone.trim())} onClick={submit}>
-                Enviar invitación
+                {tr('club.sendInvite')}
               </Button>
             </>
           }

@@ -97,7 +97,7 @@ export function AttendanceSheet({
         <div className="flex items-center justify-between gap-2.5 px-4 pb-3 pt-4">
           <div className="min-w-0">
             <p className="font-display text-lg font-bold leading-tight text-ink-900">
-              {came} de {total} {came === 1 ? 'vino' : 'vinieron'}
+              {tf(came === 1 ? 'attendance.came1Short' : 'attendance.cameNShort', { n: came, total })}
             </p>
             <p className="mt-0.5 text-[12.5px] text-ink-500">{tr('event.rollcall.tap')}</p>
           </div>
@@ -139,7 +139,7 @@ export function AttendanceSheet({
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span className={`text-sm font-bold ${on ? 'text-ink-900' : 'text-ink-500'}`}>{p.name}</span>
-                    {p.guestOf && <Badge tone="neutral">invitado de {p.guestOf}</Badge>}
+                    {p.guestOf && <Badge tone="neutral">{tf('attendance.guestOf', { name: p.guestOf })}</Badge>}
                   </span>
                   {!on && <span className="mt-0.5 block text-xs text-ink-500">{tr('event.rollcall.absent')}</span>}
                 </span>
@@ -150,7 +150,7 @@ export function AttendanceSheet({
 
         <div className="border-t border-line-divider p-4">
           <Button block disabled={pending} onClick={save}>
-            {pending ? 'Guardando…' : 'Guardar lista'}
+            {tr(pending ? 'common.saving' : 'attendance.save')}
           </Button>
           {error && <p className="mt-2.5 rounded-md bg-danger-bg p-3 text-xs text-danger">{error}</p>}
           <div className="mt-2.5 flex items-center justify-between gap-2.5">
@@ -184,7 +184,7 @@ export function AttendanceSheet({
         <Icon name="clipboard-check" size={16} className="flex-shrink-0 text-ink-300" />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-bold text-ink-900">
-            {everyone ? tr('roll.allCame') : `${cameCount} de ${total} ${cameCount === 1 ? 'vino' : 'vinieron'}`}
+            {everyone ? tr('roll.allCame') : tf(cameCount === 1 ? 'attendance.came1' : 'attendance.cameN', { n: cameCount, total })}
           </span>
           <span className="mt-0.5 block truncate text-[12px] text-ink-300">
             La pasó {takenBy ?? tr('event.organization')} · {timeAgo(takenAt, lang)}

@@ -54,7 +54,7 @@ async function call(apiKey: string, path: string, init?: { method?: string; body
     ...(init?.body === undefined ? {} : { body: JSON.stringify(init.body) }),
   })
   const text = await res.text().catch(() => '')
-  if (!res.ok) throw new Error(`Zernio ${res.status} en ${path}: ${text.slice(0, 300)}`)
+  if (!res.ok) throw new Error(`Zernio ${res.status} on ${path}: ${text.slice(0, 300)}`)
   try {
     return JSON.parse(text) as Record<string, never>
   } catch {
@@ -87,7 +87,7 @@ export async function createWhatsappTemplate({
   body: string
 }): Promise<{ ok: true; status: string; vars: string[] } | { ok: false; error: string }> {
   const cfg = config()
-  if (!cfg) return { ok: false, error: 'Zernio no está configurado' }
+  if (!cfg) return { ok: false, error: 'Zernio is not configured' }
 
   const { text, vars } = toPositional(body)
   try {
@@ -111,7 +111,7 @@ export async function createWhatsappTemplate({
     const tpl = (created.template ?? created) as { status?: string }
     return { ok: true, status: String(tpl.status ?? 'pending').toLowerCase(), vars }
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Error desconocido de Zernio' }
+    return { ok: false, error: e instanceof Error ? e.message : 'unknown Zernio error' }
   }
 }
 
@@ -119,7 +119,7 @@ export async function listWhatsappTemplates(): Promise<
   { ok: true; templates: { name: string; status: string; language: string }[] } | { ok: false; error: string }
 > {
   const cfg = config()
-  if (!cfg) return { ok: false, error: 'Zernio no está configurado' }
+  if (!cfg) return { ok: false, error: 'Zernio is not configured' }
   try {
     const res = await call(cfg.apiKey, `/whatsapp/templates?accountId=${cfg.accountId}`)
     const raw = (res.templates ?? res.data ?? []) as unknown
@@ -133,7 +133,7 @@ export async function listWhatsappTemplates(): Promise<
       })),
     }
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Error desconocido de Zernio' }
+    return { ok: false, error: e instanceof Error ? e.message : 'unknown Zernio error' }
   }
 }
 
@@ -170,7 +170,7 @@ export async function checkBroadcast(id: string): Promise<BroadcastVerdict> {
 
     if (status === 'failed' || (failed > 0 && sent === 0)) {
       const reason = await failureReason(cfg.apiKey, id)
-      return { state: 'failed', reason: reason ?? 'WhatsApp no dio un motivo' }
+      return { state: 'failed', reason: reason ?? 'WhatsApp gave no reason' }
     }
     if (status === 'completed' || status === 'sent') return { state: 'sent' }
     return { state: 'pending' }
@@ -202,7 +202,7 @@ export async function sendWhatsapp({
 }): Promise<Result> {
   const cfg = config()
   if (!cfg) {
-    return { ok: false, skipped: true, error: 'Zernio no está configurado' }
+    return { ok: false, skipped: true, error: 'Zernio is not configured' }
   }
 
   try {
@@ -258,7 +258,7 @@ export async function sendWhatsapp({
       return {
         ok: false,
         skipped: false,
-        error: `Zernio no devolvió un id de broadcast: ${JSON.stringify(created).slice(0, 200)}`,
+        error: `Zernio returned no broadcast id: ${JSON.stringify(created).slice(0, 200)}`,
       }
     }
 
@@ -276,6 +276,6 @@ export async function sendWhatsapp({
     // let checkBroadcast decide later.
     return { ok: true, providerRef: id }
   } catch (e) {
-    return { ok: false, skipped: false, error: e instanceof Error ? e.message : 'Error desconocido de Zernio' }
+    return { ok: false, skipped: false, error: e instanceof Error ? e.message : 'unknown Zernio error' }
   }
 }

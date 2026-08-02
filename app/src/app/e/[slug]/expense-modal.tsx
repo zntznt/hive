@@ -98,7 +98,7 @@ export function AddExpenseButton({
                 <Input label={tr('money.expense.what')} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Pizzas" autoFocus />
               </div>
               <div className="w-[110px]">
-                <span className="mb-1.5 block text-[12.5px] font-semibold text-ink-700">Cantidad</span>
+                <span className="mb-1.5 block text-[12.5px] font-semibold text-ink-700">{tr('money.amount')}</span>
                 <div className="flex items-center gap-1 rounded-md border-[1.5px] border-line-input bg-paper px-3">
                   <span className="text-ink-500">$</span>
                   <input
@@ -162,7 +162,7 @@ export function EditExpenseButton({ id, slug, note, amount }: { id: string; slug
       const res = await removeExpense(id, slug)
       if (!res.ok) return setError(res.error)
       setOpen(false)
-      toast('Gasto borrado.')
+      toast(tr('expense.deleted'))
       router.refresh()
     })
   }
@@ -175,7 +175,7 @@ export function EditExpenseButton({ id, slug, note, amount }: { id: string; slug
       try {
         await updateExpense(id, slug, fd)
         setOpen(false)
-        toast('Gasto actualizado.')
+        toast(tr('expense.updated'))
         router.refresh()
       } catch (e) {
         setError(e instanceof Error ? e.message : tr('common.notSaved'))
