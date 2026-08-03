@@ -44,11 +44,17 @@ export function BannerUpload({ clubId, slug }: { clubId: string; slug: string })
 
   return (
     <>
+      {/* A 30px circle inside a 44px target, and the header places it. It used
+          to position itself as well as being placed by an absolutely
+          positioned wrapper, so the two offsets stacked and the chip sat 10px
+          further in than either of them meant. */}
       <label
         title={tr('club.banner.change')}
-        className="tap absolute right-2.5 top-2.5 grid h-[30px] w-[30px] cursor-pointer place-items-center rounded-full bg-paper text-[13px] text-ink-700 shadow-card"
+        className="tap grid h-11 w-11 cursor-pointer place-items-center"
       >
-        {pending ? '…' : <Icon name="camera" size={13} />}
+        <span className="grid h-[30px] w-[30px] place-items-center rounded-full bg-paper text-ink-700 shadow-card">
+          {pending ? '…' : <Icon name="camera" size={13} />}
+        </span>
         <input type="file" accept="image/*" className="hidden" onChange={onFile} disabled={pending} />
       </label>
       {pickedSrc && (

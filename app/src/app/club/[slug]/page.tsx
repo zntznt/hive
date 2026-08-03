@@ -234,7 +234,7 @@ export default async function ClubPage({
         cover={isManager ? <BannerUpload clubId={club.id} slug={slug} /> : undefined}
         picture={
           isManager ? (
-            <AvatarUpload clubId={club.id} slug={slug} clubName={club.name} avatarUrl={club.avatar_url} size={64} />
+            <AvatarUpload clubId={club.id} slug={slug} clubName={club.name} avatarUrl={club.avatar_url} size={68} />
           ) : undefined
         }
         edit={

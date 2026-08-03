@@ -57,9 +57,9 @@ export function AvatarUpload({ clubId, slug, clubName, avatarUrl, size = 40 }: {
           where there is nothing else to hit. */}
       <label
         title={tr('club.avatar.change')}
-        className="tap absolute -bottom-3.5 -right-4 grid h-11 w-11 cursor-pointer place-items-center"
+        className="tap absolute -bottom-1.5 -right-[11px] grid h-11 w-11 cursor-pointer place-items-center"
       >
-        <span className="grid h-[26px] w-[26px] place-items-center rounded-full bg-paper text-ink-700 shadow-card">
+        <span className="grid h-6 w-6 place-items-center rounded-full bg-paper text-ink-700 shadow-card">
           {pending ? '…' : <Icon name="camera" size={13} />}
         </span>
         <input type="file" accept="image/*" className="hidden" onChange={onFile} disabled={pending} />
