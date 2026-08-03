@@ -2,11 +2,33 @@
 
 import { useT } from './LangProvider'
 
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useSyncExternalStore, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Icon } from './Icon'
 
 // Centered dialog on a dimmed backdrop. Closes on backdrop click or Escape.
 // Titles & buttons stay literal; modals are workflow, not wink.
+//
+// It renders into document.body, and that is load-bearing rather than tidy.
+//
+// A modal used to render where it was opened from, and the club header opens
+// one from inside `overflow-hidden` (the section clips the honeycomb cover to
+// its rounded corners). A clip applies to a fixed child too, and z-index
+// cannot escape a clip: the dialog painted fine, but everything below the
+// section's bottom edge stopped taking taps, and what took them instead was
+// the tab bar underneath. On a 390x844 phone that is the bottom 33px of the
+// confirm button, so framing a club photo and pressing "Usar foto" opened the
+// Pendientes tab and the photo was never applied.
+//
+// globals.css states the general rule next to the layer scale: a popover
+// inside an overflow:hidden card has to be positioned in viewport space
+// rather than given a bigger number. This is that, applied once here so no
+// caller has to know where it is mounted.
+
+// Whether we are on the client never changes after the first render, so there
+// is nothing to subscribe to. Module scope so the reference is stable and the
+// store is not resubscribed on every render.
+const subscribeNothing = () => () => {}
 export function Modal({
   open = true,
   onClose,
@@ -25,6 +47,14 @@ export function Modal({
   children: ReactNode
 }) {
   const tr = useT()
+  // document does not exist on the server, and a modal is opened by a tap, so
+  // there is nothing to portal into on the first pass anyway.
+  //
+  // useSyncExternalStore rather than setState in an effect: it reads false
+  // from the server snapshot and true from the client one, in one render,
+  // where the effect form sets state during the effect and lints as a
+  // cascading render.
+  const mounted = useSyncExternalStore(subscribeNothing, () => true, () => false)
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
@@ -34,9 +64,9 @@ export function Modal({
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
-  if (!open) return null
+  if (!open || !mounted) return null
 
-  return (
+  return createPortal(
     <div
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose?.()
@@ -45,11 +75,11 @@ export function Modal({
       style={{ background: 'rgba(43,38,32,.45)' }}
     >
       <div
-        // text-left because this is not portaled: it renders where it was
-        // opened from, and the club header is `text-center`, so every modal
-        // opened from there came up with its form labels centred. A modal is
-        // its own surface and should not inherit the alignment of whatever
-        // opened it.
+        // text-left is kept although the portal now makes it unnecessary. It
+        // was added because a modal opened from the club header, which is
+        // `text-center`, came up with its form labels centred. Stating the
+        // alignment a dialog wants costs nothing and does not depend on where
+        // this ends up mounted.
         className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-2xl bg-paper text-left shadow-pop"
         style={{ maxWidth: width, animation: 'hive-pop .18s var(--ease)' }}
       >
@@ -76,6 +106,7 @@ export function Modal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

@@ -73,6 +73,8 @@ export const ES = {
   'clubs.newEvent': 'Nuevo evento',
   'clubs.empty.title': 'Todavía no estás en ningún club',
   'clubs.empty.hint': 'Pide a quien organiza que te invite, o empieza el tuyo.',
+  'clubs.lede': 'Tus clubes y lo que sigue en cada uno.',
+  'clubs.more': 'Más clubes',
 
   // -- events ---------------------------------------------------------------
   'events.title': 'Eventos',
@@ -980,6 +982,7 @@ export const ES = {
   'form.grain.hint': 'Se marca rápido. Suficiente para la mayoría de los planes.',
   'common.back2': 'Atrás',
   'common.more': 'Más',
+  'common.less': 'Menos',
   'common.notSent': 'No se pudo enviar.',
   'common.notUpdated': 'No se pudo actualizar.',
   'money.notRecorded': 'No se pudo registrar el pago.',
@@ -1286,6 +1289,8 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'clubs.newEvent': 'New event',
   'clubs.empty.title': "You're not in a club yet",
   'clubs.empty.hint': 'Ask an organizer to invite you, or start your own.',
+  'clubs.lede': 'Your clubs, and what each one is doing next.',
+  'clubs.more': 'More clubs',
 
   // -- events ---------------------------------------------------------------
   'events.title': 'Events',
@@ -2166,6 +2171,7 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'form.grain.hint': 'Quick to mark. Enough for most plans.',
   'common.back2': 'Back',
   'common.more': 'More',
+  'common.less': 'Less',
   'common.notSent': "Couldn't send.",
   'common.notUpdated': "Couldn't update.",
   'money.notRecorded': "Couldn't record the payment.",

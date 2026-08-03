@@ -533,15 +533,20 @@ export async function updateClubAvatar(clubId: string, clubSlug: string, avatarU
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) throw new Error('not signed in')
+  // The club picture is a URL column like the other two and was the one
+  // writer that skipped this check, so a bad address reached the database and
+  // came back as `violates check constraint "clubs_avatar_url_is_ours"`.
+  // Same rule, same sentence, wherever it is written from.
+  const url = ourStorageUrl(avatarUrl, 'banners')!
   const perm = await clubPermission(supabase, user.id, clubId)
   if (perm.isAdmin) {
-    const { error } = await supabase.from('clubs').update({ avatar_url: avatarUrl }).eq('id', clubId)
+    const { error } = await supabase.from('clubs').update({ avatar_url: url }).eq('id', clubId)
     if (error) throw new Error(error.message)
   } else {
     const { error } = await supabase.from('change_requests').insert({
       club_id: clubId,
       kind: 'avatar',
-      payload: { avatar_url: avatarUrl },
+      payload: { avatar_url: url },
       requested_by: user.id,
     })
     if (error) throw new Error(error.message)

@@ -7,6 +7,7 @@ import { HexAvatar } from '@/components/ui/HexAvatar'
 import { dataUrlToBlob, uploadBanner } from '@/lib/upload'
 import { updateClubAvatar } from '@/app/actions'
 import { Icon } from '@/components/ui/Icon'
+import { useToast } from '@/components/ui/Toast'
 import { useT } from '@/components/ui/LangProvider'
 
 // Reuses the club-manager-writable "banners" storage bucket/policy (folder =
@@ -14,6 +15,7 @@ import { useT } from '@/components/ui/LangProvider'
 // avoids a whole new bucket+policy pair for one more club-scoped image.
 export function AvatarUpload({ clubId, slug, clubName, avatarUrl, size = 40 }: { clubId: string; slug: string; clubName: string; avatarUrl: string | null; size?: number }) {
   const tr = useT()
+  const toast = useToast()
   const [pickedSrc, setPickedSrc] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
@@ -27,13 +29,23 @@ export function AvatarUpload({ clubId, slug, clubName, avatarUrl, size = 40 }: {
     e.target.value = ''
   }
 
+  // An upload that fails says so. Unhandled, the rejected promise inside a
+  // transition reaches the error boundary and takes the whole page with it:
+  // "A server error occurred. Reload to try again." over a club that is
+  // otherwise fine, from a photo that was merely too big or the wrong type.
+  // The member's own avatar has caught this since it was written; the club's
+  // never did.
   function apply(dataUrl: string) {
     setPickedSrc(null)
     startTransition(async () => {
-      const blob = await dataUrlToBlob(dataUrl)
-      const url = await uploadBanner(clubId, blob)
-      await updateClubAvatar(clubId, slug, url)
-      router.refresh()
+      try {
+        const blob = await dataUrlToBlob(dataUrl)
+        const url = await uploadBanner(clubId, blob)
+        await updateClubAvatar(clubId, slug, url)
+        router.refresh()
+      } catch {
+        toast(tr('account.photo.failed'))
+      }
     })
   }
 
@@ -45,9 +57,9 @@ export function AvatarUpload({ clubId, slug, clubName, avatarUrl, size = 40 }: {
           where there is nothing else to hit. */}
       <label
         title={tr('club.avatar.change')}
-        className="tap absolute -bottom-3.5 -right-4 grid h-11 w-11 cursor-pointer place-items-center"
+        className="tap absolute -bottom-1.5 -right-[11px] grid h-11 w-11 cursor-pointer place-items-center"
       >
-        <span className="grid h-[26px] w-[26px] place-items-center rounded-full bg-paper text-ink-700 shadow-card">
+        <span className="grid h-6 w-6 place-items-center rounded-full bg-paper text-ink-700 shadow-card">
           {pending ? '…' : <Icon name="camera" size={13} />}
         </span>
         <input type="file" accept="image/*" className="hidden" onChange={onFile} disabled={pending} />
