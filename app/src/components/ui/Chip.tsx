@@ -28,7 +28,13 @@ export function Chip({ variant, active, className, children, ...rest }: Props & 
 }
 
 // A chip is ~22px tall by design (it is a label first), so the tappable one
-// keeps its size and borrows the area it is missing from .tap.
+// keeps its size and borrows the area it is missing.
+//
+// It borrows it from a wrapper, not from itself. `.tap` on the chip made the
+// chip 44px, so "+ Categoría" stood twice as tall as every category beside it
+// and the row it sits in reads as two different kinds of thing. The target is
+// a 44px button around a chip-sized span, and the negative margin gives the
+// height back to the layout so the row does not grow either.
 export function ChipButton({
   variant,
   active,
@@ -37,8 +43,8 @@ export function ChipButton({
   ...rest
 }: Props & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button type="button" className={`tap ${chipClass({ variant, active, className })} cursor-pointer`} {...rest}>
-      {children}
+    <button type="button" className="-my-[10px] inline-flex min-h-11 cursor-pointer items-center" {...rest}>
+      <span className={chipClass({ variant, active, className })}>{children}</span>
     </button>
   )
 }
