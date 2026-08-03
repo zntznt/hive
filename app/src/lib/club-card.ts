@@ -35,8 +35,19 @@ export type ClubFooter =
 // undated ones (still finding a time) trail them. The tie-break chain is
 // spelled out because two events at the same minute otherwise reorder between
 // renders, and a card that shuffles on refresh reads as a bug.
+// What "still to come" means, for the function that picks the next one and
+// for the screen that counts them.
+//
+// These were two expressions. `clubNext` took `scheduling | scheduled` while
+// the club page counted `not done and not cancelled`, which also admits
+// `draft`. Nothing writes a draft today, so the two happened to agree, and
+// the day something did the header would have said 3 over a list of 2 while
+// the Clubs tab named an event the count did not believe in. That is the
+// drift this file exists to end, so it is one predicate.
+export const isUpcoming = (e: { status: string }) => e.status === 'scheduling' || e.status === 'scheduled'
+
 export function clubNext(events: CardEvent[], now: Date = new Date()): CardEvent | null {
-  const live = events.filter((e) => e.status === 'scheduling' || e.status === 'scheduled')
+  const live = events.filter(isUpcoming)
   const dated = live
     .filter((e) => e.chosen_start && new Date(e.chosen_start).getTime() >= now.getTime() - 12 * 3600_000)
     .sort(

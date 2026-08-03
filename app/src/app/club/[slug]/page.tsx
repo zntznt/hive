@@ -23,6 +23,7 @@ import { decideChangeRequest, decideJoinRequest } from '@/app/actions'
 import { ClubBar } from './club-bar'
 import { WhenPill } from '@/components/ui/WhenPill'
 import { isEventDay, fmtSpan, fmtWeekdayDay, fmtDayMonth } from '@/lib/time'
+import { isUpcoming } from '@/lib/club-card'
 import { mapEmbedUrl } from '@/lib/place'
 import { SummaryRow, DoorGroup } from '@/components/ui/Density'
 import { siteUrl } from '@/lib/site-url'
@@ -78,7 +79,10 @@ export default async function ClubPage({
   const categories = (cats ?? []) as Category[]
   const catName = (id: string | null) => categories.find((c) => c.id === id)?.name
   const events = ((evs ?? []) as EventRow[]).filter((e) => !cat || e.category_id === cat)
-  const upcoming = events.filter((e) => !['done', 'cancelled'].includes(e.status))
+  // `isUpcoming` from club-card, the same predicate `clubNext` uses to pick
+  // the one the Clubs tab names, so this count and that card cannot come
+  // apart.
+  const upcoming = events.filter(isUpcoming)
   const past = events.filter((e) => ['done', 'cancelled'].includes(e.status))
   // History reads by the night it was, not by the day somebody created the
   // row. An event made in March for a June date belongs in June.

@@ -9,8 +9,11 @@ import { type AvatarUser } from '@/components/ui/Avatar'
 import { CreateClubButton } from '../create-club-modal'
 import { Page, PageHeader } from '@/components/ui/Page'
 import { WhenPill } from '@/components/ui/WhenPill'
+import { SectionHeader } from '@/components/ui/SectionHeader'
 import { clubFooter, quietSince, type CardEvent } from '@/lib/club-card'
 import { BANNER_ASPECT_CLASS } from '@/lib/banner'
+import { whenPill } from '@/lib/when'
+import { fmtSpan } from '@/lib/time'
 import { getT } from '@/lib/current-lang'
 
 // The Clubs tab.
@@ -67,10 +70,13 @@ export default async function ClubsPage() {
     clubIds.length
       ? supabase
           .from('event_photos')
-          .select('path, created_at, events!inner(club_id)')
+          // the title comes back with the photo because each tile is captioned
+          // with the night it came from: six squares with no captions are a
+          // gallery, and this is a club telling you what it has been doing
+          .select('path, created_at, events!inner(club_id, title)')
           .in('events.club_id', clubIds)
           .order('created_at', { ascending: false })
-          .limit(60)
+          .limit(120)
       : Promise.resolve({ data: [] }),
   ])
 
@@ -88,16 +94,17 @@ export default async function ClubsPage() {
     eventsOf.set(e.club_id, [...(eventsOf.get(e.club_id) ?? []), e])
   }
 
-  // Three recent photos per club, signed in one call rather than one per club.
-  type PhotoRow = { path: string; events: { club_id: string } | null }
-  const pathsOf = new Map<string, string[]>()
+  // Six recent photos per club, signed in one call rather than one per club.
+  type PhotoRow = { path: string; events: { club_id: string; title: string } | null }
+  type Shot = { path: string; caption: string }
+  const shotsOf = new Map<string, Shot[]>()
   for (const p of (photos ?? []) as unknown as PhotoRow[]) {
     const cid = p.events?.club_id
     if (!cid) continue
-    const have = pathsOf.get(cid) ?? []
-    if (have.length < 3) pathsOf.set(cid, [...have, p.path])
+    const have = shotsOf.get(cid) ?? []
+    if (have.length < 6) shotsOf.set(cid, [...have, { path: p.path, caption: p.events?.title ?? '' }])
   }
-  const allPaths = [...pathsOf.values()].flat()
+  const allPaths = [...shotsOf.values()].flat().map((s) => s.path)
   const signed = new Map<string, string>()
   if (allPaths.length) {
     const { data: urls } = await supabase.storage.from('event-photos').createSignedUrls(allPaths, 3600)
@@ -130,7 +137,7 @@ export default async function ClubsPage() {
 
   return (
     <Page>
-      <PageHeader title={t('clubs.title')} />
+      <PageHeader title={t('clubs.title')} lede={t('clubs.lede')} />
 
       {clubs.length === 0 ? (
         <EmptyState
@@ -140,23 +147,33 @@ export default async function ClubsPage() {
         />
       ) : (
         <>
-          <div className="flex flex-col gap-2.5">
+          <div className="mb-[26px] flex flex-col gap-[14px]">
             {loud.map(({ m, club, footer }) => {
               const faces = facesOf.get(m.club_id) ?? []
               const total = countOf.get(m.club_id) ?? faces.length
-              const strip = (pathsOf.get(m.club_id) ?? []).map((p) => signed.get(p)).filter(Boolean) as string[]
+              const strip = (shotsOf.get(m.club_id) ?? [])
+                .map((s) => ({ url: signed.get(s.path), caption: s.caption }))
+                .filter((s): s is { url: string; caption: string } => !!s.url)
               const tonight = footer.kind === 'today'
               // Height tracks how much is going on. A quiet club keeps its
               // card but wears a smaller mark and a tighter head, and never a
               // photo strip: emptiness must not cost as much height as
               // activity.
-              const hush = footer.kind === 'quiet'
+              //
+              // Quiet is nothing coming AND nothing to show. A club with no
+              // date but a wall of photographs from last month is not dormant,
+              // and shrinking it to a head and one line would say it was.
+              const hush = footer.kind === 'quiet' && strip.length === 0
+              const canStart = m.role === 'admin' || m.role === 'organizer'
               return (
                 <div
                   key={m.club_id}
-                  className={`overflow-hidden rounded-lg bg-paper shadow-card ${
-                    tonight ? 'border-[1.5px] border-honey-500' : 'border border-line-card'
+                  className={`overflow-hidden rounded-lg border bg-paper ${
+                    tonight ? 'border-honey-500' : 'border-line-card shadow-card'
                   }`}
+                  // the club with something on tonight sits a little further
+                  // off the page than the rest of the stack
+                  style={tonight ? { boxShadow: '0 2px 10px rgba(43,38,32,.10)' } : undefined}
                 >
                   <Link href={`/club/${club.slug}`} className="block w-full text-center">
                     {/* Crisp cover strip with the mark straddling its edge, the
@@ -173,16 +190,23 @@ export default async function ClubsPage() {
                           : { backgroundColor: 'var(--cream)', backgroundImage: 'var(--honeycomb)' }
                       }
                     />
-                    <span className="block px-3.5 pb-[13px]">
+                    <span className={`block px-3.5 ${hush ? 'pb-[9px]' : 'pb-[13px]'}`}>
+                      {/* The paper hex reads as a ~3px rim around the avatar,
+                          which is what separates the mark from whatever the
+                          cover photograph happens to be. */}
                       <span
                         className={`relative mx-auto grid place-items-center bg-paper [clip-path:polygon(50%_0,100%_25%,100%_75%,50%_100%,0_75%,0_25%)] ${
-                          hush ? '-mt-[24px] h-[52px] w-[47px]' : '-mt-[28px] h-[62px] w-[56px]'
+                          hush ? '-mt-[22px] h-[48px] w-[44px]' : '-mt-[30px] h-[66px] w-[60px]'
                         }`}
                       >
-                        <HexAvatar name={club.name} src={club.avatar_url} size={hush ? 42 : 50} />
+                        <HexAvatar name={club.name} src={club.avatar_url} size={hush ? 40 : 54} />
                       </span>
-                      <span className={`flex flex-wrap items-center justify-center gap-[7px] ${hush ? 'mt-1' : 'mt-1.5'}`}>
-                        <span className="font-display text-[19px] font-bold leading-[1.15] text-ink-900">
+                      <span className="mt-1 flex flex-wrap items-center justify-center gap-[7px]">
+                        <span
+                          className={`font-display font-bold leading-[1.15] text-ink-900 ${
+                            hush ? 'text-[17px]' : 'text-[19px]'
+                          }`}
+                        >
                           {club.name}
                         </span>
                         {m.role === 'admin' && <Badge tone="admin">admin</Badge>}
@@ -190,7 +214,7 @@ export default async function ClubsPage() {
                       </span>
                       {/* who, not how many */}
                       <span className="mt-1.5 flex justify-center">
-                        <FaceStack people={faces} total={total} size={22} max={5} />
+                        <FaceStack people={faces} total={total} size={hush ? 17 : 20} max={4} />
                       </span>
                     </span>
                   </Link>
@@ -198,19 +222,33 @@ export default async function ClubsPage() {
                   {/* Recent photos, only when there are some. Three empty
                       dashed boxes on a list is the club telling you about a
                       feature instead of about itself. */}
-                  {strip.length > 0 && !hush && (
-                    <Link href={`/club/${club.slug}`} className="flex gap-1.5 px-3 pb-3">
-                      {strip.map((url, i) => (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          key={i}
-                          src={url}
-                          alt=""
-                          className="h-[72px] min-w-0 flex-1 rounded-sm object-cover"
-                          style={{ background: 'var(--cream-sunk)' }}
-                        />
-                      ))}
-                    </Link>
+                  {strip.length > 0 && (
+                    <div className="px-3.5 pb-3">
+                      {/* Fixed 92px tiles that scroll, rather than however
+                          many there are sharing one row. Three photos stretched
+                          across the card were a filmstrip; six at a set size
+                          are a pile you flick through, and the sixth being
+                          half off the edge is what says there are more. */}
+                      <div
+                        className="flex gap-2 overflow-x-auto pb-1"
+                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                      >
+                        {strip.map((s, i) => (
+                          <Link key={i} href={`/club/${club.slug}`} className="block w-[92px] flex-shrink-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={s.url}
+                              alt=""
+                              className="block h-[92px] w-[92px] rounded-sm object-cover"
+                              style={{ background: 'var(--cream-sunk)' }}
+                            />
+                            {s.caption && (
+                              <span className="mt-[5px] block truncate text-[11.5px] text-ink-500">{s.caption}</span>
+                            )}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
                   )}
 
                   {footer.kind === 'today' ? (
@@ -220,48 +258,79 @@ export default async function ClubsPage() {
                     // where to go.
                     <Link
                       href={`/e/${footer.event.slug}`}
-                      className="flex min-h-14 w-full items-center gap-2.5 px-3.5 py-2.5 text-left"
+                      className="flex w-full items-center gap-2.5 px-3.5 py-[11px] text-left"
                       style={{ background: 'var(--charcoal)' }}
                     >
                       <Icon name="location-dot" size={14} className="flex-shrink-0 text-honey-500" />
-                      <span className="min-w-0 flex-1">
-                        {/* The street at full weight, the venue name and the
-                            hours beneath. On the day this line has one job and
-                            it is to be the address; the name of the place is
-                            the one thing the person already knows. */}
-                        <span className="block truncate text-sm font-bold text-on-dark">
-                          {footer.event.area ?? footer.event.location ?? footer.event.title}
+                      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        {/* Where, then what and when. The time has become a
+                            place: you already know it is tonight, so the line
+                            that gets the weight is the one that gets you
+                            there, and the street trails the venue name rather
+                            than replacing it. */}
+                        <span className="truncate text-[13.5px] font-bold text-on-dark">
+                          {footer.event.location ?? footer.event.title}
+                          {footer.event.location && footer.event.area ? `, ${footer.event.area}` : ''}
                         </span>
-                        <span className="block truncate text-xs text-on-dark-mute">
-                          {footer.event.area ? `${footer.event.location} · ` : ''}
+                        <span className="truncate text-[11.5px] text-on-dark-mute">
                           {tf('clubs.todayLine', { title: footer.event.title, window: footer.window })}
                         </span>
                       </span>
-                      <Icon name="chevron-right" size={10} className="flex-shrink-0 text-on-dark-mute" />
+                      <Icon name="chevron-right" size={11} className="flex-shrink-0 text-on-dark-mute" />
                     </Link>
                   ) : footer.kind === 'next' ? (
-                    <Link
-                      href={`/e/${footer.event.slug}`}
-                      className="flex min-h-12 w-full items-center gap-2.5 border-t border-line-divider px-3.5 py-2.5 text-left"
-                    >
-                      <Icon name="calendar-day" size={13} className="flex-shrink-0 text-honey-700" />
-                      <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-ink-900">
-                        {footer.event.title}
-                      </span>
-                      <WhenPill at={footer.event.chosen_start} />
-                      <Icon name="chevron-right" size={10} className="flex-shrink-0 text-ink-300" />
-                    </Link>
+                    (() => {
+                      // Soon is decided by the one function that decides it
+                      // everywhere, not by re-subtracting dates here, and it
+                      // is what turns the row honey and swaps the calendar for
+                      // a clock.
+                      const soon = whenPill(footer.event.chosen_start, footer.event.status, now, lang)?.soon ?? false
+                      return (
+                        <Link
+                          href={`/e/${footer.event.slug}`}
+                          className={`flex min-h-12 w-full items-center gap-2.5 border-t px-3.5 py-2.5 text-left ${
+                            soon ? 'border-honey-500 bg-honey-50' : 'border-line-card bg-cream-sunk'
+                          }`}
+                        >
+                          <Icon
+                            name={soon ? 'clock' : 'calendar-day'}
+                            size={12}
+                            className="flex-shrink-0 text-honey-700"
+                          />
+                          <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-ink-900">
+                            {footer.event.title}
+                          </span>
+                          <WhenPill at={footer.event.chosen_start} />
+                          {/* a span, never a start: fmtSpan says "desde" when
+                              it has to fall back to one */}
+                          {footer.event.chosen_start && (
+                            <span className="flex-shrink-0 whitespace-nowrap text-[12.5px] text-ink-500">
+                              {fmtSpan(footer.event.chosen_start, footer.event.chosen_end, lang)}
+                            </span>
+                          )}
+                          <Icon name="chevron-right" size={11} className="flex-shrink-0 text-ink-300" />
+                        </Link>
+                      )
+                    })()
                   ) : (
-                    <div className="flex min-h-12 items-center gap-2.5 border-t border-line-divider px-3.5 py-2.5">
-                      <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink-300">
+                    // Not a button. There is nothing to open, so the row is a
+                    // sentence, and only somebody who could fix it gets the
+                    // action beside it.
+                    <div
+                      className="flex min-h-11 items-center gap-2.5 border-t border-line-card px-3.5 py-2"
+                      style={{ background: 'var(--cream-sunk)' }}
+                    >
+                      <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink-500">
                         {quietSince(footer.since, lang)}
                       </span>
-                      <Link
-                        href={`/club/${club.slug}/new-event`}
-                        className="tap -my-2 flex-shrink-0 py-2 text-[12.5px] font-bold text-honey-800"
-                      >
-                        {t('clubs.newEvent')}
-                      </Link>
+                      {canStart && (
+                        <Link
+                          href={`/club/${club.slug}/new-event`}
+                          className="tap -my-2 flex-shrink-0 py-2 text-[12.5px] font-bold text-honey-800"
+                        >
+                          {t('clubs.newEvent')}
+                        </Link>
+                      )}
                     </div>
                   )}
                 </div>
@@ -279,17 +348,23 @@ export default async function ClubsPage() {
 
           {quiet.length > 0 && (
             <section className="mt-6">
-              <p className="eyebrow mb-2.5">{t('clubs.quiet')}</p>
-              <div className="overflow-hidden rounded-md border border-line-card bg-paper">
-                {quiet.map(({ m, club }, i) => (
+              {/* The caption rides the header's action slot rather than
+                  labelling each row: it is one fact about the whole group, and
+                  repeating "sin nada planeado" down a column of clubs says it
+                  four times. */}
+              <SectionHeader action={<span className="text-[12px] text-ink-300">{t('clubs.quiet')}</span>}>
+                {t('clubs.more')}
+              </SectionHeader>
+              <div className="flex flex-col gap-[7px]">
+                {quiet.map(({ m, club }) => (
                   <Link
                     key={m.club_id}
                     href={`/club/${club.slug}`}
-                    className={`flex min-h-12 items-center gap-2.5 px-3.5 py-2.5 ${i ? 'border-t border-line-divider' : ''}`}
+                    className="flex min-h-[46px] items-center gap-[11px] rounded-md border border-line-card bg-paper px-[13px] py-[9px]"
                   >
                     <HexAvatar name={club.name} src={club.avatar_url} size={26} />
                     <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-ink-900">{club.name}</span>
-                    <FaceStack people={facesOf.get(m.club_id) ?? []} total={countOf.get(m.club_id)} size={18} max={3} />
+                    <FaceStack people={facesOf.get(m.club_id) ?? []} total={countOf.get(m.club_id)} size={17} max={3} />
                     <Icon name="chevron-right" size={10} className="flex-shrink-0 text-ink-300" />
                   </Link>
                 ))}

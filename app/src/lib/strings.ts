@@ -73,6 +73,8 @@ export const ES = {
   'clubs.newEvent': 'Nuevo evento',
   'clubs.empty.title': 'Todavía no estás en ningún club',
   'clubs.empty.hint': 'Pide a quien organiza que te invite, o empieza el tuyo.',
+  'clubs.lede': 'Tus clubes y lo que sigue en cada uno.',
+  'clubs.more': 'Más clubes',
 
   // -- events ---------------------------------------------------------------
   'events.title': 'Eventos',
@@ -1286,6 +1288,8 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'clubs.newEvent': 'New event',
   'clubs.empty.title': "You're not in a club yet",
   'clubs.empty.hint': 'Ask an organizer to invite you, or start your own.',
+  'clubs.lede': 'Your clubs, and what each one is doing next.',
+  'clubs.more': 'More clubs',
 
   // -- events ---------------------------------------------------------------
   'events.title': 'Events',
