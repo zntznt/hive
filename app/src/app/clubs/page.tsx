@@ -19,8 +19,8 @@ import { getT } from '@/lib/current-lang'
 // The Clubs tab.
 //
 // A club is a place, so each one gets a card built from the same parts as its
-// own front door: honeycomb head, hexagon mark, name, the people, and a footer
-// that says what it is doing next.
+// own front door: the club's cover (or the honeycomb when it has none), hexagon
+// mark, name, the people, and a footer that says what it is doing next.
 //
 // The card's height is the information. A club with something on tonight is
 // tall and loud and ends in an address; a club that has gone quiet is one head
@@ -175,26 +175,45 @@ export default async function ClubsPage() {
                   // off the page than the rest of the stack
                   style={tonight ? { boxShadow: '0 2px 10px rgba(43,38,32,.10)' } : undefined}
                 >
-                  {/* The club page's head, shrunk. Honeycomb, dissolving into
-                      the card body so it reads as one surface rather than a
-                      banner stuck on top of a list row, and the height is the
-                      head's own padding rather than a fixed 5:2 strip: that is
-                      what lets a quiet club be short and a busy one tall.
+                  {/* The club page's head, shrunk. Same surface as the front
+                      door: the club's cover when it has one, the honeycomb when
+                      it does not, dissolving into the card body so it reads as
+                      one object rather than a banner stuck on top of a list
+                      row. The height stays the head's own padding rather than a
+                      fixed 5:2 strip, which is what lets a quiet club be short
+                      and a busy one tall.
 
-                      No cover photograph here, deliberately. The photo is the
-                      club page's, and giving the tab the same 5:2 cover made
-                      one card a copy of the other one navigation later. The
-                      tab is texture; the front door is the picture. */}
+                      The cover was left off here once, on the argument that the
+                      tab should be texture and the club page the picture. That
+                      is a club being described by the app instead of by itself:
+                      a club that went and chose a photograph showed the same
+                      beige honeycomb as every club that never did, and the one
+                      screen listing all of them was the one that told them
+                      apart the least. `cover` on a head this short keeps the
+                      middle band of the frame, so the two heads crop
+                      differently, which is the point. Nobody sees them side by
+                      side, and the tab is a smaller window on the same picture.
+
+                      The scrim opens at .15 over a photograph and 0 over the
+                      texture, the same pair of stops the front door uses and
+                      for the same reason: over texture the dissolve IS the
+                      look, over a picture it would be mud. */}
                   <Link
                     href={`/club/${club.slug}`}
                     className="block w-full text-center"
-                    style={{ backgroundColor: 'var(--cream)', backgroundImage: 'var(--honeycomb)' }}
+                    style={{
+                      backgroundColor: 'var(--cream)',
+                      backgroundImage: club.banner_url ? `url(${club.banner_url})` : 'var(--honeycomb)',
+                      backgroundSize: club.banner_url ? 'cover' : 'auto',
+                      backgroundPosition: 'center',
+                    }}
                   >
                     <span
                       className={`block px-3.5 ${hush ? 'pb-[9px] pt-[10px]' : 'pb-[13px] pt-[14px]'}`}
                       style={{
-                        background:
-                          'linear-gradient(180deg, rgba(251,247,239,0) 0%, rgba(251,247,239,.86) 44%, var(--paper) 100%)',
+                        background: club.banner_url
+                          ? 'linear-gradient(180deg, rgba(251,247,239,.15) 0%, rgba(251,247,239,.88) 44%, var(--paper) 100%)'
+                          : 'linear-gradient(180deg, rgba(251,247,239,0) 0%, rgba(251,247,239,.86) 44%, var(--paper) 100%)',
                       }}
                     >
                       {/* The paper hex reads as a ~3px rim around the avatar,

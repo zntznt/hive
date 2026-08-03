@@ -1,10 +1,10 @@
 // What shape a club cover is framed at.
 //
 // This is the cropper's number and nothing else now. Nothing draws a fixed
-// strip: the club page header paints the photo as the card's own background
-// under a scrim, and the card's height is whatever its name, meta line and
-// description come to. The Clubs tab does not show the cover at all, it wears
-// the honeycomb.
+// strip: both heads paint the photo as the card's own background under a
+// scrim, and each card's height is whatever its contents come to. The club
+// page's is a name, a meta line and a description; the Clubs tab's is a
+// smaller mark and no description, so the same photo is cropped harder there.
 //
 // So the old promise, that what you framed was pixel-for-pixel what you got,
 // is gone, and it is worth being plain about why rather than leaving the
