@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { requireProfile } from '@/lib/gate'
 import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
 import { HexAvatar } from '@/components/ui/HexAvatar'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Icon } from '@/components/ui/Icon'
@@ -73,7 +74,7 @@ export default async function ClubsPage() {
           // the title comes back with the photo because each tile is captioned
           // with the night it came from: six squares with no captions are a
           // gallery, and this is a club telling you what it has been doing
-          .select('path, created_at, events!inner(club_id, title)')
+          .select('path, created_at, events!inner(club_id, title, slug)')
           .in('events.club_id', clubIds)
           .order('created_at', { ascending: false })
           .limit(120)
@@ -95,14 +96,14 @@ export default async function ClubsPage() {
   }
 
   // Six recent photos per club, signed in one call rather than one per club.
-  type PhotoRow = { path: string; events: { club_id: string; title: string } | null }
-  type Shot = { path: string; caption: string }
+  type PhotoRow = { path: string; events: { club_id: string; title: string; slug: string } | null }
+  type Shot = { path: string; caption: string; slug: string }
   const shotsOf = new Map<string, Shot[]>()
   for (const p of (photos ?? []) as unknown as PhotoRow[]) {
     const cid = p.events?.club_id
     if (!cid) continue
     const have = shotsOf.get(cid) ?? []
-    if (have.length < 6) shotsOf.set(cid, [...have, { path: p.path, caption: p.events?.title ?? '' }])
+    if (have.length < 6) shotsOf.set(cid, [...have, { path: p.path, caption: p.events?.title ?? '', slug: p.events?.slug ?? '' }])
   }
   const allPaths = [...shotsOf.values()].flat().map((s) => s.path)
   const signed = new Map<string, string>()
@@ -152,8 +153,8 @@ export default async function ClubsPage() {
               const faces = facesOf.get(m.club_id) ?? []
               const total = countOf.get(m.club_id) ?? faces.length
               const strip = (shotsOf.get(m.club_id) ?? [])
-                .map((s) => ({ url: signed.get(s.path), caption: s.caption }))
-                .filter((s): s is { url: string; caption: string } => !!s.url)
+                .map((s) => ({ url: signed.get(s.path), caption: s.caption, slug: s.slug }))
+                .filter((s): s is { url: string; caption: string; slug: string } => !!s.url)
               const tonight = footer.kind === 'today'
               // Height tracks how much is going on. A quiet club keeps its
               // card but wears a smaller mark and a tighter head, and never a
@@ -178,25 +179,36 @@ export default async function ClubsPage() {
                   <Link href={`/club/${club.slug}`} className="block w-full text-center">
                     {/* Crisp cover strip with the mark straddling its edge, the
                         same profile shape as the club page. The photo used to
-                        fade into the card and any real cover came out muddy. */}
-                    <span
-                      aria-hidden="true"
-                      className={`block ${BANNER_ASPECT_CLASS} ${
-                        club.banner_url ? 'bg-cover bg-center' : 'bg-repeat'
-                      }`}
-                      style={
-                        club.banner_url
-                          ? { backgroundImage: `url(${club.banner_url})` }
-                          : { backgroundColor: 'var(--cream)', backgroundImage: 'var(--honeycomb)' }
-                      }
-                    />
-                    <span className={`block px-3.5 ${hush ? 'pb-[9px]' : 'pb-[13px]'}`}>
+                        fade into the card and any real cover came out muddy.
+
+                        A quiet club does not get one. The strip is 5:2, which
+                        is 184px on this column, and it sat outside every branch
+                        of the shape logic: a club with no events and no photos
+                        was spending 184px saying so and coming out ~85% the
+                        height of a club with a night on. That inverts the one
+                        rule this card exists to express, and it inverts it for
+                        every brand new club, which is quiet by definition on
+                        day one. Nothing to be tall about, no cover. */}
+                    {!hush && (
+                      <span
+                        aria-hidden="true"
+                        className={`block ${BANNER_ASPECT_CLASS} ${
+                          club.banner_url ? 'bg-cover bg-center' : 'bg-repeat'
+                        }`}
+                        style={
+                          club.banner_url
+                            ? { backgroundImage: `url(${club.banner_url})` }
+                            : { backgroundColor: 'var(--cream)', backgroundImage: 'var(--honeycomb)' }
+                        }
+                      />
+                    )}
+                    <span className={`block px-3.5 ${hush ? 'pb-[9px] pt-[10px]' : 'pb-[13px]'}`}>
                       {/* The paper hex reads as a ~3px rim around the avatar,
                           which is what separates the mark from whatever the
                           cover photograph happens to be. */}
                       <span
                         className={`relative mx-auto grid place-items-center bg-paper [clip-path:polygon(50%_0,100%_25%,100%_75%,50%_100%,0_75%,0_25%)] ${
-                          hush ? '-mt-[22px] h-[48px] w-[44px]' : '-mt-[30px] h-[66px] w-[60px]'
+                          hush ? 'h-[48px] w-[44px]' : '-mt-[30px] h-[66px] w-[60px]'
                         }`}
                       >
                         <HexAvatar name={club.name} src={club.avatar_url} size={hush ? 40 : 54} />
@@ -233,12 +245,22 @@ export default async function ClubsPage() {
                         className="flex gap-2 overflow-x-auto pb-1"
                         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                       >
+                        {/* Each tile goes to ITS event, not back to the club.
+                            Six targets all pointing at the page you are already
+                            on is six no-ops, and a photo in Hive always belongs
+                            to a night: that is the whole reason it can be
+                            captioned. The photograph is content, so it gets a
+                            real alt; only the cover above is decorative. */}
                         {strip.map((s, i) => (
-                          <Link key={i} href={`/club/${club.slug}`} className="block w-[92px] flex-shrink-0">
+                          <Link
+                            key={i}
+                            href={s.slug ? `/e/${s.slug}` : `/club/${club.slug}`}
+                            className="block w-[92px] flex-shrink-0"
+                          >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={s.url}
-                              alt=""
+                              alt={s.caption ? tf('clubs.photoAlt', { title: s.caption }) : ''}
                               className="block h-[92px] w-[92px] rounded-sm object-cover"
                               style={{ background: 'var(--cream-sunk)' }}
                             />
@@ -317,18 +339,24 @@ export default async function ClubsPage() {
                     // sentence, and only somebody who could fix it gets the
                     // action beside it.
                     <div
-                      className="flex min-h-11 items-center gap-2.5 border-t border-line-card px-3.5 py-2"
+                      className="flex items-center gap-2.5 border-t border-line-card px-3.5 py-1.5"
                       style={{ background: 'var(--cream-sunk)' }}
                     >
                       <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink-500">
                         {quietSince(footer.since, lang)}
                       </span>
+                      {/* A real button, at a real size. This was a bare link
+                          with `-my-2 py-2` inside a 44px row, so about 32px of
+                          target against a floor the rest of the app holds, and
+                          it is the ONLY action on a brand new club's card: the
+                          control somebody needs most on their first day was the
+                          hardest one on the screen to hit. The row grows to fit
+                          it rather than the other way round. */}
                       {canStart && (
-                        <Link
-                          href={`/club/${club.slug}/new-event`}
-                          className="tap -my-2 flex-shrink-0 py-2 text-[12.5px] font-bold text-honey-800"
-                        >
-                          {t('clubs.newEvent')}
+                        <Link href={`/club/${club.slug}/new-event`} className="flex-shrink-0">
+                          <Button variant="ghost" size="sm">
+                            {t('clubs.newEvent')}
+                          </Button>
                         </Link>
                       )}
                     </div>

@@ -75,6 +75,7 @@ export const ES = {
   'clubs.empty.hint': 'Pide a quien organiza que te invite, o empieza el tuyo.',
   'clubs.lede': 'Tus clubes y lo que sigue en cada uno.',
   'clubs.more': 'Más clubes',
+  'clubs.photoAlt': 'Foto de {title}',
 
   // -- events ---------------------------------------------------------------
   'events.title': 'Eventos',
@@ -1291,6 +1292,7 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'clubs.empty.hint': 'Ask an organizer to invite you, or start your own.',
   'clubs.lede': 'Your clubs, and what each one is doing next.',
   'clubs.more': 'More clubs',
+  'clubs.photoAlt': 'Photo from {title}',
 
   // -- events ---------------------------------------------------------------
   'events.title': 'Events',
