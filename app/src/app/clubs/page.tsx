@@ -12,7 +12,6 @@ import { Page, PageHeader } from '@/components/ui/Page'
 import { WhenPill } from '@/components/ui/WhenPill'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { clubFooter, quietSince, type CardEvent } from '@/lib/club-card'
-import { BANNER_ASPECT_CLASS } from '@/lib/banner'
 import { whenPill } from '@/lib/when'
 import { fmtSpan } from '@/lib/time'
 import { getT } from '@/lib/current-lang'
@@ -176,39 +175,33 @@ export default async function ClubsPage() {
                   // off the page than the rest of the stack
                   style={tonight ? { boxShadow: '0 2px 10px rgba(43,38,32,.10)' } : undefined}
                 >
-                  <Link href={`/club/${club.slug}`} className="block w-full text-center">
-                    {/* Crisp cover strip with the mark straddling its edge, the
-                        same profile shape as the club page. The photo used to
-                        fade into the card and any real cover came out muddy.
+                  {/* The club page's head, shrunk. Honeycomb, dissolving into
+                      the card body so it reads as one surface rather than a
+                      banner stuck on top of a list row, and the height is the
+                      head's own padding rather than a fixed 5:2 strip: that is
+                      what lets a quiet club be short and a busy one tall.
 
-                        A quiet club does not get one. The strip is 5:2, which
-                        is 184px on this column, and it sat outside every branch
-                        of the shape logic: a club with no events and no photos
-                        was spending 184px saying so and coming out ~85% the
-                        height of a club with a night on. That inverts the one
-                        rule this card exists to express, and it inverts it for
-                        every brand new club, which is quiet by definition on
-                        day one. Nothing to be tall about, no cover. */}
-                    {!hush && (
-                      <span
-                        aria-hidden="true"
-                        className={`block ${BANNER_ASPECT_CLASS} ${
-                          club.banner_url ? 'bg-cover bg-center' : 'bg-repeat'
-                        }`}
-                        style={
-                          club.banner_url
-                            ? { backgroundImage: `url(${club.banner_url})` }
-                            : { backgroundColor: 'var(--cream)', backgroundImage: 'var(--honeycomb)' }
-                        }
-                      />
-                    )}
-                    <span className={`block px-3.5 ${hush ? 'pb-[9px] pt-[10px]' : 'pb-[13px]'}`}>
+                      No cover photograph here, deliberately. The photo is the
+                      club page's, and giving the tab the same 5:2 cover made
+                      one card a copy of the other one navigation later. The
+                      tab is texture; the front door is the picture. */}
+                  <Link
+                    href={`/club/${club.slug}`}
+                    className="block w-full text-center"
+                    style={{ backgroundColor: 'var(--cream)', backgroundImage: 'var(--honeycomb)' }}
+                  >
+                    <span
+                      className={`block px-3.5 ${hush ? 'pb-[9px] pt-[10px]' : 'pb-[13px] pt-[14px]'}`}
+                      style={{
+                        background:
+                          'linear-gradient(180deg, rgba(251,247,239,0) 0%, rgba(251,247,239,.86) 44%, var(--paper) 100%)',
+                      }}
+                    >
                       {/* The paper hex reads as a ~3px rim around the avatar,
-                          which is what separates the mark from whatever the
-                          cover photograph happens to be. */}
+                          which is what separates the mark from the texture. */}
                       <span
                         className={`relative mx-auto grid place-items-center bg-paper [clip-path:polygon(50%_0,100%_25%,100%_75%,50%_100%,0_75%,0_25%)] ${
-                          hush ? 'h-[48px] w-[44px]' : '-mt-[30px] h-[66px] w-[60px]'
+                          hush ? 'h-[48px] w-[44px]' : 'h-[66px] w-[60px]'
                         }`}
                       >
                         <HexAvatar name={club.name} src={club.avatar_url} size={hush ? 40 : 54} />

@@ -230,6 +230,7 @@ export default async function ClubPage({
         faces={rosterFaces}
         total={(roster ?? []).length}
         links={links}
+        upcoming={upcoming.length}
         foldedByDefault={hasEventToday}
         cover={isManager ? <BannerUpload clubId={club.id} slug={slug} /> : undefined}
         picture={
