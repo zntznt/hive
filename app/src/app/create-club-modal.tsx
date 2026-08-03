@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { useT } from '@/components/ui/LangProvider'
 import { Button } from '@/components/ui/Button'
+import { Icon } from '@/components/ui/Icon'
 import { Input } from '@/components/ui/Input'
 import { createClub } from '@/app/actions'
 
@@ -25,16 +26,17 @@ export function CreateClubButton() {
 
   return (
     <>
-      {/* A compact header action, not a full-width block. It sits in the
-          PageHeader's action slot beside the title, the same place "Nuevo
-          evento" sits on the club page; creating a club is rare and does not
-          earn a full row above the clubs you already have. */}
-      <button
-        onClick={() => setOpen(true)}
-        className="tap inline-flex min-h-11 flex-shrink-0 items-center gap-1.5 rounded-pill border-[1.5px] border-line-input bg-paper px-3.5 text-[13px] font-extrabold text-ink-700"
-      >
-        <span aria-hidden="true">+</span> {tr('club.create')}
-      </button>
+      {/* The full-width secondary block the kit draws, with the hint under it.
+          It was a compact pill on the reasoning that creating a club is rare,
+          which is true and is beside the point: the one screen where somebody
+          has no clubs is the one where this is the only thing to do, and a
+          pill among a stack of cards reads as a filter rather than the way in.
+          The sentence under it is what the modal would have told them anyway,
+          said before they commit rather than after. */}
+      <Button variant="secondary" block icon={<Icon name="plus" size={12} />} onClick={() => setOpen(true)}>
+        {tr('club.create')}
+      </Button>
+      <p className="mt-2.5 text-xs leading-relaxed text-ink-300">{tr('clubs.createHint')}</p>
       {open && (
         <Modal
           open

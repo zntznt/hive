@@ -235,14 +235,17 @@ export default async function Home() {
        * bold and underlined under your own name. Signing out lives in Tú with
        * the rest of the account, where the reference puts it; the avatar is
        * redundant beside a greeting that already names you. */}
-      {/* The greeting is the page's own display line, not a status readout.
-          Set at 13px and right-aligned against the wordmark it read as a
-          system bar, and it is the first thing on the first screen. */}
-      <header className="mb-[18px]">
+      {/* Wordmark left, greeting right, one row. It was stacked with the
+          greeting as a 22px display line under the mark, on the argument that
+          a name deserves to be the page's headline. The kit disagrees and it
+          is right: the headline on this screen is what is on your plate, and a
+          22px "hola, Marta" pushes that below the fold to say something the
+          reader already knows. Small, muted, out of the way. */}
+      <header className="mb-[18px] mt-1 flex items-center gap-2.5">
         <BrandMark size="sm" />
-        <h1 className="mt-2.5 font-display text-[22px] font-extrabold leading-tight text-ink-900">
+        <span className="ml-auto text-[13px] text-ink-500">
           {tf('home.greeting', { name: profile.display_name })}
-        </h1>
+        </span>
       </header>
 
       {/* Search sits directly under the header, above everything. It is the

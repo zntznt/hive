@@ -6,8 +6,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Icon } from '@/components/ui/Icon'
 import { FaceStack } from '@/components/ui/FaceStack'
 import { type AvatarUser } from '@/components/ui/Avatar'
-import { BANNER_ASPECT_CLASS } from '@/lib/banner'
-import { useT } from '@/components/ui/LangProvider'
+import { useT, useTf } from '@/components/ui/LangProvider'
 
 // The club's front door, and the one card that changes shape with the day.
 //
@@ -33,6 +32,7 @@ export function ClubHeader({
   faces,
   total,
   links,
+  upcoming,
   cover,
   picture,
   edit,
@@ -46,6 +46,8 @@ export function ClubHeader({
   faces: AvatarUser[]
   total: number
   links: { label: string; url: string }[]
+  // how many events this club still has coming, for the meta line
+  upcoming: number
   // the manager-only affordances, passed in so this stays presentational and
   // the uploads keep owning their own modals
   cover?: ReactNode
@@ -56,6 +58,7 @@ export function ClubHeader({
   foldedByDefault?: boolean
 }) {
   const tr = useT()
+  const tf = useTf()
   const [open, setOpen] = useState(!foldedByDefault)
   // A description is a paragraph, not a field, so it is clamped rather than
   // truncated and the toggle only exists once there is something behind the
@@ -94,47 +97,51 @@ export function ClubHeader({
     )
   }
 
-  // The familiar shape: a cover strip, the picture straddling its bottom edge,
-  // everything centred under it. It reads as a club home immediately because it
-  // reads like every profile people already know.
+  // One card, one surface. The banner (or the honeycomb when there is none) is
+  // the card's own background, and a single gradient over it carries the eye
+  // from the texture down into paper, so the picture, the name and the
+  // description all sit in the same object rather than on a strip with a
+  // separate panel bolted underneath.
   //
-  // The banner used to fade into the content, on the theory that it should read
-  // as one surface. With the honeycomb texture that was fine; with a real photo
-  // it turned any cover into muddy beige, because the fade hits .9 opacity by
-  // the midpoint and eats the image. So the photo is a crisp strip now and the
-  // content sits on paper below it, the avatar bridging the two. No photo means
-  // the honeycomb texture, which is what the strip is for.
-  return (
-    <section className="relative mb-[26px] mt-1 overflow-hidden rounded-lg border border-line-card bg-paper shadow-card text-center">
-      {/* `cover` is for the photograph and only the photograph. The honeycomb
-          is a 28x49 tile meant to repeat, and stretching one copy of it across
-          the whole strip drew two fat vertical bars: a club with no cover was
-          wearing a smear rather than a texture. */}
-      <div
-        className={`relative ${BANNER_ASPECT_CLASS} ${bannerUrl ? 'bg-cover bg-center' : 'bg-repeat'}`}
-        style={
-          bannerUrl
-            ? { backgroundImage: `url(${bannerUrl})` }
-            : { backgroundColor: 'var(--cream)', backgroundImage: 'var(--honeycomb)' }
-        }
-      >
-        {cover && <div className="absolute right-[3px] top-[3px]">{cover}</div>}
-        {foldedByDefault && (
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            aria-expanded
-            className="tap absolute left-2.5 top-2.5 inline-flex min-h-11 items-center rounded-pill bg-charcoal/55 px-2.5 text-xs font-bold text-on-dark"
-          >
-            {tr('common.hide')}
-          </button>
-        )}
-      </div>
+  // The fade was removed once, for a real reason: at .86 by the midpoint it
+  // eats a photograph and leaves muddy beige. That reason is answered by the
+  // start stop, not by deleting the fade. Over the texture it opens at 0, and
+  // the dissolve IS the look; over a photograph it opens at .15, so the top of
+  // the image stays a picture and only the bottom third is given up to make
+  // the text readable. Both cases were in the spec; only one of them was ever
+  // the problem.
+  const scrim = bannerUrl
+    ? 'linear-gradient(180deg, rgba(251,247,239,.15) 0%, rgba(251,247,239,.88) 46%, var(--paper) 100%)'
+    : 'linear-gradient(180deg, rgba(251,247,239,0) 0%, rgba(251,247,239,.86) 46%, var(--paper) 100%)'
 
-      <div className="px-4 pb-[14px]">
-        {/* pulled up so it straddles the strip's bottom edge, on a paper hex so
-            it separates cleanly from whatever the cover photo is */}
-        <span className="relative -mt-[42px] mx-auto grid h-[80px] w-[74px] place-items-center bg-paper [clip-path:polygon(50%_0,100%_25%,100%_75%,50%_100%,0_75%,0_25%)]">
+  return (
+    <section
+      className="relative mb-[26px] mt-1 overflow-hidden rounded-lg border border-line-card shadow-card text-center"
+      style={{
+        backgroundColor: 'var(--cream)',
+        backgroundImage: bannerUrl ? `url(${bannerUrl})` : 'var(--honeycomb)',
+        backgroundSize: bannerUrl ? 'cover' : 'auto',
+        backgroundPosition: 'center',
+      }}
+    >
+      {cover && <div className="absolute right-[3px] top-[3px] z-chrome">{cover}</div>}
+      {foldedByDefault && (
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          aria-expanded
+          className="tap absolute left-2.5 top-2.5 z-chrome inline-flex min-h-11 items-center rounded-pill bg-charcoal/55 px-2.5 text-xs font-bold text-on-dark"
+        >
+          {tr('common.hide')}
+        </button>
+      )}
+
+      <div className="px-4 pb-[14px] pt-[18px]" style={{ background: scrim }}>
+        {/* Sitting in the fade rather than straddling an edge. There is no
+            strip to straddle now: the texture is behind the whole card and
+            this lands in the middle of where it dissolves. On a paper hex so
+            it separates cleanly from whatever the cover photo is. */}
+        <span className="relative mx-auto inline-grid h-[80px] w-[74px] place-items-center bg-paper [clip-path:polygon(50%_0,100%_25%,100%_75%,50%_100%,0_75%,0_25%)]">
           {picture ?? <HexAvatar name={name} src={avatarUrl} size={68} />}
         </span>
 
@@ -144,13 +151,25 @@ export function ClubHeader({
           {edit}
         </span>
 
-        {/* The spec puts "N miembros · N próximos" here, and names that as one
-            of the two places this design disagrees with itself: the Clubs card
-            deleted those counts because the footer says what is on by name.
-            Resolved the way FaceStack's own note asks for, in faces, on both
-            screens. Without it the card was the one place where expanding
-            showed you LESS about the club than the folded strip did, which is
-            the wrong direction for a control whose whole job is more. */}
+        {/* The line the front door was missing. The Clubs tab drops these
+            counts because its footer names the next event outright; the club's
+            own page has no such footer, and this is where somebody decides
+            whether they are in the right place. The middots are decoration and
+            are hidden from a screen reader. */}
+        <span className="mt-[3px] inline-flex flex-wrap items-center justify-center gap-[7px] text-[12.5px] text-ink-500">
+          <span>{tf(total === 1 ? 'club.members1' : 'club.membersN', { n: total })}</span>
+          <span aria-hidden="true">·</span>
+          <span>{tf(upcoming === 1 ? 'club.upcoming1' : 'club.upcomingN', { n: upcoming })}</span>
+          {role !== 'member' && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>{tr(role === 'admin' ? 'club.youAreAdmin' : 'club.youAreOrganizer')}</span>
+            </>
+          )}
+        </span>
+
+        {/* Faces stay too. They are who, the line above is how many, and the
+            two answer different questions. */}
         <span className="mt-1.5 flex justify-center">
           <FaceStack people={faces} total={total} size={20} max={4} />
         </span>

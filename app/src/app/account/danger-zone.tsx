@@ -22,13 +22,17 @@ export default function DangerZone() {
       <div className="mb-2.5 text-xs font-bold uppercase tracking-wide text-danger">
         {tr('danger.zone')}
       </div>
-      <div className="flex flex-wrap gap-2.5">
-        <form action={signOut}>
-          <Button type="submit" variant="secondary" size="sm">
+      {/* Two equal halves, not a wrapping row. Flex sized each button to its
+          own label, so "Cerrar sesión" and "Eliminar cuenta" came out different
+          widths and the pair read as a primary and an afterthought. They are
+          two ends of one decision and the grid says so. */}
+      <div className="grid grid-cols-2 gap-2.5">
+        <form action={signOut} className="contents">
+          <Button type="submit" variant="secondary" size="sm" block>
             {tr('danger.signout')}
           </Button>
         </form>
-        <Button type="button" variant="danger" size="sm" onClick={() => setOpen(true)}>
+        <Button type="button" variant="danger" size="sm" block onClick={() => setOpen(true)}>
           {tr('danger.delete')}
         </Button>
       </div>
