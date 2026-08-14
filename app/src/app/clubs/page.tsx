@@ -387,7 +387,7 @@ export default async function ClubsPage() {
           </div>
 
           {quiet.length > 0 && (
-            <section className="mt-6">
+            <section className="mt-[26px]">
               {/* The caption rides the header's action slot rather than
                   labelling each row: it is one fact about the whole group, and
                   repeating "sin nada planeado" down a column of clubs says it

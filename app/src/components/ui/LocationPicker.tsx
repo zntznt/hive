@@ -189,7 +189,7 @@ export function LocationPicker({
     </span>
   )
 
-  const groupLabel = 'block bg-paper px-[13px] pb-1 pt-2 text-[10.5px] font-bold uppercase tracking-wide text-ink-300'
+  const groupLabel = 'block bg-paper px-[13px] pb-1 pt-2 text-[10.5px] font-bold uppercase tracking-label text-ink-300'
 
   if (picked) {
     return (

@@ -40,11 +40,16 @@ const isEmail = (v: string) => v.includes('@')
 // English screen, typed their address, and was sent a Spanish email about it.
 // Migration 0053 added an English `signin_code` template that this path never
 // reads, so the row is the record and these three keys are the copy.
+// The two greys are the palette's, written out as hex because an email client
+// has no stylesheet to read a token from. They were #231a12 and #6b5b4b, two
+// browns in no palette and both redder and darker than the screen this hands
+// somebody to, which made the first Hive surface a new member ever sees the
+// one that matches nothing. `--ink-900` and `--ink-700`, verbatim.
 function signinEmailHtml(code: string, lead: string, foot: string) {
-  return `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:420px;margin:0 auto;padding:24px;color:#231a12">
+  return `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:420px;margin:0 auto;padding:24px;color:#2b2620">
   <p style="font-size:15px;line-height:1.5;margin:0 0 18px">${lead}</p>
-  <p style="font-size:34px;font-weight:800;letter-spacing:.22em;margin:0 0 18px;color:#231a12">${code}</p>
-  <p style="font-size:13.5px;line-height:1.6;color:#6b5b4b;margin:0">
+  <p style="font-size:34px;font-weight:800;letter-spacing:.22em;margin:0 0 18px;color:#2b2620">${code}</p>
+  <p style="font-size:13.5px;line-height:1.6;color:#6b6459;margin:0">
     ${foot}
   </p>
 </div>`

@@ -104,7 +104,7 @@ export function TemplateRow({
         <div className="grid grid-cols-1 gap-3 px-3.5 pb-3.5 pl-[31px] sm:grid-cols-2">
           {email && (
             <form action={updateNotificationTemplate.bind(null, 'email', tplKey, 'es')} className="flex flex-col gap-1.5">
-              <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-ink-300">{tr('notif.email')}</span>
+              <span className="text-[10.5px] font-extrabold uppercase tracking-label text-ink-300">{tr('notif.email')}</span>
               <input
                 name="subject"
                 defaultValue={email.subject ?? ''}
@@ -117,7 +117,7 @@ export function TemplateRow({
           )}
           {emailEn && (
             <form action={updateNotificationTemplate.bind(null, 'email', tplKey, 'en')} className="flex flex-col gap-1.5">
-              <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-ink-300">
+              <span className="text-[10.5px] font-extrabold uppercase tracking-label text-ink-300">
                 {tr('notif.email')} · EN
               </span>
               <input
@@ -133,7 +133,7 @@ export function TemplateRow({
           {whatsapp && (
             <div className="flex flex-col gap-1.5">
               <form action={updateNotificationTemplate.bind(null, 'whatsapp', tplKey, 'es')} className="flex flex-col gap-1.5">
-                <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-ink-300">{tr('notif.whatsapp')}</span>
+                <span className="text-[10.5px] font-extrabold uppercase tracking-label text-ink-300">{tr('notif.whatsapp')}</span>
                 <textarea name="body" defaultValue={whatsapp.body} rows={4} className="rounded-sm border border-line-input bg-paper p-1.5 text-xs text-ink-900" />
                 <button className="tap self-start text-xs font-bold text-honey-700">{tr('common.save')}</button>
               </form>

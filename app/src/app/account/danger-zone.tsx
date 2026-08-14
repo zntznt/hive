@@ -19,7 +19,7 @@ export default function DangerZone() {
 
   return (
     <div className="mt-[26px] rounded-lg border border-danger-bg bg-paper p-4">
-      <div className="mb-2.5 text-xs font-bold uppercase tracking-wide text-danger">
+      <div className="mb-2.5 text-xs font-bold uppercase tracking-label text-danger">
         {tr('danger.zone')}
       </div>
       {/* Two equal halves, not a wrapping row. Flex sized each button to its

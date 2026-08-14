@@ -39,9 +39,9 @@ export function PageHeader({
   children?: ReactNode
 }) {
   return (
-    <header className="mb-6">
+    <header className="mb-[18px]">
       <div className="flex items-baseline justify-between gap-3">
-        <h1 className="font-display text-xl font-bold leading-tight text-ink-900">{title}</h1>
+        <h1 className="font-display text-h1 font-bold leading-tight text-ink-900">{title}</h1>
         {action}
       </div>
       {lede && <p className="mt-1.5 text-[13px] leading-snug text-ink-500">{lede}</p>}

@@ -252,7 +252,7 @@ export default async function ClubPage({
         }
       />
 
-      <nav className="mb-4 flex flex-wrap items-center gap-1.5">
+      <nav className="mb-3 flex flex-wrap items-center gap-1.5">
         <Link href={`/club/${slug}`}>
           <Chip active={!cat}>{t('club.allCategories')}</Chip>
         </Link>
@@ -316,7 +316,7 @@ export default async function ClubPage({
           >
             {tf('club.waitingAdmins', { n: (changeReqs ?? []).length })}
           </SectionHeader>
-          <div className="mb-6 flex flex-col gap-2">
+          <div className="mb-[26px] flex flex-col gap-2">
             {(changeReqs ?? []).map((r) => {
               const requester = r.users as unknown as { display_name: string } | null
               const payload = r.payload as Record<string, string>
@@ -382,7 +382,7 @@ export default async function ClubPage({
           >
             {tf('club.joinRequests', { n: (joinReqs ?? []).length })}
           </SectionHeader>
-          <div className="mb-6 flex flex-col gap-2">
+          <div className="mb-[26px] flex flex-col gap-2">
             {(joinReqs ?? []).map((r) => {
               const requester = r.users as unknown as AvatarUser | null
               return (
@@ -646,7 +646,7 @@ function EvCard({
           // On the day the pill carries the hours and the badge below carries
           // the day, because "Hoy 20:00" in one pill leaves nowhere to say
           // when it ends and you are about to need that.
-          <span className="flex-shrink-0 rounded-pill bg-honey-200 px-2.5 py-[5px] text-[11.5px] font-extrabold text-honey-900">
+          <span className="flex-shrink-0 rounded-pill bg-honey-200 px-2.5 py-[5px] text-[11.5px] font-extrabold text-honey-800">
             {fmtSpan(e.chosen_start, e.chosen_end, lang)}
           </span>
         ) : (

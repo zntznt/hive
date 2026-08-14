@@ -583,7 +583,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           one thing you can still get wrong is the thing you said you would
           bring. It is loud for exactly as long as it is unfinished. */}
       {isToday && myUnfinished && (
-        <div className="mb-5 flex items-center gap-2.5 rounded-lg border-[1.5px] border-honey-500 bg-honey-50 px-3.5 py-3">
+        <div className="mb-[26px] flex items-center gap-2.5 rounded-lg border-[1.5px] border-honey-500 bg-honey-50 px-3.5 py-3">
           <Icon name="basket-shopping" size={15} className="flex-shrink-0 text-honey-800" />
           <span className="min-w-0 flex-1 text-[13.5px] font-bold text-ink-900">
             {tf('event.youBring', { what: myUnfinished.title })}
@@ -593,7 +593,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       )}
 
       {isClubGuest && (
-        <div className="mb-4 rounded-lg border border-honey-200 bg-honey-50 px-4 py-3.5">
+        <div className="mb-[26px] rounded-lg border border-honey-200 bg-honey-50 px-4 py-3.5">
           <div className="flex items-start gap-2.5">
             <span aria-hidden="true" className="mt-0.5">
               <Icon name="hand" size={20} />
@@ -733,14 +733,14 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           )}
 
           {myRsvp?.status === 'in' && myWaitPos >= 0 && (
-            <p className="mt-3 rounded-md bg-honey-50 px-3 py-2 text-sm text-honey-900">
+            <p className="mt-3 rounded-md bg-honey-50 px-3 py-2 text-sm text-honey-800">
               {tf('event.waitlistNote', { n: myWaitPos + 1 })}
             </p>
           )}
 
           {waitlisted.length > 0 && (
             <div className="mt-3 rounded-md border border-line-card bg-paper p-3.5">
-              <div className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-500">{tf('event.waitlistHeader', { n: waitlisted.length })}</div>
+              <div className="mb-2 text-xs font-bold uppercase tracking-label text-ink-500">{tf('event.waitlistHeader', { n: waitlisted.length })}</div>
               <div className="flex flex-col gap-1.5">
                 {waitlisted.map((r, i) => (
                   <div key={r.user_id} className="flex items-center gap-2 text-sm text-ink-700">
