@@ -41,7 +41,7 @@ export function PendingAnswers({
       <p className="eyebrow mb-2.5">{tr('event.pendingAnswers')}</p>
       <div className="flex flex-col gap-2.5 rounded-lg border border-line-card bg-paper p-3.5">
         <div className="flex items-center gap-2.5">
-          <span className="min-w-0 flex-1 font-display text-[17px] font-bold text-ink-900">
+          <span className="min-w-0 flex-1 font-display text-[19px] font-bold leading-[1.2] text-ink-900">
             {people.length === 1 ? tr('event.notAnswered1') : tf('event.notAnsweredN', { n: people.length })}
           </span>
           <FaceStack people={people.map((p) => p.user)} total={people.length} size={25} max={5} />

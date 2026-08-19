@@ -93,15 +93,15 @@ export function Modal({
               type="button"
               onClick={onClose}
               aria-label={tr('common.close')}
-              className="tap grid h-8 w-8 flex-shrink-0 place-items-center rounded-sm bg-cream-sunk text-base leading-none text-ink-500"
+              className="tap grid h-8 w-8 flex-shrink-0 place-items-center rounded-sm bg-cream-sunk text-ink-500"
             >
-              <Icon name="xmark" size={12} />
+              <Icon name="xmark" size={16} />
             </button>
           )}
         </div>
         <div className="overflow-y-auto px-[22px] pb-5 pt-1">{children}</div>
         {footer && (
-          <div className="flex justify-end gap-2.5 border-t border-line-divider bg-paper px-[22px] py-3.5">
+          <div className="grid grid-flow-col auto-cols-fr gap-2.5 border-t border-line-divider bg-paper px-[22px] py-3.5">
             {footer}
           </div>
         )}

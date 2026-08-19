@@ -38,7 +38,7 @@ export function BugAvatar({
         color: 'var(--charcoal)',
       }}
     >
-      <Icon name={(BUG_OPTIONS as readonly string[]).includes(bug) ? (bug as IconName) : 'bug'} size={Math.round(size * 0.46)} />
+      <Icon name={(BUG_OPTIONS as readonly string[]).includes(bug) ? (bug as IconName) : 'bug'} size={Math.round(size * 0.44)} />
     </span>
   )
 }

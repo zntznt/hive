@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { Modal } from './Modal'
 import { Button } from './Button'
+import { Icon } from './Icon'
 import { useT } from '@/components/ui/LangProvider'
 
 // Crop & framing step shown right after picking an image, before it's
@@ -229,7 +230,7 @@ export function ImageCropModal({
           {shape === 'hex' && <HexMask frameW={frameW} frameH={frameH} />}
         </div>
         <label className="min-h-11 flex w-full items-center gap-2.5">
-          <span className="text-xs text-ink-300">−</span>
+          <span className="text-ink-300"><Icon name="magnifying-glass-minus" size={13} /></span>
           <input
             type="range"
             min={minZoom}
@@ -239,7 +240,7 @@ export function ImageCropModal({
             onChange={(e) => onZoom(parseFloat(e.target.value))}
             className="flex-1 accent-honey-500"
           />
-          <span className="text-xs text-ink-300">+</span>
+          <span className="text-ink-300"><Icon name="magnifying-glass-plus" size={13} /></span>
         </label>
       </div>
     </Modal>

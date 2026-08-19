@@ -28,10 +28,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {message && (
         <div
           role="status"
-          className="fixed bottom-7 left-1/2 z-toast flex max-w-[calc(100vw-40px)] -translate-x-1/2 items-center gap-2 rounded-pill px-[18px] py-2.5 text-[13.5px] font-bold text-on-dark shadow-raised"
+          className="fixed bottom-[calc(28px+var(--nav-inset,0px))] left-1/2 z-toast flex max-w-[calc(100vw-40px)] -translate-x-1/2 items-center gap-2 rounded-pill px-[18px] py-2.5 text-[13.5px] font-bold text-on-dark shadow-raised"
           style={{ background: 'var(--charcoal-2)' }}
         >
-          <Icon name="jar" size={15} />
+          <Icon name="circle-check" size={14} className="flex-shrink-0 text-honey-400" />
           <span className="overflow-hidden text-ellipsis whitespace-nowrap">{message}</span>
         </div>
       )}

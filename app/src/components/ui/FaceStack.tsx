@@ -47,7 +47,7 @@ export function FaceStack({
         ))}
       </span>
       {over > 0 && (
-        <span className="text-ink-300" style={{ fontSize: Math.max(11, size * 0.58) }}>
+        <span className="text-ink-500" style={{ fontSize: Math.max(11, size * 0.58) }}>
           +{over}
         </span>
       )}

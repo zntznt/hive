@@ -30,7 +30,7 @@ export function PlateItemRow({
   action?: ReactNode
 }) {
   return (
-    <div className="flex w-full items-center gap-3 rounded-md border border-line-card bg-paper px-[13px] py-[11px]">
+    <div className="flex w-full items-center gap-3 rounded-md border border-line-card bg-paper px-3.5 py-3">
       <span className={`grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-sm text-base ${TONES[tone]}`} aria-hidden="true">
         <Icon name={icon} size={17} />
       </span>

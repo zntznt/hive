@@ -68,7 +68,7 @@ export function TabBar({ plateCount = 0 }: { plateCount?: number }) {
         <span className="relative leading-none">
           <Icon name={tab.icon} size={17} />
           {tab.id === 'plate' && plateCount > 0 && (
-            <span className="absolute -top-1.5 left-[11px] box-border min-w-[15px] rounded-full border-[1.5px] border-paper bg-danger px-[3px] text-center text-[9.5px] font-extrabold leading-[15px] text-white">
+            <span className="absolute -top-1.5 left-[11px] box-border h-[15px] min-w-[15px] rounded-full border-[1.5px] border-paper bg-danger px-[3px] text-center text-[9.5px] font-extrabold leading-[15px] text-white">
               {plateCount > 9 ? '9+' : plateCount}
             </span>
           )}
@@ -81,6 +81,7 @@ export function TabBar({ plateCount = 0 }: { plateCount?: number }) {
   return (
     <nav
       aria-label="Principal"
+      data-tabbar
       className="fixed inset-x-0 bottom-0 z-nav border-t border-line-card bg-paper shadow-[0_-2px_14px_rgba(43,38,32,.07)]"
     >
       <div className="mx-auto box-border flex w-full max-w-[460px] items-center px-2 pb-[calc(6px+env(safe-area-inset-bottom))] pt-1">

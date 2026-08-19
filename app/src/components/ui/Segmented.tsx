@@ -30,7 +30,7 @@ export function Segmented<T extends string | number>({
   return (
     <div>
       {label && (
-        <label className="mb-1.5 block text-[12.5px] font-bold text-ink-700" htmlFor={`${name}-0`}>
+        <label className="mb-1.5 block text-[12.5px] font-semibold text-ink-700" htmlFor={`${name}-0`}>
           {label}
         </label>
       )}
@@ -38,7 +38,7 @@ export function Segmented<T extends string | number>({
       <div
         role="radiogroup"
         aria-label={label}
-        className="flex gap-1 rounded-md border-[1.5px] border-line-input bg-cream-sunk p-1"
+        className="flex gap-1.5 rounded-pill bg-cream-sunk p-1"
       >
         {options.map((o, i) => {
           const on = o.value === value
@@ -53,7 +53,7 @@ export function Segmented<T extends string | number>({
                 setValue(o.value)
                 onChange?.(o.value)
               }}
-              className={`h-10 flex-1 cursor-pointer rounded-[7px] px-2 text-[13px] font-extrabold leading-tight transition-colors ${
+              className={`h-10 flex-1 cursor-pointer rounded-pill px-2 text-[12.5px] font-bold leading-tight transition-colors ${
                 on ? 'bg-paper text-ink-900 shadow-card' : 'text-ink-500'
               }`}
             >

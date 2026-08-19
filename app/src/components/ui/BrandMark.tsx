@@ -50,10 +50,15 @@ const HEIGHTS = { sm: 32, md: 40, lg: 52 } as const
 const GAP = 0.14
 const WORDMARK = 0.74
 
+// Two colours, not one. On a dark surface the kit paints the mark honey and
+// the word white; painting both cream left the logo on the sign-in card, the
+// darkest and most-seen surface in the app, carrying no brand colour at all.
+// `ink` and `inherit` are genuinely one colour for both, so they say so twice
+// rather than growing a special case.
 const FILL = {
-  ink: 'var(--charcoal)',
-  cream: 'var(--cream)',
-  inherit: 'currentColor',
+  ink: { mark: 'var(--charcoal)', word: 'var(--charcoal)' },
+  cream: { mark: 'var(--honey-500)', word: 'var(--on-dark)' },
+  inherit: { mark: 'currentColor', word: 'currentColor' },
 } as const
 
 export function BrandMark({
@@ -83,12 +88,12 @@ export function BrandMark({
         {/* evenodd is what makes this one path: crossing counts give the ring,
             the field and the dots out of a single silhouette, so recolouring is
             one attribute and no variant can drift from another. */}
-        <path d={h >= FULL_MARK_FROM ? FULL : SILHOUETTE} fill={fill} fillRule="evenodd" />
+        <path d={h >= FULL_MARK_FROM ? FULL : SILHOUETTE} fill={fill.mark} fillRule="evenodd" />
       </svg>
       {showWordmark && (
         <span
           className="font-display font-extrabold leading-none"
-          style={{ fontSize: Math.round(h * WORDMARK), letterSpacing: '-0.01em', color: fill }}
+          style={{ fontSize: Math.round(h * WORDMARK), letterSpacing: '-0.01em', color: fill.word }}
         >
           Hive
         </span>

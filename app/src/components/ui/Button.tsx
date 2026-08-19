@@ -51,7 +51,7 @@ export function Button({
       disabled={disabled}
       className={`${block ? 'flex w-full' : 'inline-flex'} items-center justify-center gap-2 rounded-md leading-[1.1] transition-transform duration-150 ${
         display ? 'font-display font-bold' : 'font-body font-extrabold'
-      } ${PAD[size]} ${SKIN[variant]} ${disabled ? 'opacity-50 pointer-events-none' : 'cursor-pointer'} ${className}`}
+      } ${PAD[size]} ${SKIN[variant]} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${className}`}
       {...rest}
     >
       {icon && (

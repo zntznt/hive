@@ -119,6 +119,14 @@
   --z-modal: 100;
   --z-toast: 140;
 
+  /* How much room the fixed tab bar takes at the bottom of the viewport, for
+     anything that floats over the page. It was referenced by nothing and
+     defined nowhere, so the toast sat at a flat 28px and painted across the
+     raised Home button for its whole 2.4s, because z-toast 140 beats z-nav 50.
+     The rule below tracks the real element rather than the route, since the
+     tab bar hides itself on the entry screens. */
+  --nav-inset: 0px;
+
   /* ---- Shadows (warm-charcoal tinted) ---- */
   --shadow-card: 0 1px 2px rgba(43, 38, 32, 0.04);
   --shadow-raised: 0 4px 16px rgba(43, 38, 32, 0.08);
@@ -402,6 +410,10 @@ textarea::placeholder {
     opacity: 1;
     transform: none;
   }
+}
+
+body:has(nav[data-tabbar]) {
+  --nav-inset: 64px;
 }
 
 /* Eyebrow label: the app's signature uppercase section header. */
