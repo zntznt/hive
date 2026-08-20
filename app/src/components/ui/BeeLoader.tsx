@@ -13,9 +13,14 @@ import { BrandMark } from './BrandMark'
 // The label is optional and has no default. It used to default to a hardcoded
 // "Zumbando…", which meant an English phone got one Spanish word in the middle
 // of an English screen.
-export function BeeLoader({ label }: { label?: string }) {
+// `width` is the kit's documented call (`<BeeLoader label="…" width={160}/>`)
+// and was dropped along with the bee-path it used to size. The shape change is
+// a taste call and stands; losing a prop the handover documents was not a
+// decision anybody made, so it is back, capping the lockup rather than the
+// path.
+export function BeeLoader({ label, width }: { label?: string; width?: number }) {
   return (
-    <span className="inline-flex items-center gap-2.5">
+    <span className="inline-flex items-center gap-2.5" style={width ? { maxWidth: width } : undefined}>
       {/* The smallest size that still gets the full mark, and side by side
           with the silhouette it is also the lighter of the two: the cut-out
           field is what keeps a hexagon from reading as a dark blob beside a
@@ -23,7 +28,7 @@ export function BeeLoader({ label }: { label?: string }) {
       <span aria-hidden="true" className="hive-pulse leading-none">
         <BrandMark size="sm" showWordmark={false} />
       </span>
-      {label && <span className="font-body text-xs font-bold text-sage-600">{label}</span>}
+      {label && <span className="min-w-0 truncate font-body text-xs font-bold text-sage-600">{label}</span>}
     </span>
   )
 }

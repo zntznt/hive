@@ -777,6 +777,8 @@ export const ES = {
   'event.notNow': 'Ahora no',
   'event.dup': 'Duplicar',
   'event.dup.title': 'Duplicar este evento',
+  'event.dup.inClub': 'En {club}',
+  'event.dup.explain': 'Se queda el lugar, las reglas y la lista de lo que hay que traer, y la búsqueda de fecha empieza una semana después.',
   'event.dup.newDate': 'Fecha nueva',
   'event.dup.week': '¿En qué semana la busca?',
   'event.dup.fresh': 'Empieza de cero',
@@ -793,6 +795,7 @@ export const ES = {
 
   // -- admin ----------------------------------------------------------------
   'admin.title': 'Admin',
+  'admin.notYours': 'Este es el panel de la plataforma: verificar cuentas, entregas y plantillas de mensajes. Ser admin de un club no lo incluye. Todo lo de tu club se decide en la página del club.',
   'admin.scope': 'Plataforma · cuentas y entregas',
   'admin.none': 'Nadie espera a que le verifiquen la cuenta.',
   'admin.verify': 'Verificar',
@@ -2032,6 +2035,8 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'event.notNow': 'Not now',
   'event.dup': 'Duplicate',
   'event.dup.title': 'Duplicate this event',
+  'event.dup.inClub': 'In {club}',
+  'event.dup.explain': 'It keeps the place, the rules and the bring list, and starts a new date search a week on.',
   'event.dup.newDate': 'New date',
   'event.dup.week': 'Which week is it looking in?',
   'event.dup.fresh': 'Starts fresh',
@@ -2048,6 +2053,7 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
 
   // -- admin ----------------------------------------------------------------
   'admin.title': 'Admin',
+  'admin.notYours': 'This is the platform panel: verifying accounts, delivery and message templates. Being an admin of a club does not include it. Everything your club needs deciding is on the club page.',
   'admin.scope': 'Platform · accounts and delivery',
   'admin.none': 'Nobody is waiting to be verified.',
   'admin.verify': 'Verify',

@@ -7,6 +7,11 @@ type Size = 'sm' | 'md' | 'lg'
 // both under the 44px a thumb actually needs. Padding is unchanged, so short
 // labels get the height from min-h and nothing else moves.
 //
+// The floors are 44/46/52, the kit's. They were 44/44/52, on the reasoning
+// that 44 is what a thumb needs, which is true and was never in conflict with
+// 46: the kit's own ramp clears 44 at every step. At 44 the ramp collapsed to
+// two heights and md stopped matching the Input it was sized against.
+//
 // The label sizes are the scale's, 13/14/16. Both sm and md carried `text-sm`,
 // so the two differed by padding alone and a "small" button read with the same
 // weight as a primary action across every call site. sm takes `--fs-sm`
@@ -14,7 +19,7 @@ type Size = 'sm' | 'md' | 'lg'
 // `text-sm` is 14px and already means body here.
 const PAD: Record<Size, string> = {
   sm: 'px-3.5 py-2 text-[length:var(--fs-sm)] min-h-11',
-  md: 'px-[18px] py-[11px] text-sm min-h-11',
+  md: 'px-[18px] py-[11px] text-sm min-h-[46px]',
   lg: 'px-[22px] py-3.5 text-base min-h-[52px]',
 }
 

@@ -354,8 +354,14 @@ export default async function ClubsPage() {
                     // Not a button. There is nothing to open, so the row is a
                     // sentence, and only somebody who could fix it gets the
                     // action beside it.
+                    //
+                    // The 44px floor is the row's, not the button's. The
+                    // earlier note argued the row grows to fit the action,
+                    // which is true for a manager and leaves a plain member
+                    // with a 31px strip, so the same club's footer jumped
+                    // about 25px depending on who was looking at it.
                     <div
-                      className="flex items-center gap-2.5 border-t border-line-card px-3.5 py-1.5"
+                      className="flex min-h-11 items-center gap-2.5 border-t border-line-card px-3.5 py-1.5"
                       style={{ background: 'var(--cream-sunk)' }}
                     >
                       <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink-500">

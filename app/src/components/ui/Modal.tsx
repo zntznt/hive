@@ -88,14 +88,23 @@ export function Modal({
             <div className="font-display text-xl font-bold text-ink-900">{title}</div>
             {subtitle && <div className="mt-0.5 text-[13px] text-ink-500">{subtitle}</div>}
           </div>
+          {/* 44px of target around a 32px tile, not a 32px tile stretched
+              to 44. `.tap` sets a min-height, and this control paints its
+              background on the same element, so the sunk square became a
+              visible capsule and set a 44px floor on every modal header.
+              Same shape ChipButton uses: the wrapper is the target, the span
+              is the thing you see, and the negative margin gives the height
+              back to the row. */}
           {onClose && (
             <button
               type="button"
               onClick={onClose}
               aria-label={tr('common.close')}
-              className="tap grid h-8 w-8 flex-shrink-0 place-items-center rounded-sm bg-cream-sunk text-ink-500"
+              className="-my-1.5 grid min-h-11 w-11 flex-shrink-0 cursor-pointer place-items-center"
             >
-              <Icon name="xmark" size={16} />
+              <span className="grid h-8 w-8 place-items-center rounded-sm bg-cream-sunk text-ink-500">
+                <Icon name="xmark" size={16} />
+              </span>
             </button>
           )}
         </div>

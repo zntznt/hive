@@ -1,3 +1,4 @@
+import { Icon } from '@/components/ui/Icon'
 import { redirect } from 'next/navigation'
 import { requireProfile } from '@/lib/gate'
 import type { Profile } from '@/lib/types'
@@ -47,8 +48,29 @@ export default async function AdminPage() {
   const { supabase, profile } = await requireProfile()
 
   // Club managers used to land here for their approvals. Those moved to the
-  // club page, so this is a platform screen now and says so by not opening.
-  if (!profile.is_app_admin) redirect('/')
+  // club page, so this is a platform screen now and it says so.
+  //
+  // It said so by not opening: a bare redirect to Home. The rule was written
+  // whole, the gate AND one line explaining that a club role does not include
+  // the platform panel, and the app kept half of it, so a club admin following
+  // an old bookmark landed on Home with no explanation and the app looked
+  // broken rather than gated. Nothing below this line loads for them; the
+  // page just answers instead of vanishing.
+  if (!profile.is_app_admin) {
+    return (
+      <>
+        <AppBar title={tr('admin.title')} subtitle={tr('admin.scope')} backHref="/account" />
+        <main className="mx-auto w-full max-w-col px-4 pb-6">
+          <p className="flex items-start gap-2.5 rounded-md border border-line-card bg-cream-sunk px-3.5 py-3 text-[13px] leading-relaxed text-ink-500">
+            <span className="mt-0.5 flex-shrink-0">
+              <Icon name="shield-halved" size={13} className="text-ink-300" />
+            </span>
+            <span>{tr('admin.notYours')}</span>
+          </p>
+        </main>
+      </>
+    )
+  }
 
   const [{ data: userRows }, { data: outbox }, { data: tplRows }] = await Promise.all([
     supabase.from('users').select('*').order('created_at', { ascending: false }),
