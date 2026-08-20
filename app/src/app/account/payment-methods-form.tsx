@@ -97,13 +97,18 @@ export default function PaymentMethodsForm({ methods }: { methods: PaymentMethod
                 placeholder={tr('account.pay.ph')}
               />
             </div>
+            {/* A control, not a second piece of text beside the field, and
+                the last one cannot go: deleting your only method left the form
+                with nothing but the "agregar" button, and left anybody who owes
+                you no way to pay. */}
             <button
               type="button"
               onClick={() => removeRow(row.key)}
+              disabled={rows.length === 1}
               aria-label={tr('account.pay.remove')}
-              className="tap mt-2.5 shrink-0 text-[12.5px] font-bold text-ink-500"
+              className="tap mt-2.5 grid h-11 w-11 shrink-0 place-items-center rounded-sm bg-cream-sunk text-ink-500 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {tr('common.remove')}
+              <Icon name="xmark" size={13} />
             </button>
           </div>
         ))}

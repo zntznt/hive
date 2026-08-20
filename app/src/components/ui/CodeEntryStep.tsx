@@ -212,7 +212,7 @@ export function CodeEntryStep({
       {/* The primary slot is recovery, never confirmation. */}
       {onResend && !done && (
         <div className="mt-3">
-          <Button block display={!compact} size={compact ? 'md' : 'lg'} variant="secondary" onClick={onResend}>
+          <Button block display={!compact} size={compact ? 'md' : 'lg'} onClick={onResend}>
             {tr('ui.code.resend')}
           </Button>
         </div>

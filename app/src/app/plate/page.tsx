@@ -83,7 +83,7 @@ export default async function PlatePage() {
               often small, and the reason to pay it is that it is old and it is
               owed to somebody you will see again. */}
           {loudDebt && (
-            <section className="mb-[26px] rounded-lg border-[1.5px] border-honey-500 bg-honey-50 p-4">
+            <section className="mb-[26px] rounded-lg border border-honey-500 bg-honey-100 p-4">
               <div className="flex items-center gap-3">
                 <UserAvatar user={payeeOf.get(loudDebt.toUserId) ?? { display_name: loudDebt.toName }} size={44} />
                 <div className="min-w-0 flex-1">
@@ -97,7 +97,10 @@ export default async function PlatePage() {
                   </p>
                 </div>
               </div>
-              <div className="mt-3.5 flex items-center gap-2.5">
+              {/* Two equal columns. The way to put a debt down was drawn in
+                  the placeholder colour beside a shrink-to-fit pill, so it read
+                  as disabled help text with empty card to the right of it. */}
+              <div className="mt-3.5 grid grid-cols-2 gap-2.5">
                 <SettleUpFlow
                   eventId={loudDebt.eventId}
                   slug={loudDebt.eventSlug}
@@ -226,12 +229,13 @@ export default async function PlatePage() {
                     key={i}
                     icon="money-bill-transfer"
                     tone="danger"
-                    title={tf('plate.put', { name: item.toName, amount: fmtMoney(item.amountCents) })}
+                    title={tf('plate.owe', { name: item.toName, amount: fmtMoney(item.amountCents) })}
                     eventTitle={item.eventTitle}
                     eventHref={`/e/${item.eventSlug}`}
                     note={ageLabel(ageInDays(item.heldAt), lang) ?? item.clubName ?? undefined}
                     action={
                       <SettleUpFlow
+                        asRow
                         eventId={item.eventId}
                         slug={item.eventSlug}
                         fromUserId={profile.id}
@@ -319,7 +323,17 @@ export default async function PlatePage() {
       {(board.toConfirm.length > 0 || owedToMe.length > 0) && (
         <section className="mt-[26px]">
           <SectionHeader
-            action={<span className="text-[12.5px] text-ink-300">{board.toConfirm.length + owedToMe.length}</span>}
+            action={
+              // The running net, not an item count. Only when somebody
+              // actually owes something: this section also holds payments
+              // waiting to be confirmed, and "te deben $0.00" over one of
+              // those is a worse answer than no answer.
+              owedToMe.length > 0 ? (
+                <span className="text-[12.5px] font-bold text-sage-600">
+                  {tf('plate.netOwedToYou', { amount: fmtMoney(owedToMe.reduce((n, s) => n + s.netCents, 0)) })}
+                </span>
+              ) : null
+            }
           >
             {tr('plate.owedToYou')}
           </SectionHeader>
@@ -356,7 +370,8 @@ export default async function PlatePage() {
                   href={`/events?person=${s.userId}`}
                   className="flex min-h-12 items-center justify-between gap-2 border-t border-line-divider px-3.5 py-2.5 first:border-t-0"
                 >
-                  <span className="min-w-0">
+                  <UserAvatar user={payeeOf.get(s.userId) ?? { display_name: s.name }} size={32} />
+                  <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-bold text-ink-900">
                       {tf('plate.owesYou', { name: s.name, amount: fmtMoney(s.netCents) })}
                     </span>

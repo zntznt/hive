@@ -88,7 +88,10 @@ export function TemplateRow({
         onClick={() => setOpen((o) => !o)}
         className="min-h-11 flex w-full items-center gap-2 px-3.5 py-2.5 text-left"
       >
-        <ChevronDownIcon className={`flex-shrink-0 text-ink-300 transition-transform ${open ? '' : '-rotate-90'}`} />
+        {/* Opens in place, so chevron-down closed as well as open. A rotated
+            chevron-right is a door glyph, and the section wrapping these rows
+            already gets that right one level up. */}
+        <ChevronDownIcon className="flex-shrink-0 text-ink-300" />
         <span className="truncate font-mono text-[13.5px] font-bold text-ink-900">{tplKey}</span>
         {whatsapp && (
           <span className="ml-auto flex-shrink-0">

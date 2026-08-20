@@ -1,3 +1,5 @@
+import { HexAvatar } from '@/components/ui/HexAvatar'
+import { Icon } from '@/components/ui/Icon'
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
 import { signOut } from '../actions'
@@ -60,22 +62,43 @@ export default async function PendingPage() {
         </p>
         {!disabled && (
           <>
-            <p className="mt-2 text-sm text-ink-500">
-              {names.length === 1
-                ? tf('pending.reviewer1', { name: names[0] })
-                : names.length > 1
-                  ? tf('pending.reviewers', { names: nameList(names, names.length, lang) })
-                  : tr('pending.reviewerAny')}{' '}
-              {ahead != null && ahead > 0
-                ? ahead === 1
-                  ? tr('pending.ahead1')
-                  : tf('pending.aheadN', { n: ahead })
-                : tr('pending.youreNext')}
-            </p>
+            {/* A card with the reviewer in it, left aligned, rather than two
+                more centred sentences. The wait is a queue with people in it,
+                and a hexagon is what says so. */}
+            <div className="mt-3.5 flex flex-col gap-2.5 rounded-lg border border-line-card bg-paper p-4 text-left">
+              <div className="flex items-center gap-2.5">
+                {names.length > 0 ? (
+                  <HexAvatar name={names[0]} size={28} />
+                ) : (
+                  <span className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-full bg-cream-sunk text-ink-500">
+                    <Icon name="users" size={13} />
+                  </span>
+                )}
+                <span className="min-w-0 flex-1 text-[13.5px] text-ink-700">
+                  {names.length === 1
+                    ? tf('pending.reviewer1', { name: names[0] })
+                    : names.length > 1
+                      ? tf('pending.reviewers', { names: nameList(names, names.length, lang) })
+                      : tr('pending.reviewerAny')}
+                </span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <span className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-full bg-cream-sunk text-ink-500">
+                  <Icon name="hourglass-half" size={13} />
+                </span>
+                <span className="min-w-0 flex-1 text-[13.5px] text-ink-700">
+                  {ahead != null && ahead > 0
+                    ? ahead === 1
+                      ? tr('pending.ahead1')
+                      : tf('pending.aheadN', { n: ahead })
+                    : tr('pending.youreNext')}
+                </span>
+              </div>
+            </div>
             <div className="mb-5.5 mt-5">
               <BeeLoader label={tr('pending.buzz')} />
             </div>
-            <div className="mb-5 flex justify-center">
+            <div className="mb-5">
               <NudgeAdmins alreadyNudged={nudgedRecently} />
             </div>
           </>

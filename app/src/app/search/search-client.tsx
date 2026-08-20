@@ -1,5 +1,6 @@
 'use client'
 
+import { EmptyState } from '@/components/ui/EmptyState'
 import { useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -190,9 +191,11 @@ export default function SearchClient({
       )}
 
       {nothing && (
-        <p className="rounded-lg bg-cream-sunk px-[18px] py-[22px] text-center text-[13.5px] text-ink-500">
-          {tf('search.nothingFor', { q: q.trim() })}
-        </p>
+        <EmptyState
+          icon="magnifying-glass"
+          title={tf('search.nothingFor', { q: q.trim() })}
+          hint={tr('search.nothing.hint')}
+        />
       )}
     </main>
   )

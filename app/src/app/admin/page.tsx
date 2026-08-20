@@ -132,7 +132,7 @@ export default async function AdminPage() {
 
   return (
     <>
-      <AppBar title={tr('admin.title')} backHref="/" />
+      <AppBar title={tr('admin.title')} subtitle={tr('admin.scope')} backHref="/account" />
       <main className="mx-auto w-full max-w-col px-4 pb-6">
         {loudUser ? (
           <div className="mb-[26px]">

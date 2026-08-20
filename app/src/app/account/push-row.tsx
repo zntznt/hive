@@ -1,5 +1,6 @@
 'use client'
 
+import { InstallPwa } from '@/components/ui/InstallPwa'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { savePushSubscription, removePushSubscription, sendTestPush } from '@/app/actions'
@@ -82,11 +83,18 @@ export function PushRow({
   // Reported upward so the notification matrix can draw push as a dead column
   // when this browser cannot ring. Whether it can is a fact about the browser,
   // discovered here, and the matrix must not go and ask a second time.
-  onState?: (s: { live: boolean; deviceName: string; reason: string | null }) => void
+  onState?: (s: {
+    live: boolean
+    state: State
+    deviceName: string
+    reason: string | null
+    devices: { endpoint: string; label: string | null }[]
+  }) => void
 }) {
   const tr = useT()
   const tf = useTf()
   const [state, setState] = useState<State>('checking')
+  const [showInstall, setShowInstall] = useState(false)
   const [endpoint, setEndpoint] = useState<string | null>(null)
   const [label, setLabel] = useState(tr('account.thisDevice'))
   const [busy, setBusy] = useState(false)
@@ -225,7 +233,7 @@ export function PushRow({
     const next = `${state}|${label}`
     if (reportedRef.current === next) return
     reportedRef.current = next
-    onState?.({ live: state === 'granted', deviceName: label, reason: REASON[state] ?? null })
+    onState?.({ live: state === 'granted', state, deviceName: label, reason: REASON[state] ?? null, devices })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, label])
 
@@ -235,12 +243,19 @@ export function PushRow({
     'tap inline-flex min-h-11 flex-shrink-0 items-center rounded-pill border-[1.5px] border-line-card bg-paper px-3.5 text-[12.5px] font-bold text-ink-900'
 
   return (
-    <div className="border-t border-line-divider px-[13px] py-[11px]">
+    <div id="push-row" className="border-t border-line-divider px-[13px] py-[11px]">
       <div className="flex items-center justify-between gap-2.5">
         <span className="flex min-w-0 items-center gap-2">
           <span className="truncate text-sm text-ink-900">{tf('push.alertsIn', { device: label })}</span>
+          {/* A badge in every state. Two of the five had one, so in off,
+              needs-install and unsupported the row's state had to be inferred
+              from the help text and it stopped reading as the same object as
+              the WhatsApp row above it. */}
           {state === 'granted' && <Badge tone="success">{tr('push.on')}</Badge>}
           {state === 'denied' && <Badge tone="danger">{tr('push.blocked')}</Badge>}
+          {state === 'default' && <Badge tone="neutral">{tr('push.badge.off')}</Badge>}
+          {state === 'install' && <Badge tone="warning">{tr('push.badge.install')}</Badge>}
+          {state === 'unsupported' && <Badge tone="neutral">{tr('push.incompatible')}</Badge>}
         </span>
         {state === 'granted' ? (
           <span className="flex flex-shrink-0 gap-2">
@@ -255,8 +270,20 @@ export function PushRow({
           <button type="button" onClick={enable} disabled={busy} className={pill}>
             {busy ? tr('push.turningOn') : tr('push.enable')}
           </button>
+        ) : state === 'install' ? (
+          // On an iPhone not yet on the Home Screen this was described and
+          // never offered. The card that explains how already exists.
+          <button type="button" onClick={() => setShowInstall(true)} className={pill}>
+            {tr('pwa.title')}
+          </button>
         ) : null}
       </div>
+
+      {showInstall && (
+        <div className="mt-2.5">
+          <InstallPwa />
+        </div>
+      )}
 
       <p className="mt-1.5 text-[11.5px] leading-relaxed text-ink-300">
         {state === 'granted' ? (

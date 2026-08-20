@@ -45,7 +45,13 @@ export default function NotifPrefsForm({
   // The push channel's own state, owned by the row above this one, because
   // whether this device can ring is a fact about the browser and not a
   // preference. `deviceName` names it, since a switch here is about one phone.
-  push: { live: boolean; deviceName: string; reason: string | null }
+  push: {
+    live: boolean
+    state?: string
+    deviceName: string
+    reason: string | null
+    devices?: { endpoint: string; label: string | null }[]
+  }
 }) {
   const toast = useToast()
   const tr = useT()
@@ -148,7 +154,7 @@ export default function NotifPrefsForm({
                     <span
                       className={`grid h-[22px] w-[22px] place-items-center rounded-[7px] border-[1.5px] ${
                         on
-                          ? 'border-honey-700 bg-honey-500 text-charcoal'
+                          ? 'border-honey-600 bg-honey-500 text-charcoal'
                           : c.live
                             ? 'border-line-input bg-paper'
                             : 'border-line-divider bg-paper opacity-50'
@@ -187,14 +193,53 @@ export default function NotifPrefsForm({
       )}
 
       {!push.live && push.reason && (
-        <p className="mt-2.5 flex items-start gap-2 rounded-md border border-line-card bg-cream-sunk px-3 py-2.5 text-[12.5px] leading-relaxed text-ink-700">
+        <div className="mt-2.5 flex items-start gap-2 rounded-md border border-line-card bg-cream-sunk px-3 py-2.5 text-[12.5px] leading-relaxed text-ink-700">
           <span className="mt-0.5 flex-shrink-0">
             <Icon name="bell-slash" size={13} className="text-ink-500" />
           </span>
-          <span>
+          <span className="min-w-0 flex-1">
             {push.reason} {tr('notif.kept')}
+            {/* The file's own comment promised the fix sits under the table,
+                and there was nothing to press. This sends you to the control
+                that owns it rather than asking for the permission a second
+                time here: two places asking the browser is exactly the drift
+                this codebase keeps paying for. */}
+            {push.state !== 'unsupported' && (
+              <button
+                type="button"
+                onClick={() => document.getElementById('push-row')?.scrollIntoView({ block: 'center', behavior: 'smooth' })}
+                className="tap mt-1.5 inline-flex min-h-11 items-center rounded-pill border-[1.5px] border-line-input bg-paper px-3.5 text-[12.5px] font-bold text-honey-800"
+              >
+                {tr('notif.fixPush')}
+              </button>
+            )}
           </span>
-        </p>
+        </div>
+      )}
+
+      {/* Push is per device and nothing said so. The other-devices line named
+          them without ever saying which ones actually have it on. */}
+      {(push.devices?.length ?? 0) > 0 && (
+        <div className="mt-2.5 rounded-md border border-line-card bg-paper px-3 py-2.5">
+          <p className="eyebrow mb-1.5">{tr('notif.devices')}</p>
+          <ul className="flex flex-col gap-1">
+            {push.devices!.map((d) => (
+              <li key={d.endpoint} className="flex items-center gap-2 text-[12.5px] text-ink-700">
+                <span className="h-[7px] w-[7px] flex-shrink-0 rounded-full bg-success" aria-hidden="true" />
+                <span className="min-w-0 flex-1 truncate">{d.label ?? tr('notif.thisDevice')}</span>
+                <span className="flex-shrink-0 text-[11.5px] text-ink-300">{tr('push.on')}</span>
+              </li>
+            ))}
+            {!push.live && (
+              <li className="flex items-center gap-2 text-[12.5px] text-ink-700">
+                <span className="h-[7px] w-[7px] flex-shrink-0 rounded-full bg-ink-300" aria-hidden="true" />
+                <span className="min-w-0 flex-1 truncate">{push.deviceName}</span>
+                <span className="flex-shrink-0 text-[11.5px] text-ink-300">{tr('push.badge.off')}</span>
+              </li>
+            )}
+          </ul>
+          <p className="mt-2 text-[11.5px] leading-relaxed text-ink-300">{tr('notif.everywhere')}</p>
+        </div>
       )}
 
       {error && <p className="mt-2.5 rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}

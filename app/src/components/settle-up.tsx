@@ -28,6 +28,7 @@ export function SettleUpFlow({
   toPaymentMethods,
   children,
   display = false,
+  asRow = false,
 }: {
   eventId: string
   slug: string
@@ -39,6 +40,11 @@ export function SettleUpFlow({
   children: ReactNode
   // the loud slot wants a full-size button; a list row wants the small one
   display?: boolean
+  // A row leads somewhere: accent text and a chevron, not a filled button.
+  // Three debts put three primary honey buttons on the screen competing with
+  // the loud block's own action, and no plate row ever showed the chevron that
+  // says it goes somewhere.
+  asRow?: boolean
 }) {
   const tr = useT()
   const tf = useTf()
@@ -103,9 +109,20 @@ export function SettleUpFlow({
 
   return (
     <>
-      <Button size={display ? 'lg' : 'sm'} display={display} onClick={() => setOpen(true)}>
-        {children}
-      </Button>
+      {asRow ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="tap -my-2 inline-flex min-h-11 items-center gap-1 text-[12.5px] font-bold text-honey-700"
+        >
+          {children}
+          <Icon name="chevron-right" size={9} className="flex-shrink-0" />
+        </button>
+      ) : (
+        <Button size={display ? 'lg' : 'sm'} display={display} onClick={() => setOpen(true)}>
+          {children}
+        </Button>
+      )}
       {open && (
         <Modal
           open
