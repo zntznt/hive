@@ -107,7 +107,7 @@ export default function Photos({
       <div className="grid grid-cols-3 gap-1.5">
         {canAdd && (
           <label
-            className={`tap flex aspect-square cursor-pointer flex-col items-center justify-center gap-1.5 rounded-md border-[1.5px] border-dashed border-line-input bg-cream-sunk text-ink-500 ${
+            className={`tap flex aspect-square cursor-pointer flex-col items-center justify-center gap-1.5 rounded-md border-[1.5px] border-dashed border-honey-500 bg-honey-100 text-honey-800 ${
               pending ? 'opacity-60' : ''
             }`}
           >

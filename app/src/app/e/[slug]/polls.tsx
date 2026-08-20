@@ -1,5 +1,6 @@
 import { applyPollOption, castVote, closePoll, reopenPoll } from '@/app/actions'
 import { SectionHeader } from '@/components/ui/SectionHeader'
+import { CollapsibleSection } from '@/components/ui/CollapsibleSection'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { PollOption } from '@/components/ui/PollOption'
@@ -33,12 +34,30 @@ type Props = {
 
 export default function Polls({
   tr, eventId, slug, myId, isOrganizer, nameOf, polls }: Props) {
-  return (
-    <section className="mb-[26px]">
-      <SectionHeader action={<AddPollButton eventId={eventId} slug={slug} />}>{tr('event.polls')}</SectionHeader>
+  // A settled poll folds. It kept its card, every option and every count
+  // between the bring list and the thread forever, where the kit shows one
+  // openable row. Open while anything is still unanswered, because closed
+  // must never hide something that needs you, which is the same rule the
+  // component's own `hot` border states.
+  const unanswered = polls.filter((p) => !p.votes.some((v) => v.user_id === myId))
+  const winnerOf = (p: Poll) => {
+    const picked = p.applied_option_id && p.poll_options.find((o) => o.id === p.applied_option_id)
+    if (picked) return picked.label
+    const counts = p.poll_options.map((o) => [o, p.votes.filter((v) => v.option_id === o.id).length] as const)
+    const best = counts.reduce((a, b) => (b[1] > a[1] ? b : a), counts[0])
+    return best && best[1] > 0 ? best[0].label : null
+  }
+  const first = polls[0]
+  const firstWinner = first ? winnerOf(first) : null
+  const summary =
+    polls.length > 1
+      ? `${polls.length} · ${tr('event.polls')}`
+      : first && firstWinner
+        ? `${first.question} · ${firstWinner}`
+        : (first?.question ?? '')
 
-      {polls.length === 0 && <p className="mb-3 text-sm text-ink-500">{tr('poll.empty')}</p>}
-
+  const list = (
+    <>
       <ul className="mb-4 flex flex-col gap-3">
         {polls.map((p) => {
           const opts = [...p.poll_options].sort((a, b) => a.sort - b.sort)
@@ -98,6 +117,32 @@ export default function Polls({
           )
         })}
       </ul>
+      <AddPollButton eventId={eventId} slug={slug} />
+    </>
+  )
+
+  // Nothing to fold when there are no polls: the empty state has to keep its
+  // own header, or the only way to start one is behind a closed row.
+  if (polls.length === 0) {
+    return (
+      <section className="mb-[26px]">
+        <SectionHeader action={<AddPollButton eventId={eventId} slug={slug} />}>{tr('event.polls')}</SectionHeader>
+        <p className="mb-3 text-sm text-ink-500">{tr('poll.empty')}</p>
+      </section>
+    )
+  }
+
+  return (
+    <section className="mb-[26px]">
+      <CollapsibleSection
+        label={tr('event.polls')}
+        icon="square-poll-vertical"
+        summary={summary}
+        defaultOpen={unanswered.length > 0}
+        tone={unanswered.length > 0 ? 'hot' : undefined}
+      >
+        {list}
+      </CollapsibleSection>
     </section>
   )
 }

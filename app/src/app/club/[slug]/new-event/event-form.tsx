@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useActionState, useState, useTransition } from 'react'
 import { createEvent, updateEvent, createCategoryInline } from '@/app/actions'
 import { Input, Select, Checkbox } from '@/components/ui/Input'
@@ -131,7 +132,10 @@ function Extra({
         onClick={onAdd}
         className="tap flex min-h-[58px] w-full items-center gap-2.5 rounded-md border border-line-card bg-paper px-3.5 py-2.5 text-left"
       >
-        <Icon name={icon} size={15} className="flex-shrink-0 text-honey-700" />
+        {/* Faint, not honey. Only the trailing plus is the accent: three rows
+            of doubled accent sat directly above the honey submit button and
+            competed with it. */}
+        <Icon name={icon} size={15} className="flex-shrink-0 text-ink-300" />
         <span className="min-w-0 flex-1">
           <span className="block text-[13.5px] font-bold text-ink-900">{title}</span>
           <span className="mt-0.5 block text-[12px] text-ink-500">{consequence}</span>
@@ -248,6 +252,15 @@ export default function EventForm({
   // Removing one really removes it: the fields unmount, so nothing is
   // submitted for them and the action writes null, which is what "quitar"
   // has to mean on an event that already had a capacity.
+  // Two ways to make an event, because organizers arrive in two states. The
+  // window asks the club when it can; the fixed branch is for somebody who
+  // already knows. There was only the window, so an organizer with a date in
+  // hand still got "Desde / Hasta / Qué tan fino se marca", and the only route
+  // to a fixed time was to create the poll and then pick a slot on the event
+  // page. Editing an event that is already scheduled keeps neither: its time
+  // is chosen and the event page owns changing it.
+  const [askClub, setAskClub] = useState(true)
+  const [when, setWhen] = useState('')
   const [cap, setCap] = useState(edit)
   const [guests, setGuests] = useState(edit)
   const [deadline, setDeadline] = useState(edit)
@@ -305,7 +318,53 @@ export default function EventForm({
         recent={recentPlaces}
       />
 
-      {showSchedWindow && (
+      {showSchedWindow && !edit && (
+        <Segmented
+          name="sched_mode"
+          label={t('form.when')}
+          defaultValue="ask"
+          onChange={(v) => setAskClub(v === 'ask')}
+          options={[
+            { value: 'ask', label: t('form.mode.ask'), note: t('form.mode.ask.note') },
+            { value: 'fixed', label: t('form.mode.fixed'), note: t('form.mode.fixed.note') },
+          ]}
+        />
+      )}
+
+      {showSchedWindow && !askClub && (
+        <Fieldset legend={t('form.mode.fixed')}>
+          <Input
+            id="chosen_date"
+            name="chosen_date"
+            type="date"
+            label={t('form.date')}
+            value={when}
+            onChange={(e) => setWhen(e.target.value)}
+          />
+          <div className="mt-2.5 flex gap-3">
+            <div className="flex-1">
+              <Select id="chosen_from" name="chosen_from" label={t('form.starts')} defaultValue={1140}>
+                {HOURS.slice(0, 24).map((h) => (
+                  <option key={h.value} value={h.value}>
+                    {h.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="flex-1">
+              <Select id="chosen_to" name="chosen_to" label={t('form.ends')} defaultValue={1380}>
+                {HOURS.slice(1).map((h) => (
+                  <option key={h.value} value={h.value}>
+                    {h.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+        </Fieldset>
+      )}
+
+      {showSchedWindow && askClub && (
         <Fieldset legend={t('form.findDate')} hint={t('form.window')}>
           <div className="flex gap-3">
             <div className="flex-1">
@@ -352,8 +411,12 @@ export default function EventForm({
         </Fieldset>
       )}
 
+      {/* The heading and the closing hint are the offer, so both go when there
+          is nothing left to offer. On the edit form all three arrive added, so
+          an offer heading and a "most events need none of these" closer sat
+          around three blocks that were already filled in. */}
       <div className="flex flex-col gap-2">
-        <p className="eyebrow px-0.5">{t('form.extras')}</p>
+        {(!cap || !guests || !deadline) && <p className="eyebrow px-0.5">{t('form.extras')}</p>}
 
         <Extra
           icon="users"
@@ -422,32 +485,50 @@ export default function EventForm({
           </p>
         </Extra>
 
-        <p className="mt-1 px-0.5 text-xs leading-relaxed text-ink-300">
-          {t('form.extras.hint')}
-        </p>
+        {(!cap || !guests || !deadline) && (
+          <p className="mt-1 px-0.5 text-xs leading-relaxed text-ink-300">
+            {t('form.extras.hint')}
+          </p>
+        )}
       </div>
 
-      <Select id="join_policy" name="join_policy" label={t('form.join')} defaultValue={initial?.join_policy ?? 'club_members_only'}>
-        <option value="club_members_only">{t('form.join.members')}</option>
-        <option value="anyone_with_link">{t('form.join.link')}</option>
-        <option value="invite_only">{t('form.join.invite')}</option>
-      </Select>
+      {/* Not a picker. Two screens owned one value, and this one offered it
+          for a link that does not exist yet, while the invite screen that does
+          own it was unreachable from the edit form. A sentence here, and on an
+          edit a way through to the screen that owns it. */}
+      <div className="flex flex-col gap-1.5">
+        <span className="text-[12.5px] font-semibold text-ink-700">{t('form.join')}</span>
+        <p className="text-xs leading-relaxed text-ink-500">{t('form.join.explain')}</p>
+        {edit && (
+          <Link
+            href={`/e/${slug}/invites`}
+            className="tap -my-2 inline-flex min-h-11 items-center gap-1 self-start text-[12.5px] font-bold text-honey-700"
+          >
+            {t('form.join.manage')}
+            <Icon name="chevron-right" size={9} />
+          </Link>
+        )}
+      </div>
 
       {error && <p className="rounded-md bg-danger-bg px-3.5 py-3 text-sm text-danger">{error}</p>}
 
       {/* The button says what pressing it does. A new event with a scheduling
           window does not exist on a date yet, it exists as a question to the
           club, and t('form.create') was hiding that. */}
-      <Button block display size="lg" disabled={pending || !title.trim()}>
+      <Button block display size="lg" disabled={pending || !title.trim() || (showSchedWindow && !edit && !askClub && !when)}>
         {pending
           ? t('common.saving')
           : edit
             ? t('form.saveChanges')
-            : showSchedWindow
+            : showSchedWindow && askClub
               ? t('form.createAndAsk')
               : t('form.create')}
       </Button>
-      {!title.trim() && <p className="-mt-2 text-center text-xs text-ink-300">{t('form.title.missing')}</p>}
+      {!title.trim() ? (
+        <p className="-mt-2 text-center text-xs text-ink-300">{t('form.title.missing')}</p>
+      ) : showSchedWindow && !edit && !askClub && !when ? (
+        <p className="-mt-2 text-center text-xs text-ink-300">{t('form.date.missing')}</p>
+      ) : null}
     </form>
   )
 }

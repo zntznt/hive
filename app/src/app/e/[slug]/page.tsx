@@ -20,6 +20,7 @@ import { siteUrl } from '@/lib/site-url'
 import Thread from './thread'
 import Photos, { type EventPhoto } from './photos'
 import { timeAgo } from '@/lib/relative-time'
+import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Button } from '@/components/ui/Button'
 import { useT } from '@/components/ui/LangProvider'
 import { Loud, OpenSection, SummaryRow, FoldedEmpties, DoorGroup } from '@/components/ui/Density'
@@ -393,6 +394,12 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
   const isDone = event.status === 'done' && !event.deleted_at
   const rollCallTaken = !!event.attendance_taken_at
+  // null when the roll call did not cover me at all (I was not confirmed), so
+  // the member block can stay off rather than claim a no-show.
+  const myAttendance: boolean | null = (() => {
+    const mine = confirmed.find((r) => r.user_id === profile.id)
+    return mine ? mine.attended !== false : null
+  })()
   const photosBlock =
     (event.status === 'done' || photos.length > 0) ? (
       <section className="mb-[26px]">
@@ -494,22 +501,25 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           >
             {/* three answers, not two: "quizás" is a state this event can
                 display and count, so it has to be one you can enter */}
-            <div className="flex flex-col gap-2">
-              <div className="grid grid-cols-2 gap-2">
-                <form action={setRsvp.bind(null, event.id, event.slug, 'in')}>
-                  <Button block display>
-                    {t(rsvpKey('in'))}
-                  </Button>
-                </form>
-                <form action={setRsvp.bind(null, event.id, event.slug, 'out')}>
-                  <Button block variant="secondary">
-                    {t(rsvpKey('out'))}
-                  </Button>
-                </form>
-              </div>
+            {/* Three equal segments, because they are three answers to one
+                question. They were a 2-up grid plus a small ghost link on its
+                own row, so the three were drawn at three weights and the third
+                barely read as an answer at all, while the row you get once you
+                change your mind already shows them as equals. */}
+            <div className="grid grid-cols-3 gap-2">
+              <form action={setRsvp.bind(null, event.id, event.slug, 'in')}>
+                <Button block display>
+                  {t(rsvpKey('in'))}
+                </Button>
+              </form>
               <form action={setRsvp.bind(null, event.id, event.slug, 'maybe')}>
-                <Button block variant="ghost" size="sm">
+                <Button block variant="secondary">
                   {t(rsvpKey('maybe'))}
+                </Button>
+              </form>
+              <form action={setRsvp.bind(null, event.id, event.slug, 'out')}>
+                <Button block variant="secondary">
+                  {t(rsvpKey('out'))}
                 </Button>
               </form>
             </div>
@@ -808,7 +818,10 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       <ul className="flex flex-col gap-2">
         {contributions.map((c) => (
           <li key={c.id}>
-            <Card pad="row" className="flex items-center justify-between text-sm">
+            {/* A row, not a Card. `pad="row"` still resolves to r-lg with a
+                shadow, so four contributions read as four objects rather than
+                one list, and Density.tsx already states the rule this broke. */}
+            <div className="flex min-h-11 items-center justify-between rounded-md border border-line-card bg-paper px-3.5 py-3 text-sm">
               <span className={c.done ? 'text-ink-300 line-through' : 'text-ink-900'}>
                 {c.title}
                 {c.qty ? ` · ${c.qty}` : ''}
@@ -839,7 +852,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               ) : (
                 <ClaimContributionButton id={c.id} slug={event.slug} title={c.title} eventTitle={event.title} />
               )}
-            </Card>
+            </div>
           </li>
         ))}
       </ul>
@@ -919,6 +932,46 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           <Icon name="circle" size={4} className="mt-[7px] flex-shrink-0" />
           <span>{t('event.closed')}</span>
         </p>
+      )}
+
+      {/* What the roll call recorded about YOU. Both attendance blocks were
+          gated on `isOrganizer`, so somebody wrongly marked absent had no way
+          to find out and no way to see what their club-page count is built
+          from. The organizer keeps the sheet; a member gets the one line that
+          is about them. */}
+      {isDone && rollCallTaken && !isOrganizer && myAttendance !== null && (
+        <section className="mb-[26px]">
+          <SectionHeader>{t('event.attendance')}</SectionHeader>
+          <div
+            className={`rounded-lg border bg-paper p-4 ${
+              myAttendance ? 'border-line-card' : 'border-warning-bg'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <span
+                aria-hidden="true"
+                className={`grid h-[26px] w-[26px] flex-shrink-0 place-items-center rounded-full ${
+                  myAttendance ? 'bg-success-bg text-success' : 'bg-warning-bg text-warning'
+                }`}
+              >
+                <Icon name={myAttendance ? 'check' : 'xmark'} size={12} />
+              </span>
+              <span className="min-w-0">
+                <span className="block font-display text-[17px] font-bold leading-[1.25] text-ink-900">
+                  {t(myAttendance ? 'event.youWereHere' : 'event.youWereNoShow')}
+                </span>
+                {event.attendance_taken_at && (
+                  <span className="mt-0.5 block text-[12.5px] text-ink-500">
+                    {tf('event.attendanceRecorded', { ago: timeAgo(event.attendance_taken_at, lang) })}
+                  </span>
+                )}
+              </span>
+            </div>
+            <p className="mt-2.5 text-xs leading-relaxed text-ink-300">
+              {t(myAttendance ? 'event.attendanceFeeds' : 'event.attendanceMissed')}
+            </p>
+          </div>
+        </section>
       )}
 
       {isDone && isOrganizer && rollCallTaken && (
