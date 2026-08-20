@@ -96,7 +96,7 @@ export default function Polls({
                         <div className="flex items-center gap-2">
                           <form action={castVote.bind(null, p.id, o.id, slug, p.kind)} className="flex-1">
                             <button type="submit" disabled={closed} className="w-full disabled:opacity-60">
-                              <PollOption label={o.label} votes={n} max={maxCount} selected={mine} chosen={applied} showResults={showResults} multi={p.kind === 'multi'} />
+                              <PollOption label={o.label} votes={n} max={maxCount} selected={mine} chosen={applied} chosenLabel={tr('poll.chosen')} showResults={showResults} multi={p.kind === 'multi'} />
                             </button>
                           </form>
                           {isOrganizer && !applied && (

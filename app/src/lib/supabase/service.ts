@@ -5,7 +5,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 //
 // The dispatcher used to run under the acting user's session, which cannot
 // work. notification_templates is readable only by app admins, so every
-// non-admin filed their notifications as "sin plantilla", and the outbox
+// non-admin filed their notifications as `no_template`, and the outbox
 // SELECT policy is scoped to your own rows, so a notification addressed to
 // anybody else was invisible to the person whose action created it. Sending
 // is infrastructure, not something a member should be able to read, so it

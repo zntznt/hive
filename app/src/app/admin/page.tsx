@@ -210,7 +210,7 @@ export default async function AdminPage() {
                     <Badge tone={u.status === 'active' ? 'active' : 'disabled'}>
                       {STATUS_LABEL[u.status] ? tr(STATUS_LABEL[u.status]) : u.status}
                     </Badge>
-                    {u.is_app_admin && <Badge tone="admin">admin</Badge>}
+                    {u.is_app_admin && <Badge tone="admin">{tr('role.admin')}</Badge>}
                   </span>
                   {u.id !== profile.id && (
                     <span className="flex flex-shrink-0 items-center gap-2.5">

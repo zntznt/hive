@@ -233,7 +233,7 @@ export default async function ClubsPage() {
                         >
                           {club.name}
                         </span>
-                        {m.role === 'admin' && <Badge tone="admin">admin</Badge>}
+                        {m.role === 'admin' && <Badge tone="admin">{t('role.admin')}</Badge>}
                         {m.role === 'organizer' && <Badge>{t('role.organizer')}</Badge>}
                       </span>
                       {/* who, not how many */}

@@ -260,7 +260,7 @@ export function PushRow({
         {state === 'granted' ? (
           <span className="flex flex-shrink-0 gap-2">
             <button type="button" onClick={test} disabled={pending} className={pill}>
-              {pending ? tr('common.sending') : 'Probar'}
+              {pending ? tr('common.sending') : tr('push.test')}
             </button>
             <button type="button" onClick={disable} disabled={busy} className={pill}>
               {tr('common.off')}
@@ -321,7 +321,7 @@ export function PushRow({
 
       {otherDevices.length > 0 && (
         <p className="mt-2 text-[11.5px] text-ink-300">
-          También activado en: {otherDevices.map((d) => d.label ?? tr('account.device.other')).join(', ')}.
+          {tf('push.alsoOn', { devices: otherDevices.map((d) => d.label ?? tr('account.device.other')).join(', ') })}
         </p>
       )}
 

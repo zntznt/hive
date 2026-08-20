@@ -280,7 +280,7 @@ export default function EventForm({
           }}
           placeholder={t('form.category.none')}
           options={[
-            { value: '', label: 'Sin categoría' },
+            { value: '', label: t('form.category.none') },
             ...cats.map((c) => ({ value: c.id, label: `${c.emoji ? `${c.emoji} ` : ''}${c.name}` })),
             { value: NEW, label: t('form.catNew') },
           ]}

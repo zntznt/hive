@@ -1,4 +1,4 @@
--- event-planner schema v0 — source: docs/04-data-model.md
+-- event-planner schema v0. Source: docs/04-data-model.md
 create extension if not exists citext;
 
 create type user_status as enum ('pending','active','disabled');

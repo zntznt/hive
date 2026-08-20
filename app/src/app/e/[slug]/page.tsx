@@ -703,7 +703,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         <section className="mb-[26px]">
           <OpenSection
             label={t('event.going')}
-            meta={`${seatsTaken}${event.capacity != null ? ` de ${event.capacity}` : ''}`}
+            meta={`${seatsTaken}${event.capacity != null ? tf('event.ofCapacity', { n: event.capacity }) : ''}`}
           >
           {/* The count first, in one line, then the people. "van 6 de 8" is
               what you check; the chips are who. The two lines that used to say
@@ -829,7 +829,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               </span>
               {c.assigned_to ? (
                 <span className="flex items-center gap-2 text-ink-500">
-                  {c.assigned_to === profile.id ? 'tú' : (nameOf.get(c.assigned_to) ?? '·')}
+                  {c.assigned_to === profile.id ? t('event.you') : (nameOf.get(c.assigned_to) ?? '·')}
                   {(c.assigned_to === profile.id || isOrganizer) && !c.done && (
                     <>
                       <EditContributionButton id={c.id} slug={event.slug} title={c.title} qty={c.qty} />
@@ -1003,7 +1003,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                 >
                   <UserAvatar user={userOf.get(o.user_id) ?? { display_name: nameOf.get(o.user_id) ?? '·' }} size={22} />
                   {nameOf.get(o.user_id)}
-                  {o.user_id === event.organizer_user_id && <Badge tone="mine">host</Badge>}
+                  {o.user_id === event.organizer_user_id && <Badge tone="mine">{t('event.host')}</Badge>}
                 </span>
               ))}
             </div>

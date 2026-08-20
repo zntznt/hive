@@ -68,7 +68,7 @@ export function ClubHeader({
   const clampable = (description ?? '').length > 150
 
   const badge =
-    role === 'admin' ? <Badge tone="admin">admin</Badge> : role === 'organizer' ? <Badge>{tr('role.organizer')}</Badge> : null
+    role === 'admin' ? <Badge tone="admin">{tr('role.admin')}</Badge> : role === 'organizer' ? <Badge>{tr('role.organizer')}</Badge> : null
 
   if (!open) {
     return (

@@ -137,7 +137,7 @@ export function EmojiField({
     <span
       className="relative grid place-items-center rounded-md border-[1.5px] border-line-input bg-paper"
       style={{ width: size, height: size }}
-      title="{tr('ui.emoji.hint')}"
+      title={tr('ui.emoji.hint')}
     >
       <input
         name={name}

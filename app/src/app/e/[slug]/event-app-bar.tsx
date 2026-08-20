@@ -70,7 +70,7 @@ export default function EventAppBar({
   const bin = (deleted: boolean) =>
     startTransition(async () => {
       await setEventDeleted(eventId, slug, deleted)
-      toast(deleted ? tr('event.toBin') : 'Recuperado')
+      toast(deleted ? tr('event.toBin') : tr('event.recovered'))
       router.refresh()
     })
 

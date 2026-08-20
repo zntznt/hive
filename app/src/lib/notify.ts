@@ -203,7 +203,12 @@ export async function sendTemplatedEmail(
     .eq('key', template)
     .eq('lang', lang)
     .maybeSingle()
-  if (!tpl) return { ok: false as const, skipped: true as const, error: 'sin plantilla' }
+  // Keys, not sentences. These land in notification_outbox.error and are read
+  // back by the admin outbox log, so a Spanish sentence written here is frozen
+  // in whichever language the server happened to be speaking. The log
+  // translates them, and still prints anything it does not recognise, so rows
+  // written before this still read.
+  if (!tpl) return { ok: false as const, skipped: true as const, error: 'no_template' }
   const subject = renderTemplate(tpl.subject ?? 'Hive', vars)
   const html = renderTemplate(tpl.body, vars).replace(/\n/g, '<br>')
   const result = await sendEmail({ to, subject, html })
@@ -232,9 +237,9 @@ export async function sendTemplatedWhatsapp(
     // adding a language there is a submission and a wait, not an insert.
     .eq('lang', 'es')
     .maybeSingle()
-  if (!tpl) return { ok: false as const, skipped: true as const, error: 'sin plantilla' }
+  if (!tpl) return { ok: false as const, skipped: true as const, error: 'no_template' }
   if (tpl.wa_status !== 'approved') {
-    const skipped = { ok: false as const, skipped: true as const, error: 'plantilla de WhatsApp sin aprobar' }
+    const skipped = { ok: false as const, skipped: true as const, error: 'wa_template_unapproved' }
     await recordDirectSend(supabase, { channel: 'whatsapp', template, destination: to, result: skipped })
     return skipped
   }
@@ -266,7 +271,7 @@ async function deliverPush(
   user: { display_name?: string | null } | null
 ) {
   if (!tpl || !user) {
-    await db.from('notification_outbox').update({ status: 'logged', error: 'sin plantilla' }).eq('id', row.id)
+    await db.from('notification_outbox').update({ status: 'logged', error: 'no_template' }).eq('id', row.id)
     return
   }
 
@@ -361,10 +366,10 @@ export async function dispatchQueuedNotifications(supabase: SupabaseClient, limi
 
     const destination = channel === 'email' ? user?.email : user?.phone_whatsapp
     if (!tpl || !user || !destination) {
-      const missing = channel === 'email' ? 'sin correo registrado' : 'sin número de WhatsApp'
+      const missing = channel === 'email' ? 'no_email' : 'no_whatsapp'
       await db
         .from('notification_outbox')
-        .update({ status: 'logged', error: !tpl ? 'sin plantilla' : missing })
+        .update({ status: 'logged', error: !tpl ? 'no_template' : missing })
         .eq('id', row.id)
       continue
     }
@@ -376,7 +381,7 @@ export async function dispatchQueuedNotifications(supabase: SupabaseClient, limi
     if (pref?.[channel] === false) {
       await db
         .from('notification_outbox')
-        .update({ status: 'logged', error: 'silenciado por preferencias' })
+        .update({ status: 'logged', error: 'muted_by_prefs' })
         .eq('id', row.id)
       continue
     }
@@ -387,7 +392,7 @@ export async function dispatchQueuedNotifications(supabase: SupabaseClient, limi
     if (channel === 'whatsapp' && tpl.wa_status !== 'approved') {
       await db
         .from('notification_outbox')
-        .update({ status: 'logged', error: 'plantilla de WhatsApp sin aprobar' })
+        .update({ status: 'logged', error: 'wa_template_unapproved' })
         .eq('id', row.id)
       continue
     }

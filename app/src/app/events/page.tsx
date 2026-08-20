@@ -288,7 +288,7 @@ export default async function EventsPage({
 
       <div className="mb-2.5 mt-[26px] flex items-baseline justify-between text-[12.5px] text-ink-500">
         <span>
-          {rows.length} evento{rows.length === 1 ? '' : 's'}
+          {rows.length === 1 ? t('events.count.one') : tf('events.count', { n: rows.length })}
         </span>
         {grandTotalOwed > 0 && (
           <span>
@@ -311,7 +311,7 @@ export default async function EventsPage({
         {shown.map((e) => {
           const clubInfo = e.club_id ? clubById.get(e.club_id) : undefined
           const category = e.category_id ? catById.get(e.category_id) : undefined
-          const catLabel = category ? `${category.emoji ? `${category.emoji} ` : ''}${category.name}` : 'sin categoría'
+          const catLabel = category ? `${category.emoji ? `${category.emoji} ` : ''}${category.name}` : t('form.category.none')
           const attendees = attendeesOf(e.id)
           const myRsvp = myRsvpOf(e.id)
           const myNet = balancesOf(e.id).find((b) => b.user_id === profile.id)?.net_cents ?? 0
@@ -390,7 +390,7 @@ export default async function EventsPage({
                           person === profile.id ? 'bg-danger-bg text-danger' : 'bg-honey-100 text-honey-800'
                         }`}
                       >
-                        {person === profile.id ? 'debes' : 'debe'} {fmtMoney(owedShown)}
+                        {tf(person === profile.id ? 'money.youOweAmount' : 'money.theyOweAmount', { amount: fmtMoney(owedShown) })}
                       </span>
                     )
                   ) : myNet < 0 ? (

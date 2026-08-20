@@ -113,7 +113,7 @@ export default async function PlatePage() {
                 >
                   {tf('plate.payTo', { name: loudDebt.toName })}
                 </SettleUpFlow>
-                <SnoozeButton itemKey={plateItemKey(loudDebt)} label={t('plate.later')} />
+                <SnoozeButton itemKey={plateItemKey(loudDebt)} wide />
               </div>
             </section>
           )}
@@ -356,7 +356,7 @@ export default async function PlatePage() {
                     method={item.method}
                     proofSignedUrl={item.proofSignedUrl}
                   >
-                    Revisarlo
+                    {t('money.confirm')}
                   </ConfirmPaymentModal>
                 }
               />

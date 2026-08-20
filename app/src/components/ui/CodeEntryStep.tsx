@@ -198,7 +198,7 @@ export function CodeEntryStep({
             <span className={c.bad}>{error}</span>
           </>
         ) : busy ? (
-          <span className={c.mute}>Revisando…</span>
+          <span className={c.mute}>{tr('ui.code.checking')}</span>
         ) : !done && expiry ? (
           <>
             <span className={`mt-0.5 ${c.mute}`}>
