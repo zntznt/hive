@@ -59,6 +59,7 @@ export const ES = {
   'home.upcoming.empty': 'Nada en puerta todavía.',
   'home.history': 'Tu historial',
   'home.clubs': 'Tus clubes',
+  'home.allClubs': 'Todos',
   'home.clubs.empty.title': 'Todavía no estás en ningún club',
   'home.clubs.empty.hint': 'Pide a quien organiza que te invite, o empieza el tuyo.',
   'home.away': 'Mientras no estabas',
@@ -76,6 +77,7 @@ export const ES = {
   'clubs.lede': 'Tus clubes y lo que sigue en cada uno.',
   'clubs.createHint': 'Serás su primer admin. Invita por correo o WhatsApp, y luego agrega tu primer evento.',
   'clubs.more': 'Más clubes',
+  'clubs.also': 'También estás en',
   'clubs.photoAlt': 'Foto de {title}',
 
   // -- events ---------------------------------------------------------------
@@ -478,6 +480,7 @@ export const ES = {
   'club.members.whoCanAsk': 'Quién puede pedir entrar con el enlace',
   'form.reminderNote': 'Un recordatorio, uno solo. Nadie pierde su lugar ni se cierra nada.',
   'club.waitingAdmins': 'Esperando a los admins · {n}',
+  'club.waitingYou': 'Te toca a ti · {n}',
   'club.joinRequests': 'Solicitudes para unirse · {n}',
   'club.seeEvents': 'Ver eventos',
   'club.history': 'Historial',
@@ -1281,6 +1284,7 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'home.upcoming.empty': 'Nothing on yet.',
   'home.history': 'Your history',
   'home.clubs': 'Your clubs',
+  'home.allClubs': 'All',
   'home.clubs.empty.title': "You're not in a club yet",
   'home.clubs.empty.hint': 'Ask an organizer to invite you, or start your own.',
   'home.away': 'While you were away',
@@ -1298,6 +1302,7 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'clubs.lede': 'Your clubs, and what each one is doing next.',
   'clubs.createHint': "You'll be its first admin. Invite people by email or WhatsApp, then add your first event.",
   'clubs.more': 'More clubs',
+  'clubs.also': "You're also in",
   'clubs.photoAlt': 'Photo from {title}',
 
   // -- events ---------------------------------------------------------------
@@ -1700,6 +1705,7 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'club.members.whoCanAsk': 'Who can ask to join with the link',
   'form.reminderNote': 'One reminder, just one. Nobody loses their place and nothing closes.',
   'club.waitingAdmins': 'Waiting on the admins · {n}',
+  'club.waitingYou': 'Waiting on you · {n}',
   'club.joinRequests': 'Requests to join · {n}',
   'club.seeEvents': 'See events',
   'club.history': 'History',

@@ -24,6 +24,7 @@ import { getAwayItems } from '@/lib/away'
 import { InstallPwa } from '@/components/ui/InstallPwa'
 import { timeAgo } from '@/lib/relative-time'
 import { WhenPill } from '@/components/ui/WhenPill'
+import { whenPill } from '@/lib/when'
 import { FaceStack } from '@/components/ui/FaceStack'
 import { clubFooter, quietSince, type CardEvent, type ClubFooter } from '@/lib/club-card'
 import { getT } from '@/lib/current-lang'
@@ -107,6 +108,11 @@ function rsvpChip(
 
 export default async function Home() {
   const { t, tf , lang } = await getT()
+  // One clock for the whole render. There were two `new Date()` calls and now
+  // a third would-be one, and a page that asks the time twice can straddle
+  // midnight: the "last activity" cutoff and the footer's idea of today would
+  // then disagree by a day on the same screen.
+  const now = new Date()
   const supabase = await supabaseServer()
   // getClaims() verifies locally (ES256), no Auth round trip
   const { data: claimsData } = await supabase.auth.getClaims()
@@ -145,7 +151,12 @@ export default async function Home() {
           .from('events')
           .select('id, slug, title, club_id, status, chosen_start, chosen_end, location, area')
           .in('club_id', clubIds)
-          .in('status', ['scheduling', 'scheduled'])
+          // `cancelled` is here on purpose. Filtering it out meant the
+          // screen you check to find out about Friday stopped mentioning
+          // Friday the moment Friday was called off, leaving only an
+          // away-strip line that ages out after 48h. It stays as a spent
+          // card: struck title, cancelled badge, no pill.
+          .in('status', ['scheduling', 'scheduled', 'cancelled'])
           .is('deleted_at', null)
           .order('chosen_start', { ascending: true, nullsFirst: false })
           .order('created_at', { ascending: false })
@@ -180,7 +191,7 @@ export default async function Home() {
         .select('club_id, chosen_start')
         .in('club_id', clubIds)
         .not('chosen_start', 'is', null)
-        .lt('chosen_start', new Date().toISOString())
+        .lt('chosen_start', now.toISOString())
         .is('deleted_at', null)
         .order('chosen_start', { ascending: false })
     : { data: [] as { club_id: string; chosen_start: string }[] }
@@ -223,7 +234,7 @@ export default async function Home() {
   const footerByClub = new Map<string, ClubFooter>()
   for (const c of clubs) {
     const mine = allUpcoming.filter((e) => e.club_id === c.id) as unknown as CardEvent[]
-    footerByClub.set(c.id, clubFooter(mine, lastActivityByClub.get(c.id) ?? null, new Date(), lang))
+    footerByClub.set(c.id, clubFooter(mine, lastActivityByClub.get(c.id) ?? null, now, lang))
   }
 
   return (
@@ -264,8 +275,8 @@ export default async function Home() {
           you and need nothing from you. No unread state and no dismiss, it
           just ages out, which is the whole reason this is not an inbox. */}
       {away.length > 0 && (
-        <section className="rounded-lg bg-cream-sunk px-3.5 py-3">
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-[.04em] text-ink-300">
+        <section className="rounded-md bg-cream-sunk px-3.5 py-3">
+          <p className="eyebrow mb-2">
             {t('home.away')}
           </p>
           <ul className="flex flex-col gap-1.5">
@@ -375,35 +386,79 @@ export default async function Home() {
             <EmptyState icon="calendar-days" hint={t('home.upcoming.empty')} />
           ) : (
             <div className="flex flex-col gap-2">
-              {upcoming.map((e) => (
-                <Link
-                  key={e.id}
-                  href={`/e/${e.slug}`}
-                  // A row is 12px 14px. A flat 16px is a panel, and the
+              {upcoming.map((e) => {
+                // Soon is decided by the one function that decides it
+                // everywhere. The row was `border-line-card` unconditionally,
+                // so tonight's event and one three weeks out were the same
+                // card, while the club rows twelve lines below already
+                // honoured the rule.
+                const soon = whenPill(e.chosen_start, e.status, now, lang)?.soon ?? false
+                const off = e.status === 'cancelled'
+                const club = e.club_id ? clubById.get(e.club_id) : null
+                return (
+                  // A row is 12px 14px at r-md. A flat 16px is a panel, and the
                   // difference is what tells you whether this is a line in a
                   // list or a thing in its own right.
-                  className="flex items-center justify-between gap-3 rounded-lg border border-line-card bg-paper px-3.5 py-3 shadow-card"
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-bold text-ink-900">{e.title}</span>
-                    <span className="text-[12.5px] text-ink-500">
-                      {(e.club_id && clubById.get(e.club_id)?.name) ?? '·'}
-                      {e.location ? ` · ${e.location}` : ''}
+                  //
+                  // Not a Link any more: the row has two destinations. The
+                  // title stretches over the whole row, and the club name sits
+                  // above it in the stack with its own href, so the sub-line
+                  // keeps the only route it had into the club. Nesting one
+                  // anchor inside another is not valid HTML, which is why this
+                  // is a div with a stretched link rather than two Links.
+                  <div
+                    key={e.id}
+                    className={`relative flex items-center justify-between gap-3 rounded-md bg-paper px-3.5 py-3 shadow-card ${
+                      soon ? 'border-[1.5px] border-honey-500' : 'border border-line-card'
+                    }`}
+                  >
+                    <span className="min-w-0">
+                      <Link
+                        href={`/e/${e.slug}`}
+                        className="block truncate text-sm font-bold text-ink-900 after:absolute after:inset-0"
+                      >
+                        <span className={off ? 'line-through' : ''}>{e.title}</span>
+                      </Link>
+                      <span className="text-[12.5px] text-ink-500">
+                        {club ? (
+                          <Link href={`/club/${club.slug}`} className="relative z-[1] font-bold text-honey-700">
+                            {club.name}
+                          </Link>
+                        ) : (
+                          '·'
+                        )}
+                        {e.location ? ` · ${e.location}` : ''}
+                      </span>
                     </span>
-                  </span>
-                  <span className="flex flex-shrink-0 flex-col items-end gap-1">
-                    <WhenPill at={e.chosen_start} status={e.status} />
-                    {rsvpChip(e.status, t, rsvpByEvent.get(e.id)?.status, rsvpByEvent.get(e.id)?.waitlist_pos != null)}
-                  </span>
-                </Link>
-              ))}
+                    <span className="flex flex-shrink-0 flex-col items-end gap-1">
+                      {off ? (
+                        <Badge tone="danger">{t('event.cancelledChip')}</Badge>
+                      ) : (
+                        <>
+                          <WhenPill at={e.chosen_start} status={e.status} />
+                          {rsvpChip(e.status, t, rsvpByEvent.get(e.id)?.status, rsvpByEvent.get(e.id)?.waitlist_pos != null)}
+                        </>
+                      )}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           )}
         </section>
       )}
 
       <section className="mt-[26px]">
-        <SectionHeader>{t('home.clubs')}</SectionHeader>
+        <SectionHeader
+          action={
+            <Link href="/clubs" className="tap inline-flex min-h-11 items-center gap-1 text-[12.5px] font-bold text-honey-700">
+              {t('home.allClubs')}
+              <Icon name="chevron-right" size={9} />
+            </Link>
+          }
+        >
+          {t('home.clubs')}
+        </SectionHeader>
         {clubs.length === 0 ? (
           <EmptyState
             icon="hashtag"
@@ -419,7 +474,7 @@ export default async function Home() {
                 <Link
                   key={c.slug}
                   href={today ? `/e/${footer.event.slug}` : `/club/${c.slug}`}
-                  className={`flex items-center gap-3 rounded-lg bg-paper px-3.5 py-3 shadow-card ${
+                  className={`flex items-center gap-3 rounded-md bg-paper px-3.5 py-3 shadow-card ${
                     today ? 'border-[1.5px] border-honey-500' : 'border border-line-card'
                   }`}
                 >
@@ -446,8 +501,8 @@ export default async function Home() {
                     </span>
                   </span>
                   {footer?.kind === 'today' ? (
-                    <span className="flex-shrink-0 rounded-pill bg-honey-500 px-2.5 py-[3px] text-[11px] font-extrabold text-charcoal">
-                      {footer.window}
+                    <span className="flex-shrink-0">
+                      <Badge tone="now">{footer.window}</Badge>
                     </span>
                   ) : footer?.kind === 'next' ? (
                     <WhenPill at={footer.event.chosen_start} status={footer.event.status} />

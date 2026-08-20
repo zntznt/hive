@@ -66,7 +66,7 @@ export default async function ClubPage({
     )
   }
 
-  const [{ data: cats }, { data: evs }, { data: roster }] = await Promise.all([
+  const [{ data: cats }, { data: evs }, { data: roster }, { data: photoRows }] = await Promise.all([
     supabase.from('event_categories').select('*').eq('club_id', club.id).order('name'),
     supabase.from('events').select('*').eq('club_id', club.id).is('deleted_at', null).order('created_at', { ascending: false }),
     supabase
@@ -74,15 +74,46 @@ export default async function ClubPage({
       .select('user_id, role, joined_at, users(display_name, avatar_kind, avatar_bug, avatar_color, avatar_photo_url)')
       .eq('club_id', club.id)
       .order('joined_at'),
+    // The club's own nights, for the band in the door group. Same shape the
+    // Clubs tab already reads, and captioned with the event it came from for
+    // the same reason: a photo in Hive always belongs to a night.
+    supabase
+      .from('event_photos')
+      .select('path, created_at, events!inner(club_id, title, slug)')
+      .eq('events.club_id', club.id)
+      .order('created_at', { ascending: false })
+      .limit(12),
   ])
 
+  type ClubPhoto = { path: string; events: { title: string; slug: string } | null }
+  const shots = ((photoRows ?? []) as unknown as ClubPhoto[]).slice(0, 8)
+  const shotUrls = new Map<string, string>()
+  if (shots.length) {
+    const { data: signedShots } = await supabase.storage
+      .from('event-photos')
+      .createSignedUrls(shots.map((x) => x.path), 3600)
+    for (const u of signedShots ?? []) if (u.path && u.signedUrl) shotUrls.set(u.path, u.signedUrl)
+  }
+  const band = shots
+    .map((x) => ({ url: shotUrls.get(x.path), caption: x.events?.title ?? '', slug: x.events?.slug ?? '' }))
+    .filter((x): x is { url: string; caption: string; slug: string } => !!x.url)
+
   const categories = (cats ?? []) as Category[]
-  const catName = (id: string | null) => categories.find((c) => c.id === id)?.name
-  const events = ((evs ?? []) as EventRow[]).filter((e) => !cat || e.category_id === cat)
+  const catOf = (id: string | null) => categories.find((c) => c.id === id)
+  const catName = (id: string | null) => catOf(id)?.name
+  const allEvents = (evs ?? []) as EventRow[]
+  const events = allEvents.filter((e) => !cat || e.category_id === cat)
   // `isUpcoming` from club-card, the same predicate `clubNext` uses to pick
   // the one the Clubs tab names, so this count and that card cannot come
   // apart.
+  //
+  // Two lists, because they answer two questions. The filtered one feeds the
+  // Upcoming section, which is what the chip is for. The header's count is a
+  // fact about the club, so it reads the unfiltered one: tapping a category
+  // used to rewrite the club's identity line, and the front door would report
+  // "1 próximo" about a filter rather than about the club.
   const upcoming = events.filter(isUpcoming)
+  const upcomingAll = allEvents.filter(isUpcoming)
   const past = events.filter((e) => ['done', 'cancelled'].includes(e.status))
   // History reads by the night it was, not by the day somebody created the
   // row. An event made in March for a June date belongs in June.
@@ -230,7 +261,7 @@ export default async function ClubPage({
         faces={rosterFaces}
         total={(roster ?? []).length}
         links={links}
-        upcoming={upcoming.length}
+        upcoming={upcomingAll.length}
         foldedByDefault={hasEventToday}
         cover={isManager ? <BannerUpload clubId={club.id} slug={slug} /> : undefined}
         picture={
@@ -297,6 +328,7 @@ export default async function ClubPage({
                   key={e.id}
                   e={e}
                   catName={catName(e.category_id)}
+                  catEmoji={catOf(e.category_id)?.emoji}
                   counts={rsvpCountsByEvent.get(e.id)}
                   faces={goingFaces.get(e.id) ?? []}
                   mine={myRsvpByEvent.get(e.id) ?? null}
@@ -314,7 +346,7 @@ export default async function ClubPage({
         <>
           <SectionHeader
           >
-            {tf('club.waitingAdmins', { n: (changeReqs ?? []).length })}
+            {tf(isAdmin ? 'club.waitingYou' : 'club.waitingAdmins', { n: (changeReqs ?? []).length })}
           </SectionHeader>
           <div className="mb-[26px] flex flex-col gap-2">
             {(changeReqs ?? []).map((r) => {
@@ -512,6 +544,26 @@ export default async function ClubPage({
       {/* Rule 7. The club's settings and its roster were sections of this
           page, indistinguishable from the things people come here for. They
           are doors, and they say so once, under a line. */}
+      {/* The club's own nights open the group. The page had no picture from
+          this club anywhere on it, though every one of these already exists on
+          its event pages. Each tile goes to the night it came from, never back
+          here: six targets pointing at the page you are on is six no-ops. */}
+      {band.length > 0 && (
+        <div className="mb-2.5 flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {band.map((s, i) => (
+            <Link key={i} href={s.slug ? `/e/${s.slug}` : `/club/${slug}`} className="block w-[92px] flex-shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={s.url}
+                alt={s.caption ? tf('clubs.photoAlt', { title: s.caption }) : ''}
+                className="block h-[92px] w-[92px] rounded-sm border border-line-card object-cover"
+                style={{ background: 'var(--cream-sunk)' }}
+              />
+            </Link>
+          ))}
+        </div>
+      )}
+
       <DoorGroup label={t('club.the')}>
         <SummaryRow
           icon="users"
@@ -588,6 +640,7 @@ function EvCard({
   t,
   e,
   catName,
+  catEmoji,
   counts,
   faces,
   mine,
@@ -597,6 +650,7 @@ function EvCard({
   t: (k: StringKey) => string
   e: EventRow
   catName: string | undefined
+  catEmoji?: string | null
   counts: { going: number; maybe: number; answered: boolean } | undefined
   faces: AvatarUser[]
   mine: MyRsvp
@@ -614,7 +668,17 @@ function EvCard({
     >
       <div className="flex items-center justify-between gap-2.5 px-3.5 pb-2.5 pt-3.5">
         <span className="font-display text-lg font-bold text-ink-900">{e.title}</span>
-        {catName && <Chip variant="sage">{catName}</Chip>}
+        {/* A Badge, not a Chip: a Chip is for something you can pick, and
+            the pickable copy of this category is the filter a few pixels
+            above. That one carries the emoji, so this one does too, or the
+            card reads "Juegos de mesa" under a chip reading "🎲 Juegos de
+            mesa". */}
+        {catName && (
+          <Badge tone="info">
+            {catEmoji ? `${catEmoji} ` : ''}
+            {catName}
+          </Badge>
+        )}
       </div>
       {/* Kept on the day too. This card used to delete it, on the theory that
           the address carries the day, and where-card.tsx now argues the
@@ -659,8 +723,8 @@ function EvCard({
       <div className="flex items-center gap-2.5 px-3.5 pb-3.5 text-[12.5px] text-ink-500">
         {hot && e.chosen_start && (
           <>
-            <span className="flex-shrink-0 rounded-pill bg-honey-500 px-2.5 py-[3px] text-[11px] font-extrabold text-charcoal">
-              Hoy
+            <span className="flex-shrink-0">
+              <Badge tone="now">{t('when.today')}</Badge>
             </span>
             <span className="flex-shrink-0">{fmtWeekdayDay(e.chosen_start, lang)}</span>
           </>

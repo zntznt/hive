@@ -177,7 +177,7 @@ export function ClubHeader({
         {description && (
           <>
             <p
-              className={`mx-auto mt-[10px] max-w-[38ch] text-[13.5px] leading-[1.5] text-ink-700 [text-wrap:pretty] ${
+              className={`mx-auto mt-[10px] text-[13.5px] leading-[1.5] text-ink-700 [text-wrap:pretty] ${
                 clampable && !showAll ? 'line-clamp-4' : ''
               }`}
             >
