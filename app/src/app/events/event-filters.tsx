@@ -55,13 +55,42 @@ export function EventFilters({
   const t = useT()
   const tf = useTf()
 
-  const on = groups.filter((g) => g.current !== g.none)
+  // When is a switch, not a filter chip. The row was built on "an unset filter
+  // is not a control sitting at zero, it is absent", which is right about club,
+  // person and place: those are long lists nobody can guess. It is not right
+  // about a three-way that every reader of this screen wants, and it left Past
+  // two taps deep behind a sheet. The kit puts the three in the row, and the
+  // agenda default only makes sense with them visible.
+  const whenGroup = groups.find((g) => g.key === 'when')
+  const on = groups.filter((g) => g.key !== 'when' && g.current !== g.none)
   const chipBase =
     'inline-flex flex-shrink-0 items-center gap-1.5 rounded-pill border px-3 text-[12.5px] font-bold tap'
 
   return (
     <>
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]{display:none}">
+        {whenGroup?.options.map((o) => {
+          const active = o.value === whenGroup.current
+          return (
+            <Link
+              key={o.value}
+              href={o.href}
+              aria-current={active ? 'true' : undefined}
+              className={`${chipBase} ${
+                active ? 'border-charcoal bg-charcoal text-on-dark' : 'border-line-card bg-paper text-ink-700'
+              }`}
+            >
+              {o.label}
+            </Link>
+          )
+        })}
+
+        {/* Filters sits after the switch, not pushed to the right edge. The
+            kit's row pushes it right, which works in a row that fits; this one
+            scrolls horizontally and carries a chip per active filter, so
+            `ml-auto` had no free space to consume and the button would drift
+            further away with every chip. A fixed position is the one a thumb
+            can learn. */}
         <button
           type="button"
           onClick={() => setOpen(true)}

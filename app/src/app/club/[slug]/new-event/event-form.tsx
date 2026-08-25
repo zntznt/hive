@@ -265,6 +265,86 @@ export default function EventForm({
   const [guests, setGuests] = useState(edit)
   const [deadline, setDeadline] = useState(edit)
 
+  // The three optional extras, hoisted so they can be grouped. An added extra
+  // and one still on offer are two different things: one is part of the event,
+  // the other is a suggestion. They were siblings in a flat column, so on the
+  // edit form, where all three arrive added, nothing separated what the event
+  // has from what it could still be given.
+  const EXTRAS = [
+    { added: cap, el: (
+    <Extra
+      icon="users"
+      title={t('form.cap.offer')}
+      consequence={t('form.cap.consequence')}
+      added={cap}
+      onAdd={() => setCap(true)}
+      onRemove={() => setCap(false)}
+    >
+      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5 text-sm text-ink-700">
+        <label className="flex items-center gap-2" htmlFor="capacity">
+          {t('form.cap.label')}
+          <input
+            id="capacity"
+            name="capacity"
+            type="number"
+            min={1}
+            placeholder="∞"
+            defaultValue={initial?.capacity ?? undefined}
+            className="w-20 rounded-md border border-line-input bg-paper p-2 text-ink-900"
+          />
+        </label>
+        <Checkbox name="waitlist_enabled" label={t('form.waitlist')} defaultChecked={initial?.waitlist_enabled} />
+      </div>
+      {/* The reason these two controls are one block. Without it the
+          waitlist reads as an unrelated setting that happens to be
+          nearby. */}
+      <p className="mt-2 text-xs text-ink-300">{t('form.cap.hint')}</p>
+    </Extra>
+    ) },
+    { added: guests, el: (
+    <Extra
+      icon="user-plus"
+      title={t('form.guests.offer')}
+      consequence={t('form.guests.consequence')}
+      added={guests}
+      onAdd={() => setGuests(true)}
+      onRemove={() => setGuests(false)}
+    >
+      {/* A stepper, not a checkbox. The row above promises "una pareja, un
+          par de amigos" - two different people - and a boolean permits
+          exactly one, so the control contradicted its own offer. The rest
+          of the stack already counted guests per host; this was the only
+          piece that thought the answer was yes or no. */}
+      <GuestStepper defaultValue={initial?.maxGuestsPerMember ?? 1} />
+    </Extra>
+    ) },
+    { added: deadline, el: (
+    <Extra
+      icon="clock"
+      title={t('form.deadline.offer')}
+      // What this app actually does at that moment. It does not drop
+      // maybes and it does not move the waitlist, so it does not say so.
+      consequence={t('form.deadline.consequence')}
+      added={deadline}
+      onAdd={() => setDeadline(true)}
+      onRemove={() => setDeadline(false)}
+    >
+      <Input
+        id="confirm_deadline"
+        name="confirm_deadline"
+        type="datetime-local"
+        label={t('form.deadline.label')}
+        defaultValue={toDatetimeLocal(initial?.confirm_deadline ?? null)}
+      />
+      <p className="mt-1.5 text-xs text-ink-300">
+        {t('form.reminderNote')}
+      </p>
+    </Extra>
+    ) },
+  ]
+  const addedExtras = EXTRAS.filter((x) => x.added)
+  const openExtras = EXTRAS.filter((x) => !x.added)
+
   return (
     <form action={formAction} className="flex flex-col gap-[18px]">
       <Input id="title" name="title" label={t('form.title')} required placeholder={t('form.title.ph')} value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -282,10 +362,28 @@ export default function EventForm({
           options={[
             { value: '', label: t('form.category.none') },
             ...cats.map((c) => ({ value: c.id, label: `${c.emoji ? `${c.emoji} ` : ''}${c.name}` })),
-            { value: NEW, label: t('form.catNew') },
           ]}
         />
-        {categoryId === NEW && (
+        {/* A button under the list, not an option inside it. Both this and the
+            kit open the field in place, so the argument the sentinel was added
+            for ("the moment you want a new category is the moment you open the
+            list and it isn't there") is satisfied either way. What was left
+            unargued is that the list of categories held one entry that is not
+            a category, so picking it selected nothing, and there was no way
+            back out except choosing something else. */}
+        {categoryId !== NEW ? (
+          <button
+            type="button"
+            onClick={() => {
+              setCategoryId(NEW)
+              setCatNote(null)
+            }}
+            className="tap -my-1 mt-1 inline-flex min-h-11 items-center gap-1 text-[12.5px] font-bold text-honey-700"
+          >
+            <Icon name="plus" size={10} />
+            {t('form.catNew')}
+          </button>
+        ) : (
           <div className="mt-2 flex items-end gap-2">
             <div className="flex-1">
               <Input
@@ -303,6 +401,17 @@ export default function EventForm({
               onClick={addCategory}
             >
               {t(addingCat ? 'club.creating' : 'common.create')}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setCategoryId('')
+                setNewName('')
+                setCatNote(null)
+              }}
+            >
+              {t('common.cancel')}
             </Button>
           </div>
         )}
@@ -416,76 +525,22 @@ export default function EventForm({
           an offer heading and a "most events need none of these" closer sat
           around three blocks that were already filled in. */}
       <div className="flex flex-col gap-2">
-        {(!cap || !guests || !deadline) && <p className="eyebrow px-0.5">{t('form.extras')}</p>}
+        {addedExtras.length > 0 && (
+          <Fieldset legend={t('form.extras.added')}>
+            <div className="flex flex-col gap-2">
+              {addedExtras.map((x, i) => (
+                <div key={i}>{x.el}</div>
+              ))}
+            </div>
+          </Fieldset>
+        )}
 
-        <Extra
-          icon="users"
-          title={t('form.cap.offer')}
-          consequence={t('form.cap.consequence')}
-          added={cap}
-          onAdd={() => setCap(true)}
-          onRemove={() => setCap(false)}
-        >
-          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5 text-sm text-ink-700">
-            <label className="flex items-center gap-2" htmlFor="capacity">
-              {t('form.cap.label')}
-              <input
-                id="capacity"
-                name="capacity"
-                type="number"
-                min={1}
-                placeholder="∞"
-                defaultValue={initial?.capacity ?? undefined}
-                className="w-20 rounded-md border border-line-input bg-paper p-2 text-ink-900"
-              />
-            </label>
-            <Checkbox name="waitlist_enabled" label={t('form.waitlist')} defaultChecked={initial?.waitlist_enabled} />
-          </div>
-          {/* The reason these two controls are one block. Without it the
-              waitlist reads as an unrelated setting that happens to be
-              nearby. */}
-          <p className="mt-2 text-xs text-ink-300">{t('form.cap.hint')}</p>
-        </Extra>
+        {openExtras.length > 0 && <p className="eyebrow px-0.5">{t('form.extras')}</p>}
+        {openExtras.map((x, i) => (
+          <div key={i}>{x.el}</div>
+        ))}
 
-        <Extra
-          icon="user-plus"
-          title={t('form.guests.offer')}
-          consequence={t('form.guests.consequence')}
-          added={guests}
-          onAdd={() => setGuests(true)}
-          onRemove={() => setGuests(false)}
-        >
-          {/* A stepper, not a checkbox. The row above promises "una pareja, un
-              par de amigos" - two different people - and a boolean permits
-              exactly one, so the control contradicted its own offer. The rest
-              of the stack already counted guests per host; this was the only
-              piece that thought the answer was yes or no. */}
-          <GuestStepper defaultValue={initial?.maxGuestsPerMember ?? 1} />
-        </Extra>
-
-        <Extra
-          icon="clock"
-          title={t('form.deadline.offer')}
-          // What this app actually does at that moment. It does not drop
-          // maybes and it does not move the waitlist, so it does not say so.
-          consequence={t('form.deadline.consequence')}
-          added={deadline}
-          onAdd={() => setDeadline(true)}
-          onRemove={() => setDeadline(false)}
-        >
-          <Input
-            id="confirm_deadline"
-            name="confirm_deadline"
-            type="datetime-local"
-            label={t('form.deadline.label')}
-            defaultValue={toDatetimeLocal(initial?.confirm_deadline ?? null)}
-          />
-          <p className="mt-1.5 text-xs text-ink-300">
-            {t('form.reminderNote')}
-          </p>
-        </Extra>
-
-        {(!cap || !guests || !deadline) && (
+        {openExtras.length > 0 && (
           <p className="mt-1 px-0.5 text-xs leading-relaxed text-ink-300">
             {t('form.extras.hint')}
           </p>

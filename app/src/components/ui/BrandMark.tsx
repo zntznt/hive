@@ -36,17 +36,27 @@ const SILHOUETTE =
 // below this the ring and the dots silt into a blob and the silhouette takes
 // over. The height decides the cut here rather than at the call site, so no
 // screen can ask for the one that will not read.
-const FULL_MARK_FROM = 32
+const FULL_MARK_FROM = 28
 
 // The mark's height in px. `sm` is 32 rather than the kit's 28 so the smallest
 // lockup still gets the full mark, which is what the kit's own screens draw.
-const HEIGHTS = { sm: 32, md: 40, lg: 52 } as const
+const HEIGHTS = { sm: 28, md: 40, lg: 52 } as const
+// The wordmark is a fixed map, not a ratio off the mark. The 0.74 it was
+// derived from put sm at 24 against the kit's 20, and the threshold above was
+// 32 so the smallest lockup could still show the full mark. The kit draws the
+// full mark at 28, so the constraint the ratio existed to satisfy was never
+// real, and both are the kit's numbers now.
+const WORDMARK_PX = { sm: 20, md: 28, lg: 36 } as const
 
-// Both scale with the mark rather than sitting at fixed pixels. The gap is
-// tight on purpose: a mark and a wordmark are ONE object, so the space between
-// them has to read as smaller than the space around them, and a fixed gap
-// holds at small sizes and comes apart at large, which is exactly when a logo
-// gets looked at hardest.
+// The gap scales with the mark, and is tight on purpose: a mark and a wordmark
+// are ONE object, so the space between them has to read as smaller than the
+// space around them, and a fixed gap holds at small sizes and comes apart at
+// large, which is exactly when a logo gets looked at hardest. The kit scales
+// its gap the same way.
+//
+// The wordmark does not. It is a fixed map above, the kit's, and the ratio
+// only survives for a caller passing a raw number, which the named scale does
+// not cover.
 const GAP = 0.14
 const WORDMARK = 0.74
 
@@ -73,6 +83,7 @@ export function BrandMark({
   showWordmark?: boolean
 }) {
   const h = typeof size === 'number' ? size : HEIGHTS[size]
+  const wordPx = typeof size === 'number' ? Math.round(h * WORDMARK) : WORDMARK_PX[size]
   const fill = FILL[tone]
   return (
     <span className="inline-flex items-center" style={{ gap: Math.round(h * GAP) }}>
@@ -93,7 +104,7 @@ export function BrandMark({
       {showWordmark && (
         <span
           className="font-display font-extrabold leading-none"
-          style={{ fontSize: Math.round(h * WORDMARK), letterSpacing: '-0.01em', color: fill.word }}
+          style={{ fontSize: wordPx, letterSpacing: '-0.01em', color: fill.word }}
         >
           Hive
         </span>
