@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Loud, FoldedEmpties } from '@/components/ui/Density'
 import { CollapsibleSection } from '@/components/ui/CollapsibleSection'
-import { FaceStack } from '@/components/ui/FaceStack'
 import { timeAgo } from '@/lib/relative-time'
 import { type AvatarUser } from '@/components/ui/Avatar'
 import { TemplateRow, TemplateSyncBar } from './template-row'
@@ -202,13 +201,16 @@ export default async function AdminPage() {
           <CollapsibleSection
             label={tr('admin.users')}
             icon="users"
+            // Text, not faces. CollapsibleSection has one summary prop by
+            // design, and it renders in two places: a row when closed, and
+            // beside the eyebrow when open, where the header goes quiet and
+            // the span truncates at 11.5px. A FaceStack survives the first and
+            // not the second, so 20px avatars ended up jammed against the
+            // eyebrow inside a truncating line. A count reads in both.
             summary={
-              <span className="flex items-center gap-2">
-                <FaceStack people={restUsers.slice(0, 4) as unknown as AvatarUser[]} size={20} max={4} />
-                <span className="text-[12.5px] text-ink-300">
-                  {users.length}
-                  {disabled > 0 && tf('admin.noAccessN', { n: disabled })}
-                </span>
+              <span className="text-[12.5px] text-ink-300">
+                {users.length}
+                {disabled > 0 && tf('admin.noAccessN', { n: disabled })}
               </span>
             }
           >
