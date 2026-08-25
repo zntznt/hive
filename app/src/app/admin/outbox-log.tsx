@@ -32,6 +32,17 @@ const TONE: Record<string, 'active' | 'pending' | 'neutral' | 'danger'> = {
 
 // Keys, not sentences. A module-level const holding copy freezes whichever
 // language rendered first on that server and never follows the toggle.
+// The same rule for why a delivery did not happen. notify.ts writes a key
+// into notification_outbox.error; anything unrecognised is printed as it
+// stands, which is what keeps the rows written before this readable.
+const REASON: Record<string, StringKey> = {
+  no_template: 'admin.outbox.err.noTemplate',
+  no_email: 'admin.outbox.err.noEmail',
+  no_whatsapp: 'admin.outbox.err.noWhatsapp',
+  muted_by_prefs: 'admin.outbox.err.muted',
+  wa_template_unapproved: 'admin.outbox.err.waUnapproved',
+}
+
 const LABEL: Record<string, StringKey> = {
   sent: 'admin.outbox.sent',
   pending: 'admin.outbox.waiting',
@@ -88,7 +99,7 @@ export default function OutboxLog({ rows }: { rows: OutboxRow[] }) {
               {/* the provider's id, so one message can be traced to one
                   broadcast without going through the database */}
               {r.provider_ref && <div className="mt-0.5 break-all text-[11px] text-ink-300">{r.provider_ref}</div>}
-              {r.error && <div className="mt-1 rounded-md bg-danger-bg p-2 text-[11.5px] text-danger">{r.error}</div>}
+              {r.error && <div className="mt-1 rounded-md bg-danger-bg p-2 text-[11.5px] text-danger">{REASON[r.error] ? tr(REASON[r.error]) : r.error}</div>}
             </li>
           ))}
         </ul>

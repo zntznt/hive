@@ -1,6 +1,6 @@
 -- RLS rule verification for the contributions permission model (docs/05 F6)
 -- and the pending-account gate (docs/03). Run against a database seeded with
--- seed.sql. Everything rolls back — safe to re-run.
+-- seed.sql. Everything rolls back, so it is safe to re-run.
 --
 -- Expected output: six "PASS …" notices and zero exceptions.
 

@@ -1,8 +1,8 @@
 'use client'
 
+import { Input } from '@/components/ui/Input'
 import { useState } from 'react'
 import { supabaseBrowser } from '@/lib/supabase/client'
-import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { useT } from '@/components/ui/LangProvider'
 import { BrandMark } from '@/components/ui/BrandMark'
@@ -39,7 +39,7 @@ export default function ClubJoinSignIn({ token, clubName }: Props) {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-entry flex-col justify-center px-4 pb-10 pt-6">
-      <Card honeycomb>
+      <div className="overflow-hidden rounded-2xl border border-line-card bg-paper shadow-raised">
         <div className="mb-4 flex justify-center">
           <BrandMark size="sm" showWordmark={false} />
         </div>
@@ -57,17 +57,17 @@ export default function ClubJoinSignIn({ token, clubName }: Props) {
         ) : (
           <form onSubmit={send} className="space-y-3">
             <p className="text-center text-sm text-ink-500">{tr('inv.emailIntro')}</p>
-            <label className="block text-sm text-ink-700" htmlFor="email">
-              {tr('inv.yourEmail')}
-            </label>
-            <input
+            {/* The app's Input, so this types at 14px in the same box as the
+                identical field on /i/{token}. It was hand-rolled with no text
+                size, which meant 16px in a taller box. */}
+            <Input
               id="email"
               type="email"
               required
+              label={tr('inv.yourEmail')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={tr('inv.email.example')}
-              className="w-full rounded-md border-[1.5px] border-line-input bg-paper p-3 outline-none focus:border-honey-500"
             />
             <Button type="submit" block size="lg" disabled={sending}>
               {tr(sending ? 'common.sending' : 'common.continue')}
@@ -75,7 +75,7 @@ export default function ClubJoinSignIn({ token, clubName }: Props) {
             {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
           </form>
         )}
-      </Card>
+      </div>
     </main>
   )
 }

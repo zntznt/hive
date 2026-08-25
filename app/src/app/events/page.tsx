@@ -72,7 +72,7 @@ export default async function EventsPage({
   const when = sp.when ?? 'all'
   const place = sp.place ?? 'all'
   const owedOnly = sp.owed === 'true'
-  const sort = sp.sort ?? 'newest'
+  const sort = sp.sort ?? 'agenda'
   const page = Math.max(1, parseInt(sp.page ?? '1', 10) || 1)
 
   const { data: memberships } = await supabase
@@ -159,10 +159,21 @@ export default async function EventsPage({
   })
 
   const sortKey = (e: EventFull) => (eventDate(e) ?? new Date(e.created_at)).getTime()
+  // Agenda is the default, and it is the order a person opens this tab in:
+  // what is still to come, soonest first, then everything that already
+  // happened, most recent first. Newest-first put the event furthest into the
+  // future at the top and buried tonight's, and there was no way to ask for
+  // this order at all.
   rows = [...rows].sort((a, b) => {
     if (sort === 'oldest') return sortKey(a) - sortKey(b)
     if (sort === 'owed') return owedShownOf(b.id) - owedShownOf(a.id)
-    return sortKey(b) - sortKey(a)
+    if (sort === 'newest') return sortKey(b) - sortKey(a)
+    // `isPastEvent` is the one that already decides this, here and in the
+    // filters above, so agenda order cannot disagree with the "past" chip.
+    const pa = isPastEvent(a)
+    const pb = isPastEvent(b)
+    if (pa !== pb) return pa ? 1 : -1
+    return pa ? sortKey(b) - sortKey(a) : sortKey(a) - sortKey(b)
   })
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PER_PAGE))
@@ -262,11 +273,12 @@ export default async function EventsPage({
             options: opts(
               'sort',
               [
+                { value: 'agenda', label: t('events.filter.agenda') },
                 { value: 'newest', label: t('events.filter.newest') },
                 { value: 'oldest', label: t('events.filter.oldest') },
                 { value: 'owed', label: t('events.filter.mostOwed') },
               ],
-              'newest'
+              'agenda'
             ),
           },
         ]}
@@ -276,7 +288,7 @@ export default async function EventsPage({
 
       <div className="mb-2.5 mt-[26px] flex items-baseline justify-between text-[12.5px] text-ink-500">
         <span>
-          {rows.length} evento{rows.length === 1 ? '' : 's'}
+          {rows.length === 1 ? t('events.count.one') : tf('events.count', { n: rows.length })}
         </span>
         {grandTotalOwed > 0 && (
           <span>
@@ -299,7 +311,7 @@ export default async function EventsPage({
         {shown.map((e) => {
           const clubInfo = e.club_id ? clubById.get(e.club_id) : undefined
           const category = e.category_id ? catById.get(e.category_id) : undefined
-          const catLabel = category ? `${category.emoji ? `${category.emoji} ` : ''}${category.name}` : 'sin categoría'
+          const catLabel = category ? `${category.emoji ? `${category.emoji} ` : ''}${category.name}` : t('form.category.none')
           const attendees = attendeesOf(e.id)
           const myRsvp = myRsvpOf(e.id)
           const myNet = balancesOf(e.id).find((b) => b.user_id === profile.id)?.net_cents ?? 0
@@ -378,7 +390,7 @@ export default async function EventsPage({
                           person === profile.id ? 'bg-danger-bg text-danger' : 'bg-honey-100 text-honey-800'
                         }`}
                       >
-                        {person === profile.id ? 'debes' : 'debe'} {fmtMoney(owedShown)}
+                        {tf(person === profile.id ? 'money.youOweAmount' : 'money.theyOweAmount', { amount: fmtMoney(owedShown) })}
                       </span>
                     )
                   ) : myNet < 0 ? (

@@ -56,6 +56,7 @@ export function LocationPicker({
         : null)
   )
   const [open, setOpen] = useState(false)
+  const [renaming, setRenaming] = useState(false)
   const [locating, setLocating] = useState(false)
   // The street the pin is standing on, resolved from the pin rather than
   // asked for. It is what the day-of header prints, and asking somebody to
@@ -189,7 +190,7 @@ export function LocationPicker({
     </span>
   )
 
-  const groupLabel = 'block bg-paper px-[13px] pb-1 pt-2 text-[10.5px] font-bold uppercase tracking-wide text-ink-300'
+  const groupLabel = 'block bg-paper px-[13px] pb-1 pt-2 text-[10.5px] font-bold uppercase tracking-label text-ink-300'
 
   if (picked) {
     return (
@@ -204,22 +205,57 @@ export function LocationPicker({
               <MapPinIcon />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold text-ink-900">{picked.name}</span>
+              {/* Cambiar swaps the place; Editar keeps it and fixes what it is
+                  called. Two jobs, so two controls: renaming "Casa de Marta" to
+                  "Casa de Marta, patio" used to mean clearing the card and
+                  running the geocoder again from an empty field, which threw
+                  away the pin somebody had already placed.
+
+                  Only the name is editable here. The street is what the geocoder
+                  resolved and the pin is dragged on the map above, which is
+                  already in this card, so those two have their own affordances
+                  and do not need a second one. */}
+              {renaming ? (
+                <input
+                  autoFocus
+                  value={picked.name}
+                  onChange={(e) => setPicked({ ...picked, name: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      setRenaming(false)
+                    }
+                  }}
+                  className="block w-full rounded-sm border-[1.5px] border-line-input bg-paper px-2 py-1 text-sm font-bold text-ink-900"
+                />
+              ) : (
+                <span className="block text-sm font-bold text-ink-900">{picked.name}</span>
+              )}
               {picked.addr && <span className="block text-[12.5px] text-ink-500">{picked.addr}</span>}
               <span className="mt-1 block">{pinNote}</span>
             </span>
-            <button
-              type="button"
-              onClick={() => {
-                setPicked(null)
-                setValue('')
-                setPoint(null)
-                movedByHand.current = false
-              }}
-              className="tap flex-shrink-0 text-[12.5px] font-bold text-honey-700"
-            >
-              {tr('common.changeIt')}
-            </button>
+            <span className="flex flex-shrink-0 flex-col items-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setPicked(null)
+                  setValue('')
+                  setPoint(null)
+                  setRenaming(false)
+                  movedByHand.current = false
+                }}
+                className="tap -my-2 inline-flex min-h-11 items-center text-[12.5px] font-bold text-honey-700"
+              >
+                {tr('common.changeIt')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setRenaming((v) => !v)}
+                className="tap -my-2 inline-flex min-h-11 items-center text-[12.5px] font-bold text-ink-500"
+              >
+                {renaming ? tr('common.done') : tr('common.edit')}
+              </button>
+            </span>
           </div>
         </div>
       </div>
@@ -249,7 +285,7 @@ export function LocationPicker({
       {hidden}
 
       {open && (savedMatches.length > 0 || recentMatches.length > 0) && (
-        <div className="absolute inset-x-0 z-10 mt-1.5 overflow-hidden rounded-md border border-line-card bg-paper shadow-raised">
+        <div className="absolute inset-x-0 z-popover mt-1.5 overflow-hidden rounded-md border border-line-card bg-paper shadow-raised">
           {savedMatches.length > 0 && <span className={groupLabel}>{tr('place.yours')}</span>}
           {savedMatches.map((p, i) => (
             <button

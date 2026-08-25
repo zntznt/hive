@@ -900,16 +900,48 @@ export async function createEvent(
   if (!user) return t('err.session')
 
   const title = String(formData.get('title') ?? '').trim()
+  // Which pair of date fields is required depends on the mode, because the
+  // other pair is not on the form at all: the window inputs unmount when the
+  // organizer says they already know the date, so validating both always
+  // rejected every fixed-time event with "faltan campos obligatorios".
+  const fixedDate = String(formData.get('chosen_date') ?? '').trim()
+  const wantsFixed = String(formData.get('sched_mode') ?? 'ask') === 'fixed'
   const startDate = String(formData.get('sched_start_date') ?? '')
   const endDate = String(formData.get('sched_end_date') ?? '')
-  if (!title || !startDate || !endDate) return t('err.fields.missing')
-  if (endDate < startDate) return t('err.dates.backwards')
+  if (!title) return t('err.fields.missing')
+  if (wantsFixed) {
+    if (!fixedDate) return t('err.fields.missing')
+  } else {
+    if (!startDate || !endDate) return t('err.fields.missing')
+    if (endDate < startDate) return t('err.dates.backwards')
+  }
 
   const capacityRaw = String(formData.get('capacity') ?? '').trim()
   const deadlineRaw = String(formData.get('confirm_deadline') ?? '').trim()
   const categoryRaw = String(formData.get('category_id') ?? '')
   const { randomSlug } = await import('@/lib/slug')
   const slug = randomSlug()
+
+  // Two ways in. "Preguntar al club" makes the event a question and the poll
+  // decides the time; "ya sé la fecha" makes it scheduled on the spot. The
+  // status was hardcoded to 'scheduling', so an organizer who already knew the
+  // date had to create the poll and then pick a slot on the event page.
+  //
+  // The minutes-from-midnight selects are the same ones the window uses, and
+  // the date is a plain `date` input, so both go through mexicoLocalToIso for
+  // the same reason confirm_deadline does: this app is in one timezone and the
+  // server is in another.
+  const hhmm = (mins: number) => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`
+  let chosenStart: string | null = null
+  let chosenEnd: string | null = null
+  if (wantsFixed && fixedDate) {
+    const from = Number(formData.get('chosen_from') ?? 1140)
+    const to = Number(formData.get('chosen_to') ?? 1380)
+    chosenStart = new Date(mexicoLocalToIso(`${fixedDate}T${hhmm(from)}`)).toISOString()
+    // an end before the start is the night running past midnight
+    const endDay = to > from ? fixedDate : new Date(Date.parse(`${fixedDate}T00:00:00Z`) + 86400000).toISOString().slice(0, 10)
+    chosenEnd = new Date(mexicoLocalToIso(`${endDay}T${hhmm(to)}`)).toISOString()
+  }
 
   const { error } = await supabase.from('events').insert({
     club_id: clubId,
@@ -919,7 +951,10 @@ export async function createEvent(
     location: String(formData.get('location') ?? '').trim() || null,
     ...readPoint(formData, 'location'),
     description: String(formData.get('description') ?? '').trim() || null,
-    status: 'scheduling',
+    status: chosenStart ? 'scheduled' : 'scheduling',
+    chosen_start: chosenStart,
+    chosen_end: chosenEnd,
+    scheduled_at: chosenStart ? new Date().toISOString() : null,
     organizer_user_id: user.id,
     join_policy: String(formData.get('join_policy') ?? 'club_members_only'),
     // The stepper's number is the answer; allow_guests stays in step with it
@@ -929,8 +964,8 @@ export async function createEvent(
     capacity: capacityRaw ? Number(capacityRaw) : null,
     waitlist_enabled: formData.get('waitlist_enabled') === 'on' && !!capacityRaw,
     confirm_deadline: deadlineRaw ? new Date(mexicoLocalToIso(deadlineRaw)).toISOString() : null,
-    sched_start_date: startDate,
-    sched_end_date: endDate,
+    sched_start_date: startDate || null,
+    sched_end_date: endDate || null,
     sched_time_min: Number(formData.get('time_min') ?? 1140),
     sched_time_max: Number(formData.get('time_max') ?? 1380),
     sched_slot_minutes: Number(formData.get('slot_minutes') ?? 60),
@@ -1014,8 +1049,15 @@ export async function createInvitation(
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) throw new Error('not signed in')
-  const email = String(formData.get('email') ?? '').trim() || null
-  const phone = String(formData.get('phone') ?? '').trim() || null
+  // One field on the form now, split here. Two fields made the organizer
+  // decide the channel before typing, and '@' is the only reliable tell:
+  // Mexican numbers are written with spaces, dashes, parentheses and an
+  // optional +52, none of which appear in an address. Same rule sign-in uses.
+  // The two old names still read, so an older form post still works.
+  const contact = String(formData.get('contact') ?? '').trim()
+  const typed = contact.includes('@')
+  const email = (typed ? contact : String(formData.get('email') ?? '').trim()) || null
+  const phone = (contact && !typed ? contact : String(formData.get('phone') ?? '').trim()) || null
   if (!email && !phone) return
   const [{ data: me }, { data: inviter }, { data: event }] = await Promise.all([
     supabase.from('users').select('is_app_admin').eq('id', user.id).single(),

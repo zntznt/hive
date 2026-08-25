@@ -131,7 +131,7 @@ export default function InviteSignIn({
           </p>
 
           {eventTitle && !expired && (
-            <ul className="mt-4 flex flex-col gap-2 border-t border-line-divider pt-3.5">
+            <ul className="mt-4 flex flex-col gap-[9px] rounded-md border border-line-card bg-paper px-3.5 py-3">
               {/* The date is `fmtDateTime`'s job. This screen used to build its
                   own Intl formatter with 'es-MX' hardcoded and the timezone
                   written out a second time, so an English reader got a Spanish

@@ -17,8 +17,10 @@ export function EmptyState({
 }) {
   return (
     <div className={`rounded-lg bg-cream-sunk px-[18px] py-[22px] text-center ${className}`}>
-      <div className="mb-2 leading-none text-honey-500">
-        <Icon name={icon} size={28} />
+      <div className="mb-2 flex justify-center">
+        <span className="grid h-10 w-10 place-items-center rounded-sm bg-honey-100 text-honey-800">
+          <Icon name={icon} size={17} />
+        </span>
       </div>
       {title && <div className="text-[13.5px] font-bold text-ink-700">{title}</div>}
       {hint && <div className="mt-0.5 text-[12.5px] text-ink-500">{hint}</div>}

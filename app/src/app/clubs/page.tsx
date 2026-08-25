@@ -233,7 +233,7 @@ export default async function ClubsPage() {
                         >
                           {club.name}
                         </span>
-                        {m.role === 'admin' && <Badge tone="admin">admin</Badge>}
+                        {m.role === 'admin' && <Badge tone="admin">{t('role.admin')}</Badge>}
                         {m.role === 'organizer' && <Badge>{t('role.organizer')}</Badge>}
                       </span>
                       {/* who, not how many */}
@@ -273,7 +273,7 @@ export default async function ClubsPage() {
                             <img
                               src={s.url}
                               alt={s.caption ? tf('clubs.photoAlt', { title: s.caption }) : ''}
-                              className="block h-[92px] w-[92px] rounded-sm object-cover"
+                              className="block h-[92px] w-[92px] rounded-sm border border-line-card object-cover"
                               style={{ background: 'var(--cream-sunk)' }}
                             />
                             {s.caption && (
@@ -326,10 +326,14 @@ export default async function ClubsPage() {
                             soon ? 'border-honey-500 bg-honey-50' : 'border-line-card bg-cream-sunk'
                           }`}
                         >
+                          {/* Soon picks the glyph AND its colour. One honey
+                              for both states left a far-off row wearing the
+                              accent that marks the imminent one, and drew the
+                              imminent one in the lighter of the two honeys. */}
                           <Icon
                             name={soon ? 'clock' : 'calendar-day'}
                             size={12}
-                            className="flex-shrink-0 text-honey-700"
+                            className={`flex-shrink-0 ${soon ? 'text-honey-800' : 'text-ink-500'}`}
                           />
                           <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-ink-900">
                             {footer.event.title}
@@ -350,8 +354,14 @@ export default async function ClubsPage() {
                     // Not a button. There is nothing to open, so the row is a
                     // sentence, and only somebody who could fix it gets the
                     // action beside it.
+                    //
+                    // The 44px floor is the row's, not the button's. The
+                    // earlier note argued the row grows to fit the action,
+                    // which is true for a manager and leaves a plain member
+                    // with a 31px strip, so the same club's footer jumped
+                    // about 25px depending on who was looking at it.
                     <div
-                      className="flex items-center gap-2.5 border-t border-line-card px-3.5 py-1.5"
+                      className="flex min-h-11 items-center gap-2.5 border-t border-line-card px-3.5 py-1.5"
                       style={{ background: 'var(--cream-sunk)' }}
                     >
                       <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink-500">
@@ -378,22 +388,14 @@ export default async function ClubsPage() {
             })}
           </div>
 
-          {/* Its own row, after the list. Creating a club is the rarest thing
-              on this screen and the header is its most prominent slot, and you
-              decide to start one after looking at the ones you have and not
-              finding the one you wanted. Home already puts it here. */}
-          <div className="mt-3">
-            <CreateClubButton />
-          </div>
-
           {quiet.length > 0 && (
-            <section className="mt-6">
+            <section className="mt-[26px]">
               {/* The caption rides the header's action slot rather than
                   labelling each row: it is one fact about the whole group, and
                   repeating "sin nada planeado" down a column of clubs says it
                   four times. */}
               <SectionHeader action={<span className="text-[12px] text-ink-300">{t('clubs.quiet')}</span>}>
-                {t('clubs.more')}
+                {t('clubs.also')}
               </SectionHeader>
               <div className="flex flex-col gap-[7px]">
                 {quiet.map(({ m, club }) => (
@@ -404,13 +406,24 @@ export default async function ClubsPage() {
                   >
                     <HexAvatar name={club.name} src={club.avatar_url} size={26} />
                     <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-ink-900">{club.name}</span>
-                    <FaceStack people={facesOf.get(m.club_id) ?? []} total={countOf.get(m.club_id)} size={17} max={3} />
+                    <FaceStack people={facesOf.get(m.club_id) ?? []} total={countOf.get(m.club_id)} size={17} max={4} />
                     <Icon name="chevron-right" size={10} className="flex-shrink-0 text-ink-300" />
                   </Link>
                 ))}
               </div>
             </section>
           )}
+
+          {/* Last on the page, under everything including the quiet group.
+              Creating a club is the rarest thing on this screen and the header
+              is its most prominent slot, and you decide to start one after
+              looking at the ones you have and not finding the one you wanted.
+              It sat above the quiet group, so for anybody in more than four
+              clubs a full-width button cut the screen in half and the page
+              ended on a list of dormant clubs. */}
+          <div className="mt-[26px]">
+            <CreateClubButton />
+          </div>
         </>
       )}
     </Page>

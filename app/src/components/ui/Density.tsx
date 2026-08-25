@@ -25,7 +25,11 @@ import { FaceStack } from './FaceStack'
 // would have been a third guess at the same surface. The vertical padding
 // stays per row and is the only thing that varies, because a summary is one
 // line held open by min-h and a quote wraps to two and needs the extra pixel.
-const ROW = 'rounded-md border bg-paper px-3.5'
+// 13px, not 14. The comment below centralises the row's paper, hairline and
+// radius and never mentions the horizontal inset, and the Clubs tab draws this
+// same row shape at the kit's 9/13. Two screens rendering one row at two
+// insets is the drift this constant exists to stop.
+const ROW = 'rounded-md border bg-paper px-[13px]'
 const ROW_LINE = `${ROW} border-line-card`
 
 // --- rule 1: one loud block per page ---------------------------------------
@@ -161,7 +165,7 @@ export function SummaryRow({
       {(href || arrow) && <Icon name="chevron-right" size={10} className="flex-shrink-0 text-ink-300" />}
     </>
   )
-  const cls = `${ROW} ${hot ? 'border-honey-500' : 'border-line-card'} flex min-h-[46px] items-center gap-[11px] py-2`
+  const cls = `${ROW} ${hot ? 'border-honey-500' : 'border-line-card'} flex min-h-[46px] items-center gap-[11px] py-[9px]`
   return href ? (
     <Link href={href} className={cls}>
       {inner}

@@ -88,7 +88,10 @@ export function TemplateRow({
         onClick={() => setOpen((o) => !o)}
         className="min-h-11 flex w-full items-center gap-2 px-3.5 py-2.5 text-left"
       >
-        <ChevronDownIcon className={`flex-shrink-0 text-ink-300 transition-transform ${open ? '' : '-rotate-90'}`} />
+        {/* Opens in place, so chevron-down closed as well as open. A rotated
+            chevron-right is a door glyph, and the section wrapping these rows
+            already gets that right one level up. */}
+        <ChevronDownIcon className="flex-shrink-0 text-ink-300" />
         <span className="truncate font-mono text-[13.5px] font-bold text-ink-900">{tplKey}</span>
         {whatsapp && (
           <span className="ml-auto flex-shrink-0">
@@ -104,7 +107,7 @@ export function TemplateRow({
         <div className="grid grid-cols-1 gap-3 px-3.5 pb-3.5 pl-[31px] sm:grid-cols-2">
           {email && (
             <form action={updateNotificationTemplate.bind(null, 'email', tplKey, 'es')} className="flex flex-col gap-1.5">
-              <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-ink-300">{tr('notif.email')}</span>
+              <span className="text-[10.5px] font-extrabold uppercase tracking-label text-ink-300">{tr('notif.email')}</span>
               <input
                 name="subject"
                 defaultValue={email.subject ?? ''}
@@ -117,7 +120,7 @@ export function TemplateRow({
           )}
           {emailEn && (
             <form action={updateNotificationTemplate.bind(null, 'email', tplKey, 'en')} className="flex flex-col gap-1.5">
-              <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-ink-300">
+              <span className="text-[10.5px] font-extrabold uppercase tracking-label text-ink-300">
                 {tr('notif.email')} · EN
               </span>
               <input
@@ -133,7 +136,7 @@ export function TemplateRow({
           {whatsapp && (
             <div className="flex flex-col gap-1.5">
               <form action={updateNotificationTemplate.bind(null, 'whatsapp', tplKey, 'es')} className="flex flex-col gap-1.5">
-                <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-ink-300">{tr('notif.whatsapp')}</span>
+                <span className="text-[10.5px] font-extrabold uppercase tracking-label text-ink-300">{tr('notif.whatsapp')}</span>
                 <textarea name="body" defaultValue={whatsapp.body} rows={4} className="rounded-sm border border-line-input bg-paper p-1.5 text-xs text-ink-900" />
                 <button className="tap self-start text-xs font-bold text-honey-700">{tr('common.save')}</button>
               </form>

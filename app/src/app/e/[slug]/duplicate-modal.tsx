@@ -114,7 +114,7 @@ export function DuplicateModal({
       open
       onClose={pending ? undefined : onClose}
       title={tr('event.dup.title')}
-      subtitle={clubName ? `En ${clubName}` : undefined}
+      subtitle={clubName ? tf('event.dup.inClub', { club: clubName }) : undefined}
       footer={
         <>
           <Button variant="ghost" disabled={pending} onClick={onClose}>

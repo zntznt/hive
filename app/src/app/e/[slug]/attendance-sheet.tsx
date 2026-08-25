@@ -93,7 +93,7 @@ export function AttendanceSheet({
   if (taking) {
     const setAll = (v: boolean) => setPresent(Object.fromEntries(people.map((p) => [p.key, v])))
     return (
-      <div className="overflow-hidden rounded-md border border-line-card bg-paper shadow-card">
+      <div className="overflow-hidden rounded-lg border border-line-card bg-paper shadow-card">
         <div className="flex items-center justify-between gap-2.5 px-4 pb-3 pt-4">
           <div className="min-w-0">
             <p className="font-display text-lg font-bold leading-tight text-ink-900">
@@ -180,7 +180,7 @@ export function AttendanceSheet({
     const cameCount = total - absent.length
     const whoCame = people.filter((p) => p.present)
     return (
-      <div className="flex items-center gap-3 rounded-md border border-line-card bg-paper px-3.5 py-3">
+      <div className="flex items-center gap-3 rounded-lg border border-line-card bg-paper px-3.5 py-3">
         <Icon name="clipboard-check" size={16} className="flex-shrink-0 text-ink-300" />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-bold text-ink-900">
@@ -207,7 +207,7 @@ export function AttendanceSheet({
 
   // --- 1. not taken yet ----------------------------------------------------
   return (
-    <div className="rounded-md border border-honey-200 bg-honey-50 p-4">
+    <div className="rounded-lg border border-honey-200 bg-honey-50 p-4">
       <div className="flex items-start gap-3">
         <span
           aria-hidden="true"

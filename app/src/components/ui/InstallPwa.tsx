@@ -81,9 +81,9 @@ export function InstallPwa() {
   if (dismissed || platform === 'none') return null
 
   return (
-    <div className="mb-[26px] rounded-lg border border-line-card bg-paper px-4 py-[15px]">
+    <div className="mb-[26px] rounded-lg border border-honey-200 bg-honey-50 p-4">
       <div className="flex items-start gap-2.5">
-        <span className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-sm bg-honey-100 text-sm text-honey-800">
+        <span className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-sm bg-honey-500 text-sm text-charcoal">
           <Icon name="mobile-screen-button" size={14} />
         </span>
         <div className="min-w-0 flex-1">
@@ -114,24 +114,29 @@ export function InstallPwa() {
         // No button on purpose: iOS has no install API, so the only true thing
         // to do is name the taps and the glyph to hunt for in Safari's bar.
         <ol className="mt-3 flex flex-col gap-2 text-[13px] leading-relaxed text-ink-700">
-          <li className="flex items-center gap-2.5">
-            <span className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-sm bg-cream-sunk text-ink-500">
+          <li className="flex items-center gap-2.5 rounded-md border border-line-card bg-paper px-3 py-2.5">
+            <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-sm bg-cream-sunk text-honey-800">
               <Icon name="arrow-up-from-bracket" size={11} />
             </span>
             {tr('pwa.step1')}
           </li>
-          <li className="flex items-center gap-2.5">
-            <span className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-sm bg-cream-sunk text-ink-500">
+          <li className="flex items-center gap-2.5 rounded-md border border-line-card bg-paper px-3 py-2.5">
+            <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-sm bg-cream-sunk text-honey-800">
               <Icon name="square-plus" size={11} />
             </span>
             {tr('pwa.step2')}
           </li>
-          <li className="flex items-center gap-2.5">
+          <li className="flex items-center gap-2.5 rounded-md border border-line-card bg-paper px-3 py-2.5">
             {/* The mark, because this step is "look for this on your home
-                screen". It takes the row's colour like the two glyphs above
-                it: the sunk square is the step's tile, not a plate under the
-                logo, and honey here would make the third step shout. */}
-            <span className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-sm bg-cream-sunk text-ink-500">
+                screen". It takes the row's colour like the two glyphs above it:
+                the sunk square is the step's tile, not a plate under the logo.
+
+                That colour is honey-800 now, for all three. The note here used
+                to say honey would make the third step shout, which was true of
+                honey-500 on a paper card and is not true of the deep rung on a
+                sunk tile: the kit paints every step glyph honey-800, and the
+                three now match each other rather than the body text. */}
+            <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-sm bg-cream-sunk text-honey-800">
               <BrandMark size={12} tone="inherit" showWordmark={false} />
             </span>
             {tr('pwa.step3')}

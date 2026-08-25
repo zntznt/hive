@@ -20,10 +20,10 @@ import type { StringKey } from '@/lib/lang'
 // tapping "cambiar" on "quizás" used to file you as going.
 
 // Keys, not sentences: module-level copy freezes the first language rendered.
-const FACE: Record<string, { icon: IconName; key: StringKey; tone: string }> = {
-  in: { icon: 'check', key: 'event.saidYouGo', tone: 'text-ink-900' },
-  maybe: { icon: 'circle-dot', key: 'event.saidMaybe', tone: 'text-ink-900' },
-  out: { icon: 'xmark', key: 'event.saidNo', tone: 'text-ink-500' },
+const FACE: Record<string, { icon: IconName; key: StringKey; tone: string; iconTone: string }> = {
+  in: { icon: 'check', key: 'event.saidYouGo', tone: 'text-ink-900', iconTone: 'text-sage-600' },
+  maybe: { icon: 'circle-dot', key: 'event.saidMaybe', tone: 'text-ink-900', iconTone: 'text-ink-500' },
+  out: { icon: 'xmark', key: 'event.saidNo', tone: 'text-ink-500', iconTone: 'text-ink-500' },
 }
 
 export function RsvpRow({
@@ -56,8 +56,8 @@ export function RsvpRow({
   }
 
   return (
-    <div className="flex min-h-[52px] items-center gap-2.5 rounded-lg border border-line-card bg-paper px-3.5 py-2.5">
-      <Icon name={face.icon} size={14} className="flex-shrink-0 text-ink-500" />
+    <div className="flex min-h-[46px] items-center gap-2.5 rounded-md border border-line-card bg-paper px-3.5 py-2.5">
+      <Icon name={face.icon} size={14} className={`flex-shrink-0 ${face.iconTone}`} />
       <span className={`min-w-0 flex-1 text-[14px] font-bold ${face.tone}`}>
         {tr(face.key)}
         {note && <span className="font-normal text-ink-500"> · {note}</span>}

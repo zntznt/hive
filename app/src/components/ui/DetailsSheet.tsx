@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from 'react'
 import { Modal } from './Modal'
+import { Button } from './Button'
 import { SummaryRow } from './Density'
 import { useT } from './LangProvider'
 
@@ -32,7 +33,16 @@ export function DetailsSheet({
         <SummaryRow icon="circle-info" label={label} arrow />
       </button>
       {open && (
-        <Modal open onClose={() => setOpen(false)} title={title ?? tr('ui.details')}>
+        <Modal
+          open
+          onClose={() => setOpen(false)}
+          title={title ?? tr('ui.details')}
+          footer={
+            <Button variant="ghost" onClick={() => setOpen(false)}>
+              {tr('common.close')}
+            </Button>
+          }
+        >
           <div className="flex flex-col gap-[18px]">{children}</div>
         </Modal>
       )}

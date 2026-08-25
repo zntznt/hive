@@ -68,7 +68,7 @@ export function ClubHeader({
   const clampable = (description ?? '').length > 150
 
   const badge =
-    role === 'admin' ? <Badge tone="admin">admin</Badge> : role === 'organizer' ? <Badge>{tr('role.organizer')}</Badge> : null
+    role === 'admin' ? <Badge tone="admin">{tr('role.admin')}</Badge> : role === 'organizer' ? <Badge>{tr('role.organizer')}</Badge> : null
 
   if (!open) {
     return (
@@ -177,7 +177,7 @@ export function ClubHeader({
         {description && (
           <>
             <p
-              className={`mx-auto mt-[10px] max-w-[38ch] text-[13.5px] leading-[1.5] text-ink-700 [text-wrap:pretty] ${
+              className={`mx-auto mt-[10px] text-[13.5px] leading-[1.5] text-ink-700 [text-wrap:pretty] ${
                 clampable && !showAll ? 'line-clamp-4' : ''
               }`}
             >

@@ -36,7 +36,13 @@ export function NotificationsGroup({
   // 'checking' until the browser answers, which is why the column starts dead
   // with no reason printed: a column that flashes live and then dies reads as
   // a bug, and a reason shown before we have one would be a guess.
-  const [push, setPush] = useState<{ live: boolean; deviceName: string; reason: string | null }>({
+  const [push, setPush] = useState<{
+    live: boolean
+    state?: string
+    deviceName: string
+    reason: string | null
+    devices?: { endpoint: string; label: string | null }[]
+  }>({
     live: false,
     deviceName: tr('account.device.this'),
     reason: null,

@@ -191,7 +191,7 @@ export default function SignIn() {
                 onChange={(e) => setContact(e.target.value)}
                 placeholder={tr('signin.ph')}
                 className={`min-h-[46px] rounded-md border-[1.5px] bg-charcoal-2 px-[14px] py-[13px] text-sm text-on-dark outline-none placeholder:text-on-dark-mute ${
-                  error ? 'border-danger' : contact.trim() ? 'border-honey-500' : 'border-charcoal-3'
+                  error ? 'border-danger-on-dark' : contact.trim() ? 'border-honey-500' : 'border-charcoal-3'
                 }`}
               />
             </div>
@@ -203,7 +203,7 @@ export default function SignIn() {
                 submit, never while typing. */}
             <div
               className={`mb-3 flex min-h-[34px] items-start gap-2 text-xs leading-snug ${
-                error ? 'text-danger' : 'text-on-dark-mute'
+                error ? 'text-danger-on-dark' : 'text-on-dark-mute'
               }`}
             >
               {error ? (

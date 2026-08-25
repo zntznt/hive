@@ -2,7 +2,6 @@
 
 import { useActionState } from 'react'
 import { requestJoinClub } from '@/app/actions'
-import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { useT, useTf } from '@/components/ui/LangProvider'
@@ -21,7 +20,7 @@ export default function ClubJoinRequest({ token, clubName }: Props) {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-entry flex-col justify-center px-4 pb-10 pt-6">
-      <Card honeycomb>
+      <div className="overflow-hidden rounded-2xl border border-line-card bg-paper shadow-raised">
         <div className="mb-4 flex justify-center">
           <BrandMark size="sm" showWordmark={false} />
         </div>
@@ -43,7 +42,7 @@ export default function ClubJoinRequest({ token, clubName }: Props) {
             {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
           </form>
         )}
-      </Card>
+      </div>
     </main>
   )
 }

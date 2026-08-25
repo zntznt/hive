@@ -1,5 +1,4 @@
 import { supabaseServer } from '@/lib/supabase/server'
-import { Card } from '@/components/ui/Card'
 import { BrandMark } from '@/components/ui/BrandMark'
 import ClubJoinSignIn from './club-join-signin'
 import ClubJoinRequest from './club-join-request'
@@ -31,14 +30,14 @@ export default async function ClubJoinPage({ params }: { params: Promise<{ token
   if (preview.join_mode !== 'anyone_with_link') {
     return (
       <main className="mx-auto flex min-h-screen max-w-entry flex-col justify-center px-4 pb-10 pt-6">
-        <Card honeycomb className="text-center">
+        <div className="overflow-hidden rounded-2xl border border-line-card bg-paper text-center shadow-raised">
           <div className="mb-4 flex justify-center">
             <BrandMark size="sm" showWordmark={false} />
           </div>
           <p className="eyebrow mb-1 text-honey-700">{tr('club.private')}</p>
           <h1 className="mb-2 font-display text-xl font-bold text-ink-900">«{preview.club_name}»</h1>
           <p className="text-ink-500">{tr('club.private.hint')}</p>
-        </Card>
+        </div>
       </main>
     )
   }

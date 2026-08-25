@@ -62,6 +62,12 @@
   --success-bg: #e7f3ec;
   --danger: #b3261e;
   --danger-bg: #fdecea;
+  /* The same red, lifted until it reads on charcoal. #b3261e on #2b2620 is
+     about 2.3:1, so on the sign-in card every message explaining why somebody
+     cannot get in was the least legible thing on screen, and so were the six
+     code box borders. Semantic colours are not themed, but a surface this dark
+     is a different ground, and the kit ships this exact value for it. */
+  --danger-on-dark: oklch(0.74 0.15 27);
   --warning: #b4740a;
   --warning-bg: #fbefd6;
   --info: #2563eb;
@@ -112,6 +118,14 @@
   --z-popover: 80;
   --z-modal: 100;
   --z-toast: 140;
+
+  /* How much room the fixed tab bar takes at the bottom of the viewport, for
+     anything that floats over the page. It was referenced by nothing and
+     defined nowhere, so the toast sat at a flat 28px and painted across the
+     raised Home button for its whole 2.4s, because z-toast 140 beats z-nav 50.
+     The rule below tracks the real element rather than the route, since the
+     tab bar hides itself on the entry screens. */
+  --nav-inset: 0px;
 
   /* ---- Shadows (warm-charcoal tinted) ---- */
   --shadow-card: 0 1px 2px rgba(43, 38, 32, 0.04);
@@ -273,6 +287,7 @@
   --color-success-bg: var(--success-bg);
   --color-danger: var(--danger);
   --color-danger-bg: var(--danger-bg);
+  --color-danger-on-dark: var(--danger-on-dark);
   --color-warning: var(--warning);
   --color-warning-bg: var(--warning-bg);
   --color-info: var(--info);
@@ -299,6 +314,18 @@
 
   --font-body: var(--font-body);
   --font-display: var(--font-display);
+
+  /* The type scale above this block was written out in full and then never
+     reached Tailwind, so `--fs-h1` and `--label-tracking` sat in :root as
+     documentation while components picked the nearest default: page titles
+     came out at Tailwind's 20px `text-xl` rather than the 22px the scale
+     names, and every uppercase label that did not use `.eyebrow` got
+     `tracking-wide` at .025em instead of the .06em the label style is built
+     on. Mapping them is what makes the tokens the single source rather than
+     a second opinion. Only the two the app actually reaches for are mapped;
+     the rest of the scale still has no caller. */
+  --text-h1: var(--fs-h1);
+  --tracking-label: var(--label-tracking);
 
   --container-col: var(--col-mobile);
   --container-entry: var(--col-entry);
@@ -383,6 +410,10 @@ textarea::placeholder {
     opacity: 1;
     transform: none;
   }
+}
+
+body:has(nav[data-tabbar]) {
+  --nav-inset: 64px;
 }
 
 /* Eyebrow label: the app's signature uppercase section header. */

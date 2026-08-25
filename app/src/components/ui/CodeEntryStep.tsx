@@ -32,18 +32,27 @@ import { useT, useTf } from '@/components/ui/LangProvider'
 
 export type CodeStatus = 'entry' | 'submitting' | 'wrong' | 'success'
 
+// The wrong-code red belongs in the skin like every other colour here. It was
+// `border-danger`/`text-danger` regardless of surface, and on charcoal that is
+// about 2.3:1: the six box borders and the sentence explaining what went wrong
+// were the hardest things on the card to see, on the one screen where somebody
+// is already stuck.
 const SKIN = {
   dark: {
     text: 'text-on-dark',
     mute: 'text-on-dark-mute',
     box: 'bg-charcoal-2',
     border: 'border-charcoal-3',
+    bad: 'text-danger-on-dark',
+    badBorder: 'border-danger-on-dark',
   },
   light: {
     text: 'text-ink-900',
     mute: 'text-ink-700',
     box: 'bg-cream-sunk',
     border: 'border-line-input',
+    bad: 'text-danger',
+    badBorder: 'border-danger',
   },
 } as const
 
@@ -151,7 +160,7 @@ export function CodeEntryStep({
                 <span
                   key={i}
                   className={`${boxH} box-border grid place-items-center rounded-md border-[1.5px] font-display font-bold ${digitSize} ${c.box} ${c.text} ${
-                    status === 'wrong' ? 'border-danger' : here ? 'border-honey-500' : c.border
+                    status === 'wrong' ? c.badBorder : here ? 'border-honey-500' : c.border
                   } ${busy ? 'opacity-60' : ''}`}
                 >
                   {on ? (
@@ -183,13 +192,13 @@ export function CodeEntryStep({
       <div className="mt-2.5 flex min-h-5 items-start gap-2 text-[12.5px] leading-snug">
         {status === 'wrong' && error ? (
           <>
-            <span className="mt-0.5 text-danger">
+            <span className={`mt-0.5 ${c.bad}`}>
               <Icon name="xmark" size={12} />
             </span>
-            <span className="text-danger">{error}</span>
+            <span className={c.bad}>{error}</span>
           </>
         ) : busy ? (
-          <span className={c.mute}>Revisando…</span>
+          <span className={c.mute}>{tr('ui.code.checking')}</span>
         ) : !done && expiry ? (
           <>
             <span className={`mt-0.5 ${c.mute}`}>
@@ -203,7 +212,7 @@ export function CodeEntryStep({
       {/* The primary slot is recovery, never confirmation. */}
       {onResend && !done && (
         <div className="mt-3">
-          <Button block display={!compact} size={compact ? 'md' : 'lg'} variant="secondary" onClick={onResend}>
+          <Button block display={!compact} size={compact ? 'md' : 'lg'} onClick={onResend}>
             {tr('ui.code.resend')}
           </Button>
         </div>

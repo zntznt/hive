@@ -20,8 +20,7 @@ export default function NudgeAdmins({ alreadyNudged }: { alreadyNudged: boolean 
 
   return (
     <Button
-      variant="secondary"
-      size="sm"
+      block
       disabled={pending}
       onClick={() =>
         startTransition(async () => {

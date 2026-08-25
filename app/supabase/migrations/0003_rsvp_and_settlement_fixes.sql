@@ -59,6 +59,6 @@ begin
   values (eid, auth.uid(), st, null)
   on conflict (event_id, user_id) do update set status = excluded.status, waitlist_pos = null;
 
-  -- a seat may have freed (left, or went maybe/out from a confirmed seat) — reconcile
+  -- a seat may have freed (left, or went maybe/out from a confirmed seat), reconcile
   perform promote_waitlist(eid);
 end $$;

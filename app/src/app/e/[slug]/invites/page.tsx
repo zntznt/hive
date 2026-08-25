@@ -1,7 +1,6 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { requireProfile } from '@/lib/gate'
-import { createInvitation, updateJoinPolicy } from '@/app/actions'
+import { createInvitation } from '@/app/actions'
 import CopyButton from '@/components/copy-button'
 import ResendButton from './resend-button'
 import { timeAgo } from '@/lib/relative-time'
@@ -10,7 +9,10 @@ import { SectionHeader } from '@/components/ui/SectionHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { Input, Select } from '@/components/ui/Input'
+import { Input } from '@/components/ui/Input'
+import { AppBar } from '@/components/ui/AppBar'
+import { JoinPolicyPicker } from './join-policy-picker'
+import RevokeButton from './revoke-button'
 import { getT } from '@/lib/current-lang'
 
 export default async function InvitesPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -37,15 +39,13 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
     .order('created_at', { ascending: false })
 
   return (
-    <main className="mx-auto w-full max-w-col px-4 pb-6 pt-5">
-      <header className="mb-6 flex items-baseline justify-between gap-3">
-        <h1 className="text-[22px] font-display font-bold leading-[1.2] text-ink-900">
-          {tf('inv.inviteTo', { title: event.title })}
-        </h1>
-        <Link href={`/e/${slug}`} className="tap inline-flex items-center shrink-0 text-sm font-semibold text-honey-700 underline">
-          {tr('common.back.lower')}
-        </Link>
-      </header>
+    <>
+      {/* The AppBar, like new-event and edit either side of it. This screen
+          hand-rolled a 22px h1 with an underlined "volver", so the sticky bar,
+          the back chevron and the tappable subtitle disappeared for one screen
+          in the middle of the flow. */}
+      <AppBar title={tr('inv.link')} subtitle={event.title} subtitleHref={`/e/${slug}`} backHref={`/e/${slug}`} />
+      <main className="mx-auto w-full max-w-col px-4 pb-6 pt-5">
 
       <section className="mb-[26px]">
         <SectionHeader>{tr('inv.link')}</SectionHeader>
@@ -57,26 +57,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
           <p className="mt-2 text-xs text-ink-500">
             {tr('inv.pasteInWa')}
           </p>
-          <form
-            action={updateJoinPolicy.bind(null, event.id, slug)}
-            className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end"
-          >
-            <div className="flex-1">
-              <Select
-                id="join_policy"
-                name="join_policy"
-                label={tr('inv.who')}
-                defaultValue={event.join_policy}
-              >
-                <option value="club_members_only">{tr('inv.membersOnly')}</option>
-                <option value="anyone_with_link">{tr('inv.anyone')}</option>
-                <option value="invite_only">{tr('inv.inviteOnly')}</option>
-              </Select>
-            </div>
-            <Button variant="secondary" size="sm">
-              {tr('common.save')}
-            </Button>
-          </form>
+          <JoinPolicyPicker eventId={event.id} slug={slug} value={event.join_policy} />
         </Card>
       </section>
 
@@ -87,8 +68,10 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
             action={createInvitation.bind(null, event.id, event.club_id, slug)}
             className="space-y-3"
           >
-            <Input name="email" type="email" placeholder={tr('inv.email.ph')} />
-            <Input name="phone" placeholder={tr('inv.wa.ph')} />
+            {/* One field. Two made the organizer decide the channel before
+                typing, and '@' is the only reliable tell anyway, which is the
+                same rule sign-in already uses. */}
+            <Input name="contact" label={tr('inv.contact')} placeholder={tr('inv.contact.ph')} />
             <Button block type="submit">
               {tr('inv.createOne')}
             </Button>
@@ -141,6 +124,11 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
                     <span className="flex flex-shrink-0 items-center gap-1.5">
                       <CopyButton path={`/i/${inv.token}`} label={tr('common.copy')} />
                       <ResendButton invitationId={inv.id} path={`/e/${slug}/invites`} />
+                      {/* Copy and Resend were the only two, so an invitation
+                          sent to the wrong number could be sent again and
+                          never taken back, though the club members screen
+                          revokes the same rows and the action already exists. */}
+                      <RevokeButton invitationId={inv.id} path={`/e/${slug}/invites`} label={tr('inv.revoke')} />
                     </span>
                   )}
                 </Card>
@@ -149,6 +137,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ slug: 
           </ul>
         )}
       </section>
-    </main>
+      </main>
+    </>
   )
 }

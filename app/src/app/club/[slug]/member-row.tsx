@@ -83,7 +83,7 @@ export function MemberRow({
           <span className="flex min-w-0 items-center gap-2">
             <span className="truncate text-sm text-ink-900">{name}</span>
             {(!isAdmin || isSelf) && role !== 'member' && (
-              <Badge tone={role === 'admin' ? 'admin' : 'neutral'}>{role}</Badge>
+              <Badge tone={role === 'admin' ? 'admin' : 'neutral'}>{tr(role === 'admin' ? 'role.admin' : 'role.organizer')}</Badge>
             )}
           </span>
           <span className="text-[11.5px] text-ink-300">
@@ -130,7 +130,7 @@ export function MemberRow({
               >
                 <option value="member">{tr('role.member')}</option>
                 <option value="organizer">{tr('role.organizer')}</option>
-                <option value="admin">admin</option>
+                <option value="admin">{tr('role.admin')}</option>
               </select>
               <button onClick={() => setConfirmRemove(true)} className="tap text-[12.5px] font-bold text-danger">
                 {tr('common.remove')}

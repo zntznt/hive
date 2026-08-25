@@ -9,10 +9,15 @@ import { type HTMLAttributes, type ReactNode } from 'react'
 // and the two it described were `row` at 12px 14px and `md` at 16px, neither
 // of which any screen used. What shipped was `sm` everywhere a row was meant
 // and the `lg` default everywhere a panel was, so the names said size and the
-// comment said kind and the two never met. The names say kind now, the values
-// are the ones that were already on the screen, and the three nobody called
-// are gone. Density.tsx has the tighter rows, and says why there.
-const PAD = { none: '', row: 'p-3.5', panel: 'p-5' }
+// comment said kind and the two never met. The names say kind now, and the
+// three nobody called are gone. Density.tsx has the tighter rows, and says why
+// there.
+//
+// `row` was a flat 14. It is 12/14, the kit's, because the app was already
+// drawing that shape in two other places: SkeletonRow and PlateItemRow. A row
+// and the skeleton standing in for it disagreed by 2px, so the list shifted on
+// arrival, which is the one thing a skeleton exists to prevent.
+const PAD = { none: '', row: 'px-3.5 py-3', panel: 'p-5' }
 const SHADOW = { flat: '', card: 'shadow-card', raised: 'shadow-raised' }
 
 type Props = HTMLAttributes<HTMLDivElement> & {

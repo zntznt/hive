@@ -35,7 +35,7 @@ export function WhoIsComing({ people, youLabel }: { people: Attendee[]; youLabel
           <UserAvatar user={p.user} size={22} />
           {p.mine ? youLabel : p.name}
           {p.plus > 0 && (
-            <span className="rounded-pill bg-honey-500 px-1.5 text-[10.5px] font-extrabold text-charcoal">
+            <span className="rounded-pill bg-honey-100 px-1.5 text-[10.5px] font-extrabold text-honey-800">
               +{p.plus}
             </span>
           )}
