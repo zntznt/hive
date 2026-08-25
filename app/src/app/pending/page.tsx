@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase/server'
 import { signOut } from '../actions'
 import { Button } from '@/components/ui/Button'
-import { BugAvatar } from '@/components/ui/BugAvatar'
+import { BugAvatar, type BugId } from '@/components/ui/BugAvatar'
 import { BeeLoader } from '@/components/ui/BeeLoader'
 import NudgeAdmins from './nudge-admins'
 import { getT } from '@/lib/current-lang'
@@ -18,7 +18,7 @@ export default async function PendingPage() {
   if (!uid) redirect('/')
   const { data: profile } = await supabase
     .from('users')
-    .select('display_name, status')
+    .select('display_name, status, avatar_bug')
     .eq('id', uid)
     .single()
   if (profile?.status === 'active') redirect('/')
@@ -49,8 +49,19 @@ export default async function PendingPage() {
           {/* Two states share this screen and they are not the same news.
               Waiting for approval is a queue: honey, and it moves. Desactivada
               is not a place in line, so it does not get the queue's title, its
-              color, or its loader. */}
-          <BugAvatar bug="bug" size={68} color={disabled ? 'var(--cream-sunk)' : 'var(--honey-300)'} />
+              color, or its loader.
+
+              The bug is theirs. It was hardcoded to 'bug', so this screen, the
+              first place a new member meets the bug they were dealt, showed
+              everybody the same one. Migration 0056 deals it at sign-up, since
+              a column default is one value and cannot deal anything. The
+              colour still belongs to the state, not the person: which of the
+              two pieces of news this is outranks whose account it is. */}
+          <BugAvatar
+            bug={(profile?.avatar_bug as BugId | undefined) ?? 'bug'}
+            size={68}
+            color={disabled ? 'var(--cream-sunk)' : 'var(--honey-300)'}
+          />
         </div>
         <h1 className="font-display text-xl font-bold text-ink-900">
           {disabled ? tr('pending.disabled') : tr('pending.title')}

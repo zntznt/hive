@@ -24,7 +24,6 @@ import { ClubBar } from './club-bar'
 import { WhenPill } from '@/components/ui/WhenPill'
 import { isEventDay, fmtSpan, fmtWeekdayDay, fmtDayMonth } from '@/lib/time'
 import { isUpcoming } from '@/lib/club-card'
-import { mapEmbedUrl } from '@/lib/place'
 import { SummaryRow, DoorGroup } from '@/components/ui/Density'
 import { siteUrl } from '@/lib/site-url'
 import { getT } from '@/lib/current-lang'
@@ -658,7 +657,6 @@ function EvCard({
 }) {
   const cancelled = e.status === 'cancelled'
   const hot = today && !cancelled
-  const embed = mapEmbedUrl(e)
   return (
     <Link
       href={`/e/${e.slug}`}
@@ -680,21 +678,12 @@ function EvCard({
           </Badge>
         )}
       </div>
-      {/* Kept on the day too. This card used to delete it, on the theory that
-          the address carries the day, and where-card.tsx now argues the
-          opposite in its own header: the head says where to go and the map
-          says how far, and the day of the event is when you want both most.
-          Both files cannot be right, and the event page's reasoning is the
-          one that survived contact with a real evening. */}
-      {embed && (
-        <iframe
-          title={e.title}
-          src={embed}
-          className="block h-[110px] w-full border-0"
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-        />
-      )}
+      {/* No map. where-card.tsx argues that the head says where to go and the
+          map says how far, and that is right about the event page, which is
+          where the kit puts the map and where this card links to. It is a
+          placement rule, not an argument about maps: carrying one here gave
+          the club page the same weight of media as the page one tap away, for
+          the same event. The address is still on the line above. */}
       <div className="flex items-start justify-between gap-2.5 px-3.5 pb-1.5 pt-2.5">
         <span className="flex min-w-0 items-start gap-2">
           <span className="mt-0.5">
