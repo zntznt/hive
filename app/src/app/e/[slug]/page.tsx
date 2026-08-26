@@ -898,8 +898,9 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                   }))}
                   guests={guests ?? []}
                   nameOf={nameOf}
+                  label="event.addExpense"
                 />
-                <AddPollButton eventId={event.id} slug={event.slug} />
+                <AddPollButton eventId={event.id} slug={event.slug} label="event.addPoll" />
               </span>
             }
           >
