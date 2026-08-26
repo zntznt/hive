@@ -34,7 +34,8 @@ import { RsvpRow } from './rsvp-row'
 import { WhoIsComing, type Attendee } from './who-is-coming'
 import { PendingAnswers } from './pending-answers'
 import { duplicateWindow } from '@/lib/duplicate-window'
-import { fmtDayMonth, fmtSpan, fmtWindow, isEventDay } from '@/lib/time'
+import { fmtDayMonth, fmtSpan, fmtWindow, hasHappened, isEventDay } from '@/lib/time'
+import { attendanceKeys } from '@/lib/event-line'
 import { getT } from '@/lib/current-lang'
 
 function dayRange(start: string, end: string) {
@@ -300,10 +301,24 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const iPainted = painted.has(profile.id)
   const unclaimed = contributions.filter((c) => !c.assigned_to)
 
+  // Over, whether or not anybody closed it. `done` is written only by an
+  // organizer tapping "cerrar", and most nights nobody does, so this page kept
+  // saying "Vas a ir" about an evening two weeks gone, asked people who never
+  // answered to RSVP to it, and never opened the roll call for the organizer
+  // who would have taken it.
+  //
+  // Only `scheduled` earns the clock. A night that was called off did not
+  // happen and has nobody to count, and one still finding a date has no
+  // instant to compare against.
+  //
+  // It sits above `loud` because that is one of the things it has to switch
+  // off, and a const cannot be read before it is declared.
+  const isDone = !event.deleted_at && (event.status === 'done' || (event.status === 'scheduled' && hasHappened(event)))
+
   // Rule 4: one auto-open thing, nearest deadline only, and it never re-arms.
   // Deterministic beats clever, so this is a fixed order rather than a score.
   const loud: 'availability' | 'rsvp' | 'none' =
-    event.status === 'cancelled' || event.deleted_at
+    event.status === 'cancelled' || event.deleted_at || isDone
       ? 'none'
       : event.status === 'scheduling'
         ? iPainted
@@ -392,7 +407,9 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         }
       : null
 
-  const isDone = event.status === 'done' && !event.deleted_at
+  // Which verb the RSVP count uses, in the three places on this page that
+  // print it. One decision, taken off `isDone` like everything else here.
+  const tense = attendanceKeys(isDone)
   const rollCallTaken = !!event.attendance_taken_at
   // null when the roll call did not cover me at all (I was not confirmed), so
   // the member block can stay off rather than claim a no-show.
@@ -401,7 +418,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     return mine ? mine.attended !== false : null
   })()
   const photosBlock =
-    (event.status === 'done' || photos.length > 0) ? (
+    (isDone || photos.length > 0) ? (
       <section className="mb-[26px]">
         <OpenSection label={t('event.photos')} meta={photos.length ? String(photos.length) : undefined}>
           <Photos
@@ -422,11 +439,11 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const dateChip =
     event.status === 'scheduling'
       ? t('event.dateTBD')
-      : event.status === 'scheduled' && event.chosen_start
+      : event.status === 'scheduled' && !isDone && event.chosen_start
         ? // day plus the whole span, not just the start: the end is what tells
           // you if you are free after and when to get a ride home
           `${fmtDayMonth(event.chosen_start, lang)} · ${fmtSpan(event.chosen_start, event.chosen_end, lang)}`
-        : event.status === 'done'
+        : isDone
           ? (event.chosen_start ? tf('event.heldOn', { date: fmtDayMonth(event.chosen_start, lang) }) : t('event.heldLower'))
           : event.status === 'cancelled'
             ? t('event.cancelledChip')
@@ -568,6 +585,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             : null
         }
         going={seatsTaken}
+        done={isDone}
         receipt={receipt}
         status={event.status}
         chosenStart={event.chosen_start}
@@ -575,7 +593,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         canEdit={!!isOrganizer}
         editHref={`/e/${event.slug}/edit`}
         calendar={
-          event.status === 'scheduled' && event.chosen_start ? (
+          event.status === 'scheduled' && !isDone && event.chosen_start ? (
             <AddToCalendar
               slug={event.slug}
               title={event.title}
@@ -702,7 +720,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       {event.status !== 'scheduling' && event.status !== 'cancelled' && (
         <section className="mb-[26px]">
           <OpenSection
-            label={t('event.going')}
+            label={t(tense.heading)}
             meta={`${seatsTaken}${event.capacity != null ? tf('event.ofCapacity', { n: event.capacity }) : ''}`}
           >
           {/* The count first, in one line, then the people. "van 6 de 8" is
@@ -710,17 +728,20 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               this ("van 6/8 · no van 2 · quizás 1" and a comma list of names
               120px above it) were one fact each, printed twice. */}
           <p className="text-[12.5px] text-ink-500">
-            {tf('event.goingN', { n: seatsTaken })}
+            {tf(tense.count, { n: seatsTaken })}
             {event.capacity != null && tf('event.ofCapacity', { n: event.capacity })}
             {waitlisted.length > 0 && tf('event.waitingN', { n: waitlisted.length })}
-            {byStatus('out').length > 0 && tf('event.notGoingN', { n: byStatus('out').length })}
+            {byStatus('out').length > 0 && tf(tense.notGoing, { n: byStatus('out').length })}
             {byStatus('maybe').length > 0 && tf('event.maybeN', { n: byStatus('maybe').length })}
           </p>
 
           <WhoIsComing people={attendees} youLabel={t('event.you')} />
 
 
-          {event.allow_guests && myRsvp?.status === 'in' && (
+          {/* Not once the night is over. The footer of this same page already
+              says the RSVPs are closed, and "Traer a alguien (+1)" sitting
+              four hundred pixels above that is the page arguing with itself. */}
+          {event.allow_guests && myRsvp?.status === 'in' && !isDone && (
             <div className="mt-3 rounded-md bg-cream-sunk px-3 py-2.5">
               {myGuests.map((g) => (
                 <form key={g.id} action={removeGuest.bind(null, g.id, event.slug)} className="mb-1.5 flex items-center justify-between gap-2 text-sm last:mb-0">

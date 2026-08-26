@@ -12,6 +12,34 @@ import { t as translate, tf as format, type Lang, type StringKey } from './lang'
 
 export type MyRsvp = 'in' | 'out' | 'maybe' | null
 
+// Present or past, decided once.
+//
+// The same RSVP count is printed in three places and each picked its own
+// tense. The where-card said "2 van" and the section under it "van 2", both in
+// the present, on a night that finished a fortnight ago; the Eventos tab said
+// "2 fueron" on every row it drew, including the ones that have not happened
+// yet, so an event next Thursday read "Bar El Cofre · 3 fueron". Two of the
+// three were wrong at any given moment and never the same two.
+//
+// The count itself is the same fact either way: these are the people who said
+// yes. Only the verb moves, so only the verb lives here, and `done` comes from
+// `hasHappened` rather than from each screen's own idea of over.
+export type AttendanceKeys = {
+  // the section heading: "Quién va" / "Quiénes fueron"
+  heading: StringKey
+  // leading the line: "van 2" / "fueron 2"
+  count: StringKey
+  // trailing a place: "2 van" / "2 fueron"
+  inline: StringKey
+  // " · no van 2" / " · no fueron 2"
+  notGoing: StringKey
+}
+
+export const attendanceKeys = (done: boolean): AttendanceKeys =>
+  done
+    ? { heading: 'event.went', count: 'event.wentN', inline: 'event.wentCount', notGoing: 'event.notWentN' }
+    : { heading: 'event.going', count: 'event.goingN', inline: 'event.goingCount', notGoing: 'event.notGoingN' }
+
 // "Ana y Diego", "Ana, Diego y Lucía", "Ana, Diego y 3 más".
 //
 // Spanish joins a list with "y" before the last item and no comma in front of

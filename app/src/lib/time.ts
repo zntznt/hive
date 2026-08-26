@@ -87,6 +87,36 @@ export function daysBetween(iso: string | Date, now: Date = new Date()): number 
   return Math.round((key(now) - key(then)) / 86_400_000)
 }
 
+// Whether an event is over.
+//
+// Nothing moves an event to `done` on its own. That status is written only
+// when an organizer closes the night by hand, and most nights nobody does, so
+// four screens grew their own answer to "has this happened yet" and gave the
+// same event three different ones. A night from two weeks ago counted as
+// "1 próximo" on the club page and sat under "lo que viene" on Home with a
+// `vas` pill, its own page said "Vas a ir" and "van 2", and the Eventos tab,
+// the only one that asked the clock, said "fuiste" and "2 fueron". The club
+// card's footer called the same club "tranquilo desde agosto" on the tab whose
+// page said it had something coming.
+//
+// The end, not the start. An event is not over the minute it begins, and a
+// card that goes quiet at 20:01 is wrong for exactly as long as the evening
+// lasts. `chosen_end` is written wherever `chosen_start` is, so the fallback
+// is only for rows that predate it.
+//
+// An event with no date chosen has not happened, whatever its window said. It
+// is still looking for a time, which is a different state from being over, and
+// it is the one where the clock has nothing to say.
+export function hasHappened(
+  event: { chosen_start: string | null; chosen_end?: string | null },
+  now: Date = new Date()
+): boolean {
+  const end = event.chosen_end ?? event.chosen_start
+  if (!end) return false
+  const ms = at(end).getTime()
+  return !Number.isNaN(ms) && ms < now.getTime()
+}
+
 // The event-shaped version, so callers do not each decide what a missing date
 // or a cancelled event means.
 export function isEventDay(

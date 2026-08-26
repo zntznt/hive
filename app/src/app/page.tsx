@@ -27,6 +27,7 @@ import { WhenPill } from '@/components/ui/WhenPill'
 import { whenPill } from '@/lib/when'
 import { FaceStack } from '@/components/ui/FaceStack'
 import { clubFooter, quietSince, type CardEvent, type ClubFooter } from '@/lib/club-card'
+import { hasHappened } from '@/lib/time'
 import { getT } from '@/lib/current-lang'
 import type { StringKey } from '@/lib/lang'
 import { type AvatarUser } from '@/components/ui/Avatar'
@@ -210,8 +211,14 @@ export default async function Home() {
   // "coming up" only shows what you're actually committed to: events still
   // finding a time (nothing to RSVP to yet) plus scheduled events you're in
   // (confirmed or waitlisted) - not every upcoming event across your clubs.
+  //
+  // `hasHappened` is what makes it "coming up" rather than "joined". This
+  // asked the status and the RSVP and never the clock, so a night you said yes
+  // to sat under "lo que viene" with a `vas` pill for as long as nobody closed
+  // it, while the quiet footer two sections down, reading `pastRows`, called
+  // the same club tranquilo since that same month.
   const upcoming = allUpcoming
-    .filter((e) => e.status === 'scheduling' || rsvpByEvent.get(e.id)?.status === 'in')
+    .filter((e) => (e.status === 'scheduling' || rsvpByEvent.get(e.id)?.status === 'in') && !hasHappened(e, now))
     .slice(0, 5)
 
   // Who is in each club, not how many. "2 miembros · 2 próximos" is two

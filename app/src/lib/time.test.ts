@@ -11,7 +11,7 @@
 // inline. `now` is a parameter on all of them now, which is what lets these
 // assertions name an instant instead of hoping the clock cooperates.
 import assert from 'node:assert'
-import { daysBetween, sameDayInMexico, mexicoDay, MX_OFFSET } from './time'
+import { daysBetween, hasHappened, sameDayInMexico, mexicoDay, MX_OFFSET } from './time'
 import { timeAgo } from './relative-time'
 import { ageInDays, ageLabel } from './debt-age'
 import { whenPill } from './when'
@@ -88,5 +88,27 @@ assert.equal(whenPill(lastNight, null, now, 'es')?.past, true)
 assert.equal(whenPill('2026-08-02T16:00:00Z', null, now, 'es')?.label, 'Hoy')
 // an event at 01:00 tomorrow in Mexico is tomorrow, not "in 11 hours, today"
 assert.equal(whenPill('2026-08-03T07:00:00Z', null, now, 'es')?.label, 'Mañana')
+
+// --- hasHappened -----------------------------------------------------------
+
+// The end, not the start. An event that began an hour ago and runs until
+// midnight is still on, and this is the assertion that keeps a card from going
+// quiet while people are still at the table.
+const tonight = { chosen_start: '2026-08-02T01:00:00Z', chosen_end: '2026-08-02T06:00:00Z' }
+assert.equal(hasHappened(tonight, utc('2026-08-02T03:00:00Z')), false)
+assert.equal(hasHappened(tonight, utc('2026-08-02T07:00:00Z')), true)
+
+// Without an end there is only the start to go on, which is what rows written
+// before chosen_end existed look like.
+assert.equal(hasHappened({ chosen_start: '2026-08-02T01:00:00Z' }, utc('2026-08-02T03:00:00Z')), true)
+
+// No date chosen is not the same as over. An event still finding a time has
+// not happened, however old its window is, and this is the case that decides
+// whether a `scheduling` event stays on the club page.
+assert.equal(hasHappened({ chosen_start: null }, utc('2030-01-01T00:00:00Z')), false)
+assert.equal(hasHappened({ chosen_start: null, chosen_end: null }, utc('2030-01-01T00:00:00Z')), false)
+
+// A row with an unparseable date is not evidence that anything happened.
+assert.equal(hasHappened({ chosen_start: 'not a date' }, now), false)
 
 console.log('time: all assertions passed')
