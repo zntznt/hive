@@ -4,6 +4,7 @@ import { Icon, MapPinIcon, type IconName } from '@/components/ui/Icon'
 import { WhenPill } from '@/components/ui/WhenPill'
 import { mapEmbedUrl, directionsUrl } from '@/lib/place'
 import type { StringKey } from '@/lib/lang'
+import { attendanceKeys } from '@/lib/event-line'
 
 // Where this is, in one block.
 //
@@ -89,6 +90,7 @@ export function WhereCard({
   span,
   window,
   going,
+  done,
   receipt,
   status,
   chosenStart,
@@ -114,6 +116,9 @@ export function WhereCard({
   // there is a time, because then the span above is the answer.
   window: string | null
   going: number
+  // Whether the night is over, so the count beside the place reads in the
+  // tense the rest of the page is in. From `hasHappened`, never from status.
+  done: boolean
   // Who committed the club to this, and what happens next. "Marta fijó la hora
   // hace 2h · se avisó a todos" once there is a time; "Marta abrió la votación
   // hace 2h · cierra cuando elija horario" while there is not. A receipt, not
@@ -220,7 +225,7 @@ export function WhereCard({
             <span className="block text-[15px] font-extrabold text-ink-900">{location}</span>
             <span className="mt-0.5 block text-[12.5px] text-ink-500">
               {area ? `${area} · ` : ''}
-              {tf('event.goingCount', { n: going })}
+              {tf(attendanceKeys(done).inline, { n: going })}
             </span>
           </span>
         </span>

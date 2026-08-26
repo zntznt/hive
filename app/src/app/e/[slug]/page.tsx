@@ -35,6 +35,7 @@ import { WhoIsComing, type Attendee } from './who-is-coming'
 import { PendingAnswers } from './pending-answers'
 import { duplicateWindow } from '@/lib/duplicate-window'
 import { fmtDayMonth, fmtSpan, fmtWindow, hasHappened, isEventDay } from '@/lib/time'
+import { attendanceKeys } from '@/lib/event-line'
 import { getT } from '@/lib/current-lang'
 
 function dayRange(start: string, end: string) {
@@ -406,6 +407,9 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         }
       : null
 
+  // Which verb the RSVP count uses, in the three places on this page that
+  // print it. One decision, taken off `isDone` like everything else here.
+  const tense = attendanceKeys(isDone)
   const rollCallTaken = !!event.attendance_taken_at
   // null when the roll call did not cover me at all (I was not confirmed), so
   // the member block can stay off rather than claim a no-show.
@@ -581,6 +585,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             : null
         }
         going={seatsTaken}
+        done={isDone}
         receipt={receipt}
         status={event.status}
         chosenStart={event.chosen_start}
@@ -715,7 +720,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       {event.status !== 'scheduling' && event.status !== 'cancelled' && (
         <section className="mb-[26px]">
           <OpenSection
-            label={t('event.going')}
+            label={t(tense.heading)}
             meta={`${seatsTaken}${event.capacity != null ? tf('event.ofCapacity', { n: event.capacity }) : ''}`}
           >
           {/* The count first, in one line, then the people. "van 6 de 8" is
@@ -723,10 +728,10 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               this ("van 6/8 · no van 2 · quizás 1" and a comma list of names
               120px above it) were one fact each, printed twice. */}
           <p className="text-[12.5px] text-ink-500">
-            {tf('event.goingN', { n: seatsTaken })}
+            {tf(tense.count, { n: seatsTaken })}
             {event.capacity != null && tf('event.ofCapacity', { n: event.capacity })}
             {waitlisted.length > 0 && tf('event.waitingN', { n: waitlisted.length })}
-            {byStatus('out').length > 0 && tf('event.notGoingN', { n: byStatus('out').length })}
+            {byStatus('out').length > 0 && tf(tense.notGoing, { n: byStatus('out').length })}
             {byStatus('maybe').length > 0 && tf('event.maybeN', { n: byStatus('maybe').length })}
           </p>
 

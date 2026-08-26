@@ -9,6 +9,7 @@ import { Icon, MapPinIcon } from '@/components/ui/Icon'
 import { WhenPill } from '@/components/ui/WhenPill'
 import { EventFilters } from './event-filters'
 import { isEventDay, hasHappened } from '@/lib/time'
+import { attendanceKeys } from '@/lib/event-line'
 import { getT } from '@/lib/current-lang'
 
 // Cross-club event browser: the single "event viewer" page. Reached from Home,
@@ -377,7 +378,8 @@ export default async function EventsPage({
                   <div className="mt-0.5 flex items-center gap-1 text-[12.5px] text-ink-500">
                     <MapPinIcon />
                     <span className={`truncate ${tonight ? 'font-bold text-ink-900' : ''}`}>
-                      {(tonight ? (e.area ?? e.location) : e.location) ?? t('events.noPlace')} · {tf('events.went', { n: attendees.length })}
+                      {(tonight ? (e.area ?? e.location) : e.location) ?? t('events.noPlace')} ·{' '}
+                      {tf(attendanceKeys(past).inline, { n: attendees.length })}
                     </span>
                   </div>
                 </div>

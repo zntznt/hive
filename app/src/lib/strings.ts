@@ -112,7 +112,6 @@ export const ES = {
   'events.empty.title': 'No hay eventos que coincidan.',
   'events.empty.hint': 'Afloja algún filtro.',
   'events.noPlace': 'sin lugar',
-  'events.went': '{n} fueron',
   'events.noCategory': 'sin categoría',
 
   // -- when -----------------------------------------------------------------
@@ -207,6 +206,7 @@ export const ES = {
 
   // -- event ----------------------------------------------------------------
   'event.going': 'Quién va',
+  'event.went': 'Quiénes fueron',
   'event.attendance': 'Asistencia',
   'event.youWereHere': 'Sí llegaste',
   'event.youWereNoShow': 'Quedaste como que no llegaste',
@@ -1227,11 +1227,14 @@ export const ES = {
   'time.monthAgo': 'hace 1 mes',
   'time.monthsAgo': 'hace {n} meses',
   'event.goingN': 'van {n}',
+  'event.wentN': 'fueron {n}',
   'event.ofCapacity': ' de {n}',
   'event.waitingN': ' · {n} en espera',
   'event.notGoingN': ' · no van {n}',
+  'event.notWentN': ' · no fueron {n}',
   'event.maybeN': ' · quizás {n}',
   'event.goingCount': '{n} van',
+  'event.wentCount': '{n} fueron',
   'details.label': 'Detalles, organizadores, calendario',
   'signin.tagline': 'Tu club, organizado.',
   'signin.welcome': 'Bienvenido al enjambre. Busquemos fecha.',
@@ -1386,7 +1389,6 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'events.empty.title': 'No events match.',
   'events.empty.hint': 'Loosen a filter.',
   'events.noPlace': 'no place',
-  'events.went': '{n} went',
   'events.noCategory': 'no category',
 
   // -- when -----------------------------------------------------------------
@@ -1481,6 +1483,7 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
 
   // -- event ----------------------------------------------------------------
   'event.going': "Who's going",
+  'event.went': 'Who went',
   'event.attendance': 'Attendance',
   'event.youWereHere': 'You were here',
   'event.youWereNoShow': 'You were marked as a no-show',
@@ -2472,11 +2475,14 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'time.monthAgo': '1 month ago',
   'time.monthsAgo': '{n} months ago',
   'event.goingN': '{n} going',
+  'event.wentN': '{n} went',
   'event.ofCapacity': ' of {n}',
   'event.waitingN': ' · {n} waitlisted',
   'event.notGoingN': ' · {n} not going',
+  'event.notWentN': ' · {n} did not go',
   'event.maybeN': ' · {n} maybe',
   'event.goingCount': '{n} going',
+  'event.wentCount': '{n} went',
   'details.label': 'Details, organizers, calendar',
   'signin.tagline': 'Your club, organized.',
   'signin.welcome': "Welcome to the swarm. Let's find a date.",
