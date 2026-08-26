@@ -8,7 +8,7 @@ import { Page, PageHeader } from '@/components/ui/Page'
 import { Icon, MapPinIcon } from '@/components/ui/Icon'
 import { WhenPill } from '@/components/ui/WhenPill'
 import { EventFilters } from './event-filters'
-import { isEventDay } from '@/lib/time'
+import { isEventDay, hasHappened } from '@/lib/time'
 import { getT } from '@/lib/current-lang'
 
 // Cross-club event browser: the single "event viewer" page. Reached from Home,
@@ -31,15 +31,15 @@ type BalanceRow = { event_id: string; user_id: string; net_cents: number }
 const PER_PAGE = 4
 const NIL = '00000000-0000-0000-0000-000000000000'
 
+// Where a row sits in an agenda, which is not the same question as whether it
+// already happened. An event still finding a date has no instant to compare
+// against, but it does have a week it is aiming at, and that is the right
+// place to file it. `hasHappened` in time.ts answers the tense; this only
+// answers the order.
 function eventDate(e: EventFull): Date | null {
   if (e.chosen_start) return new Date(e.chosen_start)
   if (e.sched_start_date) return new Date(`${e.sched_start_date}T00:00:00`)
   return null
-}
-
-function isPastEvent(e: EventFull): boolean {
-  const d = eventDate(e)
-  return d ? d.getTime() < Date.now() : false
 }
 
 function qs(params: Record<string, string | undefined>) {
@@ -149,7 +149,7 @@ export default async function EventsPage({
     }
     if (person !== 'all' && !attendeesOf(e.id).some((r) => r.user_id === person)) return false
     if (when !== 'all') {
-      const past = isPastEvent(e)
+      const past = hasHappened(e)
       if (when === 'past' && !past) return false
       if (when === 'upcoming' && past) return false
     }
@@ -168,10 +168,10 @@ export default async function EventsPage({
     if (sort === 'oldest') return sortKey(a) - sortKey(b)
     if (sort === 'owed') return owedShownOf(b.id) - owedShownOf(a.id)
     if (sort === 'newest') return sortKey(b) - sortKey(a)
-    // `isPastEvent` is the one that already decides this, here and in the
+    // `hasHappened` is the one that already decides this, here and in the
     // filters above, so agenda order cannot disagree with the "past" chip.
-    const pa = isPastEvent(a)
-    const pb = isPastEvent(b)
+    const pa = hasHappened(a)
+    const pb = hasHappened(b)
     if (pa !== pb) return pa ? 1 : -1
     return pa ? sortKey(b) - sortKey(a) : sortKey(a) - sortKey(b)
   })
@@ -316,7 +316,7 @@ export default async function EventsPage({
           const myRsvp = myRsvpOf(e.id)
           const myNet = balancesOf(e.id).find((b) => b.user_id === profile.id)?.net_cents ?? 0
           const owedShown = owedShownOf(e.id)
-          const past = isPastEvent(e)
+          const past = hasHappened(e)
 
           let statusBadge = null
           if (e.status === 'cancelled') {

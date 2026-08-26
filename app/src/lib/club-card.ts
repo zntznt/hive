@@ -11,7 +11,7 @@ import { t as translate, tf as format, type Lang } from './lang'
 // card again from a club that has gone quiet, and the footer is where that
 // difference shows: an address, a name, or an honest sentence about nothing.
 
-import { MX_TZ, fmtSpan, sameDayInMexico } from './time'
+import { MX_TZ, fmtSpan, hasHappened, sameDayInMexico } from './time'
 
 export type CardEvent = {
   id: string
@@ -44,12 +44,28 @@ export type ClubFooter =
 // the day something did the header would have said 3 over a list of 2 while
 // the Clubs tab named an event the count did not believe in. That is the
 // drift this file exists to end, so it is one predicate.
-export const isUpcoming = (e: { status: string }) => e.status === 'scheduling' || e.status === 'scheduled'
+//
+// Status alone was still not enough, because nothing writes `done` unless an
+// organizer closes the night by hand. A `scheduled` event two weeks past was
+// upcoming forever. `hasHappened` is the clock, and it is the same one the
+// Eventos tab and the event page read.
+//
+// It takes `now` rather than reading the clock so that a page renders one
+// answer, which also means it must not be handed straight to `.filter`: the
+// second argument there is the index.
+export const isUpcoming = (
+  e: { status: string; chosen_start: string | null; chosen_end?: string | null },
+  now: Date = new Date()
+) => (e.status === 'scheduling' || e.status === 'scheduled') && !hasHappened(e, now)
 
 export function clubNext(events: CardEvent[], now: Date = new Date()): CardEvent | null {
-  const live = events.filter(isUpcoming)
+  const live = events.filter((e) => isUpcoming(e, now))
+  // No second clock here. This used to keep an event for twelve hours after it
+  // started, which was this function's way of not going quiet mid-evening, and
+  // it was both too generous (still "next" at 7am) and too mean (a night with
+  // no end time vanished as it began). `isUpcoming` holds it until it ends.
   const dated = live
-    .filter((e) => e.chosen_start && new Date(e.chosen_start).getTime() >= now.getTime() - 12 * 3600_000)
+    .filter((e) => e.chosen_start)
     .sort(
       (a, b) =>
         Date.parse(a.chosen_start!) - Date.parse(b.chosen_start!) ||

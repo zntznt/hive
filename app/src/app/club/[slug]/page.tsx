@@ -22,7 +22,7 @@ import { attendanceLine, type MyRsvp } from '@/lib/event-line'
 import { decideChangeRequest, decideJoinRequest } from '@/app/actions'
 import { ClubBar } from './club-bar'
 import { WhenPill } from '@/components/ui/WhenPill'
-import { isEventDay, fmtSpan, fmtWeekdayDay, fmtDayMonth } from '@/lib/time'
+import { isEventDay, hasHappened, fmtSpan, fmtWeekdayDay, fmtDayMonth } from '@/lib/time'
 import { isUpcoming } from '@/lib/club-card'
 import { SummaryRow, DoorGroup } from '@/components/ui/Density'
 import { siteUrl } from '@/lib/site-url'
@@ -111,9 +111,12 @@ export default async function ClubPage({
   // fact about the club, so it reads the unfiltered one: tapping a category
   // used to rewrite the club's identity line, and the front door would report
   // "1 próximo" about a filter rather than about the club.
-  const upcoming = events.filter(isUpcoming)
-  const upcomingAll = allEvents.filter(isUpcoming)
-  const past = events.filter((e) => ['done', 'cancelled'].includes(e.status))
+  const upcoming = events.filter((e) => isUpcoming(e))
+  const upcomingAll = allEvents.filter((e) => isUpcoming(e))
+  // The other side of the same predicate. Reading `done` here while `upcoming`
+  // reads the clock would drop a night that is over but was never closed into
+  // neither list, so it would leave the club page entirely.
+  const past = events.filter((e) => e.status === 'done' || e.status === 'cancelled' || hasHappened(e))
   // History reads by the night it was, not by the day somebody created the
   // row. An event made in March for a June date belongs in June.
   const held = [...past].sort(
