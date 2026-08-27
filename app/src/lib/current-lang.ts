@@ -1,6 +1,7 @@
 import { cache } from 'react'
 import { headers } from 'next/headers'
 import { supabaseServer } from './supabase/server'
+import { requestUserId } from './gate'
 import { resolveLang, t as translate, tf as format, type Lang, type StringKey } from './lang'
 
 // The language for this request, for server components.
@@ -16,20 +17,23 @@ import { resolveLang, t as translate, tf as format, type Lang, type StringKey } 
 // cost its own claim check and its own select.
 export const currentLang = cache(async function currentLang(): Promise<Lang> {
   const accept = (await headers()).get('accept-language')
+  // `requestUserId` from the gate, not a second read of the same fact. This
+  // used to call getClaims() itself, which meant the page and the words on it
+  // could disagree about who was reading them: the gate let a member in while
+  // this fell back to their phone's language and served a Spanish account an
+  // English screen. See the note there for why two reads could differ at all.
+  const uid = await requestUserId()
+  if (!uid) return resolveLang(null, accept)
   try {
     const supabase = await supabaseServer()
-    // getClaims(), not getUser(). getUser() is a round trip that also refreshes
-    // the token, and a layout cannot reliably write the rotated cookie back:
-    // doing it here logged the session out mid-render and every page after it
-    // rendered as a signed-out visitor. getClaims() verifies locally and
-    // touches nothing, which is why the rest of the codebase uses it.
-    const { data: claims } = await supabase.auth.getClaims()
-    const uid = claims?.claims?.sub
-    if (!uid) return resolveLang(null, accept)
     const { data } = await supabase.from('users').select('lang').eq('id', uid).maybeSingle()
+    // A member who has not chosen reads as null here and follows their phone,
+    // which is the "Sigue tu teléfono" setting doing its job. A row we could
+    // not read reads the same way, which is a guess rather than an answer, but
+    // it is the same guess the sign-in screen makes and it beats rendering
+    // nothing.
     return resolveLang((data?.lang as Lang | null) ?? null, accept)
   } catch {
-    // Auth being unreachable is not a reason to render nothing.
     return resolveLang(null, accept)
   }
 })
