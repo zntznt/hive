@@ -9,8 +9,11 @@ import { Input, Checkbox } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
 import { createPoll } from '@/app/actions'
 import { Icon } from '@/components/ui/Icon'
+import type { StringKey } from '@/lib/lang'
 
-export function AddPollButton({ eventId, slug }: { eventId: string; slug: string }) {
+// `label` for the same reason as AddExpenseButton: bare under the Encuestas
+// header, named on the folded row where the two sit side by side.
+export function AddPollButton({ eventId, slug, label }: { eventId: string; slug: string; label?: StringKey }) {
   const tr = useT()
   const tf = useTf()
   const [open, setOpen] = useState(false)
@@ -45,7 +48,7 @@ export function AddPollButton({ eventId, slug }: { eventId: string; slug: string
   return (
     <>
       <button onClick={() => setOpen(true)} className="tap text-[12.5px] font-bold text-honey-700">
-        <Icon name="plus" size={10} /> {tr('common.add')}
+        <Icon name="plus" size={10} /> {tr(label ?? 'common.add')}
       </button>
       {open && (
         <Modal

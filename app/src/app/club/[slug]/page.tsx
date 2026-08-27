@@ -318,7 +318,16 @@ export default async function ClubPage({
           {t('events.filter.upcoming')}
         </SectionHeader>
         {upcoming.length === 0 ? (
-          <EmptyState icon="calendar-days" title={t('club.emptyCategory')} hint={t(isManager ? 'club.startSomething' : 'club.comeBack')} />
+          // "Nada en esta categoría todavía" was said whether or not a
+          // category was picked, so with "Todos" selected the club's front
+          // door blamed a filter that was not on. Nobody saw it until events
+          // that were over stopped counting as upcoming and this section could
+          // actually be empty.
+          <EmptyState
+            icon="calendar-days"
+            title={t(cat ? 'club.emptyCategory' : 'club.emptyUpcoming')}
+            hint={t(isManager ? 'club.startSomething' : 'club.comeBack')}
+          />
         ) : (
           <div className="flex flex-col gap-2">
             {/* Rule 9. Today is a card; a week out is a row. Five upcoming

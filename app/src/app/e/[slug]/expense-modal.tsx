@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
 import { addExpense, updateExpense, removeExpense } from '@/app/actions'
 import { Icon } from '@/components/ui/Icon'
+import type { StringKey } from '@/lib/lang'
 
 type Member = { user_id: string; name: string; in: boolean }
 type Guest = { id: string; name: string; host_user_id: string; promoted_to_user_id: string | null }
@@ -20,6 +21,7 @@ export function AddExpenseButton({
   members,
   guests,
   nameOf,
+  label,
 }: {
   eventId: string
   slug: string
@@ -27,6 +29,10 @@ export function AddExpenseButton({
   members: Member[]
   guests: Guest[]
   nameOf: Map<string, string>
+  // Under the Gastos header the section says what this adds, so the button
+  // is bare. On the folded row it sits next to the poll button with nothing
+  // naming either, and two identical "Agregar" links is a coin toss.
+  label?: StringKey
 }) {
   const tr = useT()
   const [open, setOpen] = useState(false)
@@ -73,7 +79,7 @@ export function AddExpenseButton({
   return (
     <>
       <button onClick={() => setOpen(true)} className="tap text-[12.5px] font-bold text-honey-700">
-        <Icon name="plus" size={10} /> {tr('common.add')}
+        <Icon name="plus" size={10} /> {tr(label ?? 'common.add')}
       </button>
       {open && (
         <Modal

@@ -315,6 +315,7 @@ export const ES = {
   'club.approve': 'Aprobar',
   'club.decline': 'Rechazar',
   'club.emptyCategory': 'Nada en esta categoría todavía.',
+  'club.emptyUpcoming': 'Este club no tiene nada en puerta.',
   'club.allCategories': 'Todos',
 
   // -- push row -------------------------------------------------------------
@@ -529,6 +530,8 @@ export const ES = {
   'event.waitlistNote': 'Estás en lista de espera (puesto {n}). Te avisamos si se libera una plaza.',
   'event.waitlistHeader': 'Lista de espera · {n}',
   'event.noExpensesOrPolls': 'Todavía no hay gastos ni encuestas.',
+  'event.addExpense': 'Gasto',
+  'event.addPoll': 'Encuesta',
   'event.timesInMx': 'Las horas se muestran en Ciudad de México (GMT-6).',
   'event.capacityFor': 'cupo para {n}',
   'pay.payTo': 'Págale a {name} ·',
@@ -1592,6 +1595,7 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'club.approve': 'Approve',
   'club.decline': 'Decline',
   'club.emptyCategory': 'Nothing in this category yet.',
+  'club.emptyUpcoming': 'This club has nothing on yet.',
   'club.allCategories': 'All',
 
   // -- push row -------------------------------------------------------------
@@ -1806,6 +1810,8 @@ export const EN: Partial<Record<keyof typeof ES, string>> = {
   'event.waitlistNote': 'You are on the waitlist (position {n}). We will tell you if a place opens up.',
   'event.waitlistHeader': 'Waitlist · {n}',
   'event.noExpensesOrPolls': 'No expenses or polls yet.',
+  'event.addExpense': 'Expense',
+  'event.addPoll': 'Poll',
   'event.timesInMx': 'Times are shown in Mexico City (GMT-6).',
   'event.capacityFor': 'room for {n}',
   'pay.payTo': 'Pay {name} ·',
