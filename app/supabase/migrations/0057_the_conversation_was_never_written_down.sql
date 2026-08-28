@@ -2,12 +2,25 @@
 -- files have never been able to build.
 --
 -- `event_comments` exists on the deployed database and in no migration, no
--- seed and no RLS test. It was created through Supabase's API and never
--- written down, so `npm run sandbox:reset` produced 33 tables where production
--- has 34, and the Conversación section answered every read with "Could not
--- find the table 'public.event_comments' in the schema cache" and took the
--- whole event page down with a 500. Two places write to it, actions.ts and the
--- event page, and both worked in production and nowhere else.
+-- seed and no RLS test here. Production's ledger names the one that made it:
+-- `20260730222105 0016_event_thread`, applied on 30 July. No such file was
+-- ever committed. `git log -S event_comments` over supabase/migrations finds
+-- nothing before this commit, so the migration ran against production and then
+-- never reached version control at all.
+--
+-- The result was that `npm run sandbox:reset` produced 33 tables where
+-- production has 34, and the Conversación section answered every read with
+-- "Could not find the table 'public.event_comments' in the schema cache" and
+-- took the whole event page down with a 500. Two places write to it,
+-- actions.ts and the event page, and both worked in production and nowhere
+-- else.
+--
+-- That July batch is worth knowing about on its own. It reused numbers that
+-- were already taken, so production has both an 0016_signin_codes and an
+-- 0016_event_thread, an 0017 twice and an 0018 twice, and only one of each
+-- pair is a file here. The table lists match now, 34 against 34, so nothing
+-- else is missing outright, but a ledger that disagrees with the directory is
+-- worth a proper audit rather than this footnote.
 --
 -- This is the third time in this repo: 0052 and 0054 were both the same shape,
 -- something that worked on production because production was built by applying
