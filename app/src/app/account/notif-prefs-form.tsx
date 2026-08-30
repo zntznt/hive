@@ -223,6 +223,24 @@ export default function NotifPrefsForm({
         <div className="mt-2.5 rounded-md border border-line-card bg-paper px-3 py-2.5">
           <p className="eyebrow mb-1.5">{tr('notif.devices')}</p>
           <ul className="flex flex-col gap-1">
+            {/* This browser first, and from what the browser says right now
+                rather than from whether a subscription row for it survives in
+                the table. Those were two answers to one question and they
+                contradicted each other on screen: the banner above said push
+                here was blocked while this list said the same machine was
+                activado, and then said it was apagados four rows later.
+                `push.devices` is everyone else now, decided by the row that
+                knows which endpoint is this browser. */}
+            <li className="flex items-center gap-2 text-[12.5px] text-ink-700">
+              <span
+                className={`h-[7px] w-[7px] flex-shrink-0 rounded-full ${push.live ? 'bg-success' : 'bg-ink-300'}`}
+                aria-hidden="true"
+              />
+              <span className="min-w-0 flex-1 truncate">{push.deviceName}</span>
+              <span className="flex-shrink-0 text-[11.5px] text-ink-300">
+                {tr(push.live ? 'push.on' : 'push.badge.off')}
+              </span>
+            </li>
             {push.devices!.map((d) => (
               <li key={d.endpoint} className="flex items-center gap-2 text-[12.5px] text-ink-700">
                 <span className="h-[7px] w-[7px] flex-shrink-0 rounded-full bg-success" aria-hidden="true" />
@@ -230,13 +248,6 @@ export default function NotifPrefsForm({
                 <span className="flex-shrink-0 text-[11.5px] text-ink-300">{tr('push.on')}</span>
               </li>
             ))}
-            {!push.live && (
-              <li className="flex items-center gap-2 text-[12.5px] text-ink-700">
-                <span className="h-[7px] w-[7px] flex-shrink-0 rounded-full bg-ink-300" aria-hidden="true" />
-                <span className="min-w-0 flex-1 truncate">{push.deviceName}</span>
-                <span className="flex-shrink-0 text-[11.5px] text-ink-300">{tr('push.badge.off')}</span>
-              </li>
-            )}
           </ul>
           <p className="mt-2 text-[11.5px] leading-relaxed text-ink-300">{tr('notif.everywhere')}</p>
         </div>

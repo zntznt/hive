@@ -1,13 +1,13 @@
 'use client'
 
 import { InstallPwa } from '@/components/ui/InstallPwa'
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { savePushSubscription, removePushSubscription, sendTestPush } from '@/app/actions'
 import { useToast } from '@/components/ui/Toast'
 import { Badge } from '@/components/ui/Badge'
-import { useT, useTf } from '@/components/ui/LangProvider'
-import type { StringKey } from '@/lib/lang'
+import { useLang, useT, useTf } from '@/components/ui/LangProvider'
+import { COMPLETE_LANGS, t as translate, tf as format, type Lang } from '@/lib/lang'
 
 // Avisos en este dispositivo.
 //
@@ -34,7 +34,19 @@ type State = 'checking' | 'unsupported' | 'install' | 'default' | 'granted' | 'd
 // Takes the translator rather than calling the hook: this is a plain function,
 // not a component, and a hook in here is a rules-of-hooks violation waiting to
 // fire on the first re-render.
-function deviceLabel(tr: (k: StringKey) => string, tf: (k: StringKey, v: Record<string, string | number>) => string) {
+// What this browser is called, in one language.
+//
+// It is also, unavoidably, how a stored subscription is recognised as this
+// browser's: the endpoint is the real key but it is null until a live
+// subscription resolves, and there is none when permission is blocked, which
+// is exactly when a stale row for this browser is still sitting in the table.
+//
+// So the name is matched, and a name is display copy. Matching one rendering
+// of it meant a member who had switched language saw their own machine listed
+// twice, once as "Chrome en este equipo · activado" and once as "Chrome on
+// this device · off". `deviceNames` below returns every name this browser goes
+// by, which is the nearest thing to a key until the column exists.
+function deviceLabel(lang: Lang) {
   const ua = navigator.userAgent
   const browser = /EdgiOS|Edg/.test(ua)
     ? 'Edge'
@@ -44,7 +56,7 @@ function deviceLabel(tr: (k: StringKey) => string, tf: (k: StringKey, v: Record<
         ? 'Firefox'
         : /Safari/.test(ua)
           ? 'Safari'
-          : tr('push.thisBrowser')
+          : translate(lang, 'push.thisBrowser')
   const os = /iPhone|iPad|iPod/.test(ua)
     ? 'iPhone'
     : /Android/.test(ua)
@@ -53,9 +65,11 @@ function deviceLabel(tr: (k: StringKey) => string, tf: (k: StringKey, v: Record<
         ? 'Mac'
         : /Windows/.test(ua)
           ? 'Windows'
-          : tr('account.thisDevice')
-  return tf('push.onDevice', { browser, os })
+          : translate(lang, 'account.thisDevice')
+  return format(lang, 'push.onDevice', { browser, os })
 }
+
+const deviceNames = () => COMPLETE_LANGS.map(deviceLabel)
 
 // The push service hands back the keys as ArrayBuffers; the server stores them
 // base64url, which is what the encryption expects on the way out.
@@ -93,10 +107,13 @@ export function PushRow({
 }) {
   const tr = useT()
   const tf = useTf()
+  const lang = useLang()
   const [state, setState] = useState<State>('checking')
   const [showInstall, setShowInstall] = useState(false)
   const [endpoint, setEndpoint] = useState<string | null>(null)
   const [label, setLabel] = useState(tr('account.thisDevice'))
+  // every name this browser goes by, for recognising its own stored rows
+  const [aliases, setAliases] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -110,7 +127,10 @@ export function PushRow({
       const ua = navigator.userAgent
       // named before any of the early returns below, because every state says
       // the device out loud and the "other devices" line is filtered by it
-      if (!cancelled) setLabel(deviceLabel(tr, tf))
+      if (!cancelled) {
+        setLabel(deviceLabel(lang))
+        setAliases(deviceNames())
+      }
       const isIos = /iPhone|iPad|iPod/.test(ua)
       const standalone =
         window.matchMedia('(display-mode: standalone)').matches ||
@@ -142,7 +162,7 @@ export function PushRow({
     return () => {
       cancelled = true
     }
-  }, [vapidPublicKey])
+  }, [vapidPublicKey, lang])
 
   async function enable() {
     setBusy(true)
@@ -167,7 +187,7 @@ export function PushRow({
         endpoint: sub.endpoint,
         p256dh: b64(sub.getKey('p256dh')),
         auth: b64(sub.getKey('auth')),
-        deviceLabel: deviceLabel(tr, tf),
+        deviceLabel: deviceLabel(lang),
       })
       setEndpoint(sub.endpoint)
       setState('granted')
@@ -228,16 +248,35 @@ export function PushRow({
     install: tr('push.install'),
     unsupported: tr('push.unsupported'),
   }
+  // Everyone but this browser, one row per device, and it is computed here
+  // because this is the only place that knows which endpoint is this browser.
+  // The list below used to be handed all of them and work it out again, which
+  // it could not: it drew this device's stored row as "activado" next to the
+  // banner saying push here was blocked, and drew a second row for the same
+  // browser when there were two subscriptions from it.
+  const otherDevices = useMemo(() => {
+    const seen = new Set<string>()
+    return devices
+      .filter((d) => d.endpoint !== endpoint && !(d.label && aliases.includes(d.label)))
+      .filter((d) => {
+        // One browser is one row. A device that re-subscribed after its site
+        // data was cleared leaves the old endpoint behind, and two rows with
+        // the same name and the same answer are a readout, not information.
+        const key = d.label ?? d.endpoint
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+  }, [devices, endpoint, aliases])
+
   const reportedRef = useRef('')
   useEffect(() => {
-    const next = `${state}|${label}`
+    const next = `${state}|${label}|${otherDevices.map((d) => d.label ?? d.endpoint).join(',')}`
     if (reportedRef.current === next) return
     reportedRef.current = next
-    onState?.({ live: state === 'granted', state, deviceName: label, reason: REASON[state] ?? null, devices })
+    onState?.({ live: state === 'granted', state, deviceName: label, reason: REASON[state] ?? null, devices: otherDevices })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, label])
-
-  const otherDevices = devices.filter((d) => d.endpoint !== endpoint && d.label !== label)
+  }, [state, label, otherDevices])
 
   const pill =
     'tap inline-flex min-h-11 flex-shrink-0 items-center rounded-pill border-[1.5px] border-line-card bg-paper px-3.5 text-[12.5px] font-bold text-ink-900'

@@ -140,6 +140,8 @@ export default function AvatarProfileForm({
         <BugAvatarPicker
           bug={bug}
           color={color}
+          name={name}
+          photoUrl={photoUrl}
           lang={lang}
           onChange={({ bug: b, color: c }) => {
             setBug(b)
