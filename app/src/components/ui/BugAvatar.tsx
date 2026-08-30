@@ -1,4 +1,5 @@
 import { Icon, type IconName } from './Icon'
+import { HexAvatar } from './HexAvatar'
 import { AVATAR_COLORS, AVATAR_FALLBACK } from '@/lib/avatar-colors'
 import { tf, type Lang } from '@/lib/lang'
 
@@ -67,18 +68,35 @@ export function randomBugAvatar() {
 export function BugAvatarPicker({
   bug,
   color,
+  name,
+  photoUrl,
   lang = 'es',
   onChange,
 }: {
   bug: string
   color: string
+  // Only for the preview: whose face this is, and the photo if there is one.
+  name?: string
+  photoUrl?: string | null
   lang?: Lang
   onChange: (v: { bug: string; color: string }) => void
 }) {
   return (
     <div className="flex flex-col gap-3.5">
+      {/* What you actually look like, which on an account with a photo is the
+          photo. This always drew the bug, so the one screen where you set your
+          face was the only screen in the app showing a different one from every
+          roster, thread and face stack, directly above a line saying your photo
+          is used instead of your bug.
+          The bug still previews live, in the tile row below: each tile is the
+          bug in the colour you have picked and the chosen one is ringed, which
+          is the answer to "what do I go back to". */}
       <div className="flex justify-center">
-        <BugAvatar bug={bug} color={color} size={88} />
+        {photoUrl ? (
+          <HexAvatar name={name ?? '?'} src={photoUrl} size={88} />
+        ) : (
+          <BugAvatar bug={bug} color={color} size={88} />
+        )}
       </div>
 
       <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(52px, 1fr))' }}>
