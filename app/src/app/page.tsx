@@ -107,6 +107,8 @@ function rsvpChip(
   return null
 }
 
+type ClubLite = { slug: string; name: string; avatar_url: string | null }
+
 export default async function Home() {
   const { t, tf , lang } = await getT()
   // One clock for the whole render. There were two `new Date()` calls and now
@@ -127,20 +129,20 @@ export default async function Home() {
   // members, but the app admin can see every membership row of every club
   const { data: memberships } = await supabase
     .from('club_members')
-    .select('club_id, clubs(slug, name)')
+    .select('club_id, clubs(slug, name, avatar_url)')
     .eq('user_id', uid)
 
   const clubById = new Map(
-    (memberships ?? []).map((m) => [m.club_id, m.clubs as unknown as { slug: string; name: string } | null])
+    (memberships ?? []).map((m) => [m.club_id, m.clubs as unknown as ClubLite | null])
   )
   const clubs = Array.from(
     new Map(
       (memberships ?? [])
         .map((m) => {
-          const c = m.clubs as unknown as { slug: string; name: string } | null
+          const c = m.clubs as unknown as ClubLite | null
           return c ? ([m.club_id, { id: m.club_id, ...c }] as const) : null
         })
-        .filter((c): c is readonly [string, { id: string; slug: string; name: string }] => !!c)
+        .filter((c): c is readonly [string, { id: string } & ClubLite] => !!c)
     ).values()
   )
   const clubIds = [...new Set((memberships ?? []).map((m) => m.club_id).filter((id): id is string => !!id))]
@@ -485,7 +487,12 @@ export default async function Home() {
                     today ? 'border-[1.5px] border-honey-500' : 'border border-line-card'
                   }`}
                 >
-                  <HexAvatar name={c.name} size={34} />
+                  {/* The club's own logo, the same one the Clubs tab and the
+                      club page draw. This drew the initial instead, so a club
+                      with a face had two of them: a photo one tap away and an
+                      "E" here. HexAvatar falls back to the initial on its own
+                      when there is no logo. */}
+                  <HexAvatar name={c.name} src={c.avatar_url} size={34} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-bold text-ink-900">{c.name}</span>
                     <span className="mt-1 flex items-center gap-2">

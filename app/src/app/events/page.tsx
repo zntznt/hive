@@ -30,6 +30,17 @@ type RsvpRaw = {
 type BalanceRow = { event_id: string; user_id: string; net_cents: number }
 
 const PER_PAGE = 4
+
+// The order this screen opens in, in one place.
+//
+// It was written three times and two of them said `newest`, which is not the
+// default and has not been since agenda arrived. The filter row treats a group
+// whose current value differs from its `none` as an applied filter, so agenda
+// counted as one on a screen nobody had touched: a honey chip reading "Lo que
+// viene primero", last in a row that already fills a phone, clipped to "Lo" at
+// the edge. The one filter nobody chose was the only one showing, and the only
+// one you could not read.
+const DEFAULT_SORT = 'agenda'
 const NIL = '00000000-0000-0000-0000-000000000000'
 
 // Where a row sits in an agenda, which is not the same question as whether it
@@ -73,7 +84,7 @@ export default async function EventsPage({
   const when = sp.when ?? 'all'
   const place = sp.place ?? 'all'
   const owedOnly = sp.owed === 'true'
-  const sort = sp.sort ?? 'agenda'
+  const sort = sp.sort ?? DEFAULT_SORT
   const page = Math.max(1, parseInt(sp.page ?? '1', 10) || 1)
 
   const { data: memberships } = await supabase
@@ -190,7 +201,7 @@ export default async function EventsPage({
     when: when !== 'all' ? when : undefined,
     place: place !== 'all' ? place : undefined,
     owed: owedOnly ? 'true' : undefined,
-    sort: sort !== 'newest' ? sort : undefined,
+    sort: sort !== DEFAULT_SORT ? sort : undefined,
   }
   const pageHref = (p: number) => `/events${qs({ ...baseParams, page: p > 1 ? String(p) : undefined })}`
   // One filter changed, page reset. Computed here because the chips are links
@@ -268,7 +279,7 @@ export default async function EventsPage({
           {
             key: 'sort',
             label: t('events.filter.sort'),
-            none: 'newest',
+            none: DEFAULT_SORT,
             current: sort,
             clearHref: withFilter('sort', ''),
             options: opts(
@@ -279,7 +290,7 @@ export default async function EventsPage({
                 { value: 'oldest', label: t('events.filter.oldest') },
                 { value: 'owed', label: t('events.filter.mostOwed') },
               ],
-              'agenda'
+              DEFAULT_SORT
             ),
           },
         ]}
