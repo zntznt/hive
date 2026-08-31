@@ -52,7 +52,7 @@ export default async function AccountPage() {
       .select('id, name, addr, query, lat, lng, area')
       .eq('user_id', profile.id)
       .order('created_at'),
-    supabase.from('push_subscriptions').select('endpoint, device_label').eq('user_id', profile.id),
+    supabase.from('push_subscriptions').select('endpoint, device_label, device_key').eq('user_id', profile.id),
   ])
 
   const account = extra as AccountExtra | null
@@ -111,7 +111,7 @@ export default async function AccountPage() {
 
       <NotificationsGroup
         vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''}
-        devices={(pushDevices ?? []).map((d) => ({ endpoint: d.endpoint, label: d.device_label }))}
+        devices={(pushDevices ?? []).map((d) => ({ endpoint: d.endpoint, label: d.device_label, key: d.device_key }))}
         notifEmail={account?.notif_email ?? true}
         notifWhatsapp={account?.notif_whatsapp ?? false}
         prefs={account?.notif_prefs ?? {}}
