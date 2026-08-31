@@ -50,7 +50,7 @@ export default function NotifPrefsForm({
     state?: string
     deviceName: string
     reason: string | null
-    devices?: { endpoint: string; label: string | null }[]
+    devices?: { endpoint: string; label: string | null; key: string | null }[]
   }
 }) {
   const toast = useToast()

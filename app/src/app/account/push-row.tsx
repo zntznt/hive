@@ -34,19 +34,20 @@ type State = 'checking' | 'unsupported' | 'install' | 'default' | 'granted' | 'd
 // Takes the translator rather than calling the hook: this is a plain function,
 // not a component, and a hook in here is a rules-of-hooks violation waiting to
 // fire on the first re-render.
-// What this browser is called, in one language.
+// What browser and machine this is, read once.
 //
-// It is also, unavoidably, how a stored subscription is recognised as this
-// browser's: the endpoint is the real key but it is null until a live
-// subscription resolves, and there is none when permission is blocked, which
-// is exactly when a stale row for this browser is still sitting in the table.
-//
-// So the name is matched, and a name is display copy. Matching one rendering
-// of it meant a member who had switched language saw their own machine listed
+// Two things are built from it and they must not drift: the key, which is how
+// a stored subscription is recognised as this browser's, and the label, which
+// is the sentence a person reads. The label used to be both, and a label is
+// display copy: it is written in whatever language the member was in when they
+// subscribed, so somebody who had since switched saw their own machine listed
 // twice, once as "Chrome en este equipo · activado" and once as "Chrome on
-// this device · off". `deviceNames` below returns every name this browser goes
-// by, which is the nearest thing to a key until the column exists.
-function deviceLabel(lang: Lang) {
+// this device · off".
+//
+// The endpoint cannot do this job. It is null until a live subscription
+// resolves and there is none when permission is blocked, which is exactly when
+// a stale row for this browser is still in the table.
+function deviceParts() {
   const ua = navigator.userAgent
   const browser = /EdgiOS|Edg/.test(ua)
     ? 'Edge'
@@ -56,7 +57,7 @@ function deviceLabel(lang: Lang) {
         ? 'Firefox'
         : /Safari/.test(ua)
           ? 'Safari'
-          : translate(lang, 'push.thisBrowser')
+          : null
   const os = /iPhone|iPad|iPod/.test(ua)
     ? 'iPhone'
     : /Android/.test(ua)
@@ -65,10 +66,29 @@ function deviceLabel(lang: Lang) {
         ? 'Mac'
         : /Windows/.test(ua)
           ? 'Windows'
-          : translate(lang, 'account.thisDevice')
-  return format(lang, 'push.onDevice', { browser, os })
+          : null
+  return { browser, os }
 }
 
+// Untranslated, lowercase, and never shown: "chrome|mac". An unrecognised
+// browser or platform keeps a stable placeholder rather than borrowing the
+// copy, so two members on the same oddity still land on the same key.
+export function deviceKey() {
+  const { browser, os } = deviceParts()
+  return `${(browser ?? 'browser').toLowerCase()}|${(os ?? 'device').toLowerCase()}`
+}
+
+function deviceLabel(lang: Lang) {
+  const { browser, os } = deviceParts()
+  return format(lang, 'push.onDevice', {
+    browser: browser ?? translate(lang, 'push.thisBrowser'),
+    os: os ?? translate(lang, 'account.thisDevice'),
+  })
+}
+
+// Every name this browser goes by, for rows written before device_key existed.
+// They age out on their own: a subscription is rewritten whenever the browser
+// re-registers, and that write carries the key.
 const deviceNames = () => COMPLETE_LANGS.map(deviceLabel)
 
 // The push service hands back the keys as ArrayBuffers; the server stores them
@@ -93,7 +113,7 @@ export function PushRow({
   onState,
 }: {
   vapidPublicKey: string
-  devices: { endpoint: string; label: string | null }[]
+  devices: { endpoint: string; label: string | null; key: string | null }[]
   // Reported upward so the notification matrix can draw push as a dead column
   // when this browser cannot ring. Whether it can is a fact about the browser,
   // discovered here, and the matrix must not go and ask a second time.
@@ -102,7 +122,7 @@ export function PushRow({
     state: State
     deviceName: string
     reason: string | null
-    devices: { endpoint: string; label: string | null }[]
+    devices: { endpoint: string; label: string | null; key: string | null }[]
   }) => void
 }) {
   const tr = useT()
@@ -188,6 +208,7 @@ export function PushRow({
         p256dh: b64(sub.getKey('p256dh')),
         auth: b64(sub.getKey('auth')),
         deviceLabel: deviceLabel(lang),
+        deviceKey: deviceKey(),
       })
       setEndpoint(sub.endpoint)
       setState('granted')
@@ -255,9 +276,14 @@ export function PushRow({
   // banner saying push here was blocked, and drew a second row for the same
   // browser when there were two subscriptions from it.
   const otherDevices = useMemo(() => {
+    // The key when the row has one, the name when it does not, which is only
+    // rows written before 0060 added the column.
+    const mine = aliases.length ? deviceKey() : null
+    const isThisBrowser = (d: { label: string | null; key: string | null }) =>
+      d.key ? d.key === mine : !!d.label && aliases.includes(d.label)
     const seen = new Set<string>()
     return devices
-      .filter((d) => d.endpoint !== endpoint && !(d.label && aliases.includes(d.label)))
+      .filter((d) => d.endpoint !== endpoint && !isThisBrowser(d))
       .filter((d) => {
         // One browser is one row. A device that re-subscribed after its site
         // data was cleared leaves the old endpoint behind, and two rows with

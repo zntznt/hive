@@ -26,7 +26,7 @@ export function NotificationsGroup({
   hasWhatsapp,
 }: {
   vapidPublicKey: string
-  devices: { endpoint: string; label: string | null }[]
+  devices: { endpoint: string; label: string | null; key: string | null }[]
   notifEmail: boolean
   notifWhatsapp: boolean
   prefs: Partial<Record<string, { email?: boolean; whatsapp?: boolean; push?: boolean }>>
@@ -41,7 +41,7 @@ export function NotificationsGroup({
     state?: string
     deviceName: string
     reason: string | null
-    devices?: { endpoint: string; label: string | null }[]
+    devices?: { endpoint: string; label: string | null; key: string | null }[]
   }>({
     live: false,
     deviceName: tr('account.device.this'),

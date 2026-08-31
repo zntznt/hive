@@ -2065,6 +2065,11 @@ export async function savePushSubscription(sub: {
   p256dh: string
   auth: string
   deviceLabel: string
+  // Language independent, from the same user agent read the label is built
+  // from. The label is for a person to read and must never be compared: it is
+  // written in whatever language the member was in, so it named one browser
+  // two different things and the account screen listed it twice.
+  deviceKey: string
 }) {
   const supabase = await supabaseServer()
   const {
@@ -2078,6 +2083,7 @@ export async function savePushSubscription(sub: {
       p256dh: sub.p256dh,
       auth: sub.auth,
       device_label: sub.deviceLabel,
+      device_key: sub.deviceKey,
       last_seen_at: new Date().toISOString(),
     },
     { onConflict: 'endpoint' }
