@@ -26,14 +26,22 @@ export const currentLang = cache(async function currentLang(): Promise<Lang> {
   if (!uid) return resolveLang(null, accept)
   try {
     const supabase = await supabaseServer()
-    const { data } = await supabase.from('users').select('lang').eq('id', uid).maybeSingle()
+    const { data, error } = await supabase.from('users').select('lang').eq('id', uid).maybeSingle()
     // A member who has not chosen reads as null here and follows their phone,
     // which is the "Sigue tu teléfono" setting doing its job. A row we could
     // not read reads the same way, which is a guess rather than an answer, but
     // it is the same guess the sign-in screen makes and it beats rendering
     // nothing.
+    //
+    // The two cases are indistinguishable on the page and that is the problem:
+    // an account set to Español rendering in English looks exactly like an
+    // account that asked to follow its phone. So the failure says so in the
+    // log, with what it fell back to, rather than passing quietly as a
+    // preference nobody set.
+    if (error) console.warn(`[hive:lang] could not read the preference for ${uid}, following ${accept ?? 'no accept-language'}: ${error.message}`)
     return resolveLang((data?.lang as Lang | null) ?? null, accept)
-  } catch {
+  } catch (e) {
+    console.warn(`[hive:lang] preference lookup threw for ${uid}, following ${accept ?? 'no accept-language'}: ${e instanceof Error ? e.message : 'unknown'}`)
     return resolveLang(null, accept)
   }
 })
