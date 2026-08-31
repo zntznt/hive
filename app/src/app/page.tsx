@@ -314,7 +314,12 @@ export default async function Home() {
             </Link>
           }
         >
-          {t('home.plate')} · {total}
+          {/* The count only when there is one. "· 0" is a badge for a number
+              nobody has, printed directly above a line that already says so in
+              words, and a zero in an eyebrow reads as a fault rather than as
+              good news. No other section here counts itself. */}
+          {t('home.plate')}
+          {total > 0 && ` · ${total}`}
         </SectionHeader>
         {total === 0 && <p className="text-[13px] text-ink-500">{t('home.plate.clear')}</p>}
         {total > 0 && (

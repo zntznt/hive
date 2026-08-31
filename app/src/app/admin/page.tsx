@@ -97,6 +97,22 @@ export default async function AdminPage() {
     })
   )
 
+  // Failures from the last week, which is a different question from how many
+  // there have ever been. The row went hot on the total, so four provider
+  // rejections from five weeks ago kept it red for five weeks, and an alert
+  // that never clears is not an alert: a new failure looked exactly like the
+  // old ones it was buried in. The total still shows, it just stops shouting.
+  const HOT_DAYS = 7
+  const { count: recentFailed } = await supabase
+    .from('notification_outbox')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'failed')
+    .gte('created_at', new Date(new Date().getTime() - HOT_DAYS * 86_400_000).toISOString())
+
+  // Something is stuck right now: a queue that has not drained, or a failure
+  // recent enough to still be about something.
+  const deliveryNeedsAttention = counts.queued > 0 || (recentFailed ?? 0) > 0
+
   const outboxRows = (outbox ?? []).map((row) => {
     const u = row.users as unknown as { display_name?: string; email?: string; phone_whatsapp?: string } | null
     return {
@@ -259,14 +275,17 @@ export default async function AdminPage() {
             </div>
           </CollapsibleSection>
 
-          {/* Hot on failures, because a closed row that says "0 fallos" and a
-              closed row hiding twelve of them look identical. */}
+          {/* Hot when something is stuck, because a closed row that says
+              "0 fallos" and a closed row hiding twelve of them look identical.
+              On the total rather than on what is live, it stayed hot for as
+              long as the oldest failure existed, which is the same problem
+              from the other side. */}
           <CollapsibleSection
             label={tr('admin.delivery')}
             icon="paper-plane"
-            tone={counts.failed > 0 ? 'hot' : undefined}
+            tone={deliveryNeedsAttention ? 'hot' : undefined}
             summary={
-              <span className={`text-[12.5px] ${counts.failed > 0 ? 'font-bold text-danger' : 'text-ink-300'}`}>
+              <span className={`text-[12.5px] ${deliveryNeedsAttention ? 'font-bold text-danger' : 'text-ink-300'}`}>
                 {tf(counts.failed === 1 ? 'admin.queued1' : 'admin.queuedN', { n: counts.queued, f: counts.failed })}
               </span>
             }
