@@ -2,7 +2,7 @@
 -- and the pending-account gate (docs/03). Run against a database seeded with
 -- seed.sql. Everything rolls back, so it is safe to re-run.
 --
--- Expected output: ten "PASS …" notices and zero exceptions.
+-- Expected output: eleven "PASS …" notices and zero exceptions.
 
 begin;
 
@@ -149,6 +149,18 @@ begin
   if n = 0 then raise notice 'PASS 4: member cannot touch a contribution assigned to another member';
   else raise exception 'FAIL 4: member modified someone else''s contribution (% rows)', n;
   end if;
+end $$;
+
+do $$
+begin
+  begin
+    insert into notification_outbox (user_id, channel, template, payload)
+    values ('a2222222-2222-4222-8222-222222222222', 'email', 'new_event', '{"title":"<a href=x>premio</a>"}');
+    raise exception 'FAIL 4b: member queued a notification of his own making';
+  exception
+    when sqlstate '42501' then
+      raise notice 'PASS 4b: member cannot write the outbox (only the server queues mail)';
+  end;
 end $$;
 
 -- ── act as Marta (organizer) ───────────────────────────────────────────────
