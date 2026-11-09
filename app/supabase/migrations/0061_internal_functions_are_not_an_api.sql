@@ -7,9 +7,8 @@
 -- function written since. So with nothing but the anon key, anybody could:
 --
 --   purge_deleted_events      delete every binned event, no auth check
---   signin_throttle_ok        clear the sign-in lockout for any contact, which
---                             turns the six digit code back into a guess with
---                             no limit
+--   signin_throttle_ok        clear the failed-attempt lockout for any
+--                             contact, the guard against guessing their code
 --   signin_throttle_take/fail and phone_verify_attempt, signin_code_attempt
 --                             lock any account out of signing in
 --   allocate_expense_shares, event_seats_taken
