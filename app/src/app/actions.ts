@@ -590,7 +590,7 @@ export async function createClubInvitation(clubId: string, clubSlug: string, for
   ])
   const { data: invitation, error } = await supabase
     .from('invitations')
-    .insert({ club_id: clubId, email, phone, invited_by: user.id, invited_role })
+    .insert({ club_id: clubId, email, phone, invited_by: user.id, invited_role, last_sent_at: new Date().toISOString() })
     .select('token')
     .single()
   if (error) throw new Error(error.message)
@@ -1073,6 +1073,7 @@ export async function createInvitation(
       phone,
       invited_by: user.id,
       auto_activate: !!me?.is_app_admin,
+      last_sent_at: new Date().toISOString(),
     })
     .select('token')
     .single()
@@ -1829,6 +1830,16 @@ export async function resendInvitation(invitationId: string, path: string) {
   // they answered. Resending would be asking the same question again.
   if (inv.declined_at) return { ok: false as const, error: t('err.invite.declined') }
   if (!inv.email && !inv.phone) return { ok: false as const, error: t('err.invite.noDestination') }
+  // Each resend is a mail from our address to someone who never signed up, so
+  // a button held down is a way to flood a stranger's inbox. The database
+  // claims the send first, in one statement, and only one caller per window
+  // gets a yes. Anything other than a yes is a no, an error included. The
+  // claim also revives the link: the token is the same one, so anything
+  // already forwarded keeps working, which is what "resend" means to the
+  // person doing it; killing the old one is what "revocar" is for.
+  const { data: claimed, error: claimError } = await supabase.rpc('claim_invitation_resend', { inv_id: invitationId })
+  if (claimError) return { ok: false as const, error: t('err.invite.resend') }
+  if (claimed !== true) return { ok: false as const, error: t('err.invite.tooSoon') }
 
   const [{ data: inviter }, { data: club }, { data: event }] = await Promise.all([
     supabase.from('users').select('display_name').eq('id', user.id).single(),
@@ -1848,16 +1859,6 @@ export async function resendInvitation(invitationId: string, path: string) {
   const result = inv.email
     ? await sendTemplatedEmail(supabase, { to: inv.email, template: 'invitation', vars })
     : await sendTemplatedWhatsapp(supabase, { to: inv.phone as string, template: 'invitation', vars })
-
-  // Resending revives the link. The token is the same one, so anything already
-  // forwarded keeps working, which is what "resend" means to the person doing
-  // it; killing the old one is what "revocar" is for.
-  if (result.ok) {
-    await supabase
-      .from('invitations')
-      .update({ last_sent_at: new Date().toISOString(), expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString() })
-      .eq('id', invitationId)
-  }
 
   revalidatePath(path)
   if (!result.ok) return { ok: false as const, error: result.error ?? t('err.invite.resend') }
