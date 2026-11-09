@@ -2,9 +2,106 @@
 -- and the pending-account gate (docs/03). Run against a database seeded with
 -- seed.sql. Everything rolls back, so it is safe to re-run.
 --
--- Expected output: six "PASS …" notices and zero exceptions.
+-- Expected output: ten "PASS …" notices and zero exceptions.
 
 begin;
+
+-- ── who can call which function (0061) ─────────────────────────────────────
+-- Everything a client is allowed to call is listed here. Anything else in
+-- `public` that anon or authenticated can execute is a function exposed by
+-- accident, because Postgres hands EXECUTE to PUBLIC unless told otherwise.
+do $$
+declare
+  for_anon text[] := array[
+    'is_active_user()', 'is_app_admin()', 'is_club_member(uuid)',
+    'is_club_admin(uuid)', 'is_club_manager(uuid)', 'is_event_member(uuid)',
+    'is_event_organizer(uuid)', 'can_see_event(uuid)',
+    'get_invitation_preview(text)', 'get_club_join_preview(text)',
+    'get_club_calendar(text)', 'decline_invitation(text,boolean)'];
+  for_signed_in text[] := for_anon || array[
+    'add_expense_with_shares(uuid,integer,text,uuid[],uuid[])',
+    'admin_set_app_admin(uuid,boolean)', 'admin_set_user_status(uuid,user_status)',
+    'apply_poll_option(uuid,uuid)', 'approve_change_request(uuid)',
+    'approve_join_request(uuid)', 'claim_invitation(text)', 'confirm_rsvp(uuid)',
+    'join_event(text)', 'mark_attendance(uuid,uuid[],uuid[])', 'nudge_admins()',
+    'pending_queue_status()', 'pick_slot(uuid,timestamp with time zone,timestamp with time zone)',
+    'poll_results(uuid)', 'promote_guest(uuid,citext,text)', 'promote_waitlist(uuid)',
+    'replace_payment_methods(jsonb)', 'request_account_deletion()',
+    'request_join_club(text)', 'rotate_club_calendar_token(uuid)',
+    'rsvp_set(uuid,rsvp_status)', 'set_event_deleted(uuid,boolean)',
+    'set_event_status(uuid,event_status)'];
+  service_only text[] := array[
+    'purge_deleted_events(integer)', 'signin_throttle_take(text)',
+    'signin_throttle_fail(text)', 'signin_throttle_ok(text)',
+    'phone_verify_attempt(uuid)', 'signin_code_attempt(uuid)'];
+  f text;
+  r record;
+begin
+  -- the allowlists hold exactly what they claim
+  foreach f in array for_anon loop
+    if not has_function_privilege('anon', 'public.' || f, 'execute') then
+      raise exception 'FAIL 0a: anon cannot call %, which a signed-out page needs', f;
+    end if;
+  end loop;
+  foreach f in array for_signed_in loop
+    if not has_function_privilege('authenticated', 'public.' || f, 'execute') then
+      raise exception 'FAIL 0a: authenticated cannot call %', f;
+    end if;
+  end loop;
+  foreach f in array service_only loop
+    if not has_function_privilege('service_role', 'public.' || f, 'execute') then
+      raise exception 'FAIL 0a: service_role cannot call %', f;
+    end if;
+  end loop;
+  raise notice 'PASS 0a: every function a client needs is callable by its role';
+
+  -- and nothing else is reachable with the public key
+  for r in
+    select p.oid::regprocedure::text as sig,
+           regexp_replace(p.oid::regprocedure::text, '^public\.', '') as bare
+      from pg_proc p
+     where p.pronamespace = 'public'::regnamespace
+       and not exists (select 1 from pg_depend d
+                        where d.classid = 'pg_proc'::regclass
+                          and d.objid = p.oid and d.deptype = 'e')
+  loop
+    if has_function_privilege('anon', r.sig, 'execute') and not r.bare = any (for_anon) then
+      raise exception 'FAIL 0b: anon can call %', r.sig;
+    end if;
+    if has_function_privilege('authenticated', r.sig, 'execute') and not r.bare = any (for_signed_in) then
+      raise exception 'FAIL 0b: authenticated can call %', r.sig;
+    end if;
+  end loop;
+  raise notice 'PASS 0b: no other function in public is callable by anon or authenticated';
+end $$;
+
+-- A function written tomorrow is not an API until a migration says so.
+create function public.rls_test_probe() returns int language sql as 'select 1';
+do $$
+begin
+  if has_function_privilege('anon', 'public.rls_test_probe()', 'execute')
+     or has_function_privilege('authenticated', 'public.rls_test_probe()', 'execute') then
+    raise exception 'FAIL 0c: a new function is callable by the public key by default';
+  end if;
+  if not has_function_privilege('service_role', 'public.rls_test_probe()', 'execute') then
+    raise exception 'FAIL 0c: a new function is not callable by service_role';
+  end if;
+  raise notice 'PASS 0c: a new function starts out service role only';
+end $$;
+drop function public.rls_test_probe();
+
+-- The signed-out pages still work: each answers an unknown token with nothing.
+set local role anon;
+do $$
+begin
+  perform * from get_invitation_preview('no-such-token');
+  perform * from get_club_join_preview('no-such-token');
+  perform * from get_club_calendar('no-such-token');
+  perform count(*) from events;
+  raise notice 'PASS 0d: anon can open invite, join and calendar links and read through RLS';
+end $$;
+reset role;
+
 set local role authenticated;
 
 -- ── act as Jorge (regular member) ──────────────────────────────────────────
