@@ -4,13 +4,15 @@ import { sendWhatsapp, checkBroadcast } from './whatsapp'
 import { supabaseService } from './supabase/service'
 import { sendPush } from './push'
 import { after } from 'next/server'
+import { renderTemplate, renderEmailHtml } from './template'
 
 // Every function here reads rows that belong to other people: the recipient's
 // preferences, their queued outbox rows, the shared template CMS. RLS scopes
 // all three to yourself or to app admins, so the pipeline has to run on its
 // own credentials rather than the acting user's. Falls back to the caller's
-// client when the service key is unset, which is the old (broken) behavior
-// but keeps the app running.
+// client when the service key is unset, which keeps reads working, but
+// nothing can be queued that way: since 0062 only the service role writes the
+// outbox.
 function pipelineDb(supabase: SupabaseClient): SupabaseClient {
   return supabaseService() ?? supabase
 }
@@ -59,10 +61,6 @@ export const TOPIC_OF: Partial<Record<TemplateKey, NotifTopic>> = {
 }
 
 type PrefsMatrix = Partial<Record<NotifTopic, { email?: boolean; whatsapp?: boolean; push?: boolean }>>
-
-export function renderTemplate(tpl: string, vars: Record<string, string>) {
-  return tpl.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? '')
-}
 
 // Queues notification_outbox rows. Channels come from the recipient's
 // per-topic matrix (users.notif_prefs) when the template maps to a topic,
@@ -210,7 +208,7 @@ export async function sendTemplatedEmail(
   // written before this still read.
   if (!tpl) return { ok: false as const, skipped: true as const, error: 'no_template' }
   const subject = renderTemplate(tpl.subject ?? 'Hive', vars)
-  const html = renderTemplate(tpl.body, vars).replace(/\n/g, '<br>')
+  const html = renderEmailHtml(tpl.body, vars)
   const result = await sendEmail({ to, subject, html })
   await recordDirectSend(supabase, { channel: 'email', template, destination: to, result })
   return result
@@ -404,7 +402,7 @@ export async function dispatchQueuedNotifications(supabase: SupabaseClient, limi
         ? await sendEmail({
             to: destination,
             subject: renderTemplate(tpl.subject ?? 'Hive', vars),
-            html: body.replace(/\n/g, '<br>'),
+            html: renderEmailHtml(tpl.body, vars),
           })
         : await sendWhatsapp({
             to: destination,

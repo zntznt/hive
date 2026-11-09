@@ -1811,6 +1811,8 @@ export async function duplicateEvent(eventId: string, extraWeeks = 0) {
 // an invite that is sitting in someone's inbox twice still leads to one
 // account. Only the email channel resends: a WhatsApp-only invitation has
 // nothing to send to until Meta approves an invitation template.
+const RESEND_INVITATION_AFTER_MS = 10 * 60_000
+
 export async function resendInvitation(invitationId: string, path: string) {
   const { t } = await getT()
   const supabase = await supabaseServer()
@@ -1821,7 +1823,7 @@ export async function resendInvitation(invitationId: string, path: string) {
 
   const { data: inv } = await supabase
     .from('invitations')
-    .select('token, email, phone, club_id, event_id, claimed_by_user_id, declined_at')
+    .select('token, email, phone, club_id, event_id, claimed_by_user_id, declined_at, last_sent_at')
     .eq('id', invitationId)
     .maybeSingle()
   if (!inv) throw new Error('invitation not found')
@@ -1829,6 +1831,14 @@ export async function resendInvitation(invitationId: string, path: string) {
   // they answered. Resending would be asking the same question again.
   if (inv.declined_at) return { ok: false as const, error: t('err.invite.declined') }
   if (!inv.email && !inv.phone) return { ok: false as const, error: t('err.invite.noDestination') }
+  // Each resend is a mail from our address to someone who never signed up, so
+  // a button held down is a way to flood a stranger's inbox. last_sent_at is
+  // already stamped on every send.
+  // ponytail: read then send, so two clicks in the same instant both pass. A
+  // conditional update on last_sent_at closes that if it ever matters.
+  if (inv.last_sent_at && Date.now() - Date.parse(inv.last_sent_at) < RESEND_INVITATION_AFTER_MS) {
+    return { ok: false as const, error: t('err.invite.tooSoon') }
+  }
 
   const [{ data: inviter }, { data: club }, { data: event }] = await Promise.all([
     supabase.from('users').select('display_name').eq('id', user.id).single(),
